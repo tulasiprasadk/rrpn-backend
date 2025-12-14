@@ -10,14 +10,20 @@ export default function Login() {
 
   const requestOtp = async () => {
     try {
-      await axios.post("/api/auth/request-otp", { email }, { withCredentials: true });
+      await axios.post(
+        "/api/customer/request-otp",
+        { email },
+        { withCredentials: true }
+      );
 
-      // Move to OTP verification page
       navigate("/verify", { state: { email } });
 
     } catch (err) {
       console.error("OTP Request Error:", err);
-      const msg = err?.response?.data?.error || err?.message || "Unable to send OTP, please try again.";
+      const msg =
+        err?.response?.data?.error ||
+        err?.message ||
+        "Unable to send OTP, please try again.";
       alert(msg);
     }
   };

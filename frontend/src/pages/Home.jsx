@@ -167,13 +167,29 @@ export default function Home() {
 
   useEffect(() => {
     if (!discoverRef.current) return;
-    let total = 0;
-    discoverRef.current.querySelectorAll(".discover-item").forEach(item => {
-      const style = window.getComputedStyle(item);
-      total += item.offsetWidth + parseFloat(style.marginRight);
-    });
-    setScrollWidth(total);
+
+    const computeWidth = () => {
+      const items = discoverRef.current.querySelectorAll(".discover-item");
+      let total = 0;
+
+      items.forEach(item => {
+        const style = window.getComputedStyle(item);
+        total += item.offsetWidth + parseFloat(style.marginRight || "0");
+      });
+
+      setScrollWidth(total);
+    };
+
+    computeWidth();
+    window.addEventListener("resize", computeWidth);
+    return () => window.removeEventListener("resize", computeWidth);
   }, []);
+
+  /* -----------------------------------
+      DERIVED DATA
+  ----------------------------------- */
+  const featuredProducts = products.slice(0, 8);
+  const displayedProducts = hasSearched ? filteredProducts : featuredProducts;
 
   /* -----------------------------------
       UI
@@ -198,16 +214,142 @@ export default function Home() {
 
             <div className="hero-search">
               <input
+                className="hero-search-input"
                 placeholder="Search groceries, flowers, products…"
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
                 onKeyPress={handleKeyPress}
               />
-              <button onClick={handleSearchClick}>Search</button>
+              <button className="hero-search-btn" onClick={handleSearchClick}>
+                Search
+              </button>
             </div>
           </div>
         </div>
       </section>
+
+      <div className="content">
+        {/* Popular categories */}
+        <section className="section">
+          <h2 className="section-title">Popular Categories</h2>
+          <div className="cat-row">
+            {categories.length === 0 && (
+              <p style={{ color: "#666" }}>Loading categories…</p>
+            )}
+
+            {categories.map(cat => (
+              <div
+                key={cat.id}
+                className="cat-card"
+                onClick={() => handleCategoryClick(cat.id)}
+              >
+                <span className="icon">{cat.icon || "🛍️"}</span>
+                <span className="label">{cat.name}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* Ads marquee */}
+        <section className="section">
+          <h2 className="section-title">What is New in RR Nagar</h2>
+          <div className="ads-viewport">
+            <div className="ads-track">
+              {adsLoop.map((ad, idx) => (
+                <a
+                  key={`${ad.title}-${idx}`}
+                  href={ad.link}
+                  className="ad-item"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <div className="ad-title">{ad.title}</div>
+                  <img src={ad.image} alt={ad.title} />
+                  <div style={{ color: "#4a0000", fontWeight: 600, fontSize: 14 }}>
+                    Tap to view
+                  </div>
+                </a>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Discover carousel */}
+        <section className="section">
+          <h2 className="section-title">Discover Around You</h2>
+          <div className="discover-viewport">
+            <div
+              ref={discoverRef}
+              className="discover-track"
+              style={{ "--scroll-width": `${scrollWidth}px` }}
+            >
+              {[...discover, ...discover].map((item, idx) => (
+                <div className="discover-item" key={`${item.title}-${idx}`}>
+                  <ExploreItem
+                    icon={item.icon}
+                    title={item.title}
+                    desc={item.desc}
+                    longInfo={item.desc}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Products grid */}
+        <section className="section">
+          <h2 className="section-title">Fresh Picks for You</h2>
+          {displayedProducts.length === 0 ? (
+            <p style={{ textAlign: "center", color: "#666" }}>
+              {hasSearched
+                ? "No products found. Try another search."
+                : "Products are loading…"}
+            </p>
+          ) : (
+            <div className="products-grid">
+              {displayedProducts.map(product => (
+                <div
+                  key={product.id}
+                  className="product-card"
+                  onClick={() => navigate(`/product/${product.id}`)}
+                >
+                  <img
+                    className="product-image"
+                    src={product.image || "/images/product-placeholder.png"}
+                    alt={product.title}
+                    onError={e => {
+                      e.currentTarget.src = "/images/product-placeholder.png";
+                    }}
+                  />
+
+                  <div className="product-info">
+                    <h3 className="product-title">{product.title}</h3>
+                    {product.variety && (
+                      <p className="product-variety">{product.variety}</p>
+                    )}
+                    <p className="product-price">₹{product.price}</p>
+                    {product.description && (
+                      <p className="product-desc">{product.description}</p>
+                    )}
+
+                    <button
+                      className="add-to-cart-btn"
+                      disabled={addingToCart === product.id}
+                      onClick={e => {
+                        e.stopPropagation();
+                        addToCart(product);
+                      }}
+                    >
+                      {addingToCart === product.id ? "Adding…" : "Add to cart"}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      </div>
     </main>
   );
 }
