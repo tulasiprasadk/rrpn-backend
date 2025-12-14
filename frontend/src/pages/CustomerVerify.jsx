@@ -8,7 +8,7 @@ export default function CustomerVerify() {
 
   const email = location.state?.email || "";
   const [otp, setOtp] = useState("");
-  const [isNewUser, setIsNewUser] = useState(false);
+  const [showAddressForm, setShowAddressForm] = useState(false);
   const [address, setAddress] = useState({
     name: "",
     addressLine: "",
@@ -22,12 +22,24 @@ export default function CustomerVerify() {
     try {
       const res = await axios.post("/api/auth/verify-email-otp", { email, otp }, { withCredentials: true });
 
-      // Check if this is a new user (first time login)
-      if (res.data.isNewUser) {
-        setIsNewUser(true);
-      } else {
-        // Existing user, redirect to dashboard
-        navigate("/dashboard");
+      // Check if user has saved addresses
+      try {
+        const addressRes = await axios.get("/api/customer/address", { withCredentials: true });
+        
+        if (addressRes.data && addressRes.data.length > 0) {
+          // User has addresses, redirect to dashboard
+          navigate("/dashboard");
+        } else {
+          // User has no addresses, show form
+          setShowAddressForm(true);
+        }
+      } catch (err) {
+        // If error fetching addresses, show form for first-time users
+        if (res.data.isNewUser) {
+          setShowAddressForm(true);
+        } else {
+          navigate("/dashboard");
+        }
       }
 
     } catch (err) {
@@ -68,7 +80,7 @@ export default function CustomerVerify() {
     }
   };
 
-  if (isNewUser) {
+  if (showAddressForm) {
     return (
       <div style={{ padding: 30, maxWidth: 600, margin: "0 auto" }}>
         <h2>Complete Your Profile</h2>
