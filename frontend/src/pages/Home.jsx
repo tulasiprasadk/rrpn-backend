@@ -6,7 +6,7 @@ import ExploreItem from "../components/ExploreItem";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
-/* ================= HERO IMAGES ================= */
+/* ================= HERO IMAGES (imported from assets) ================= */
 import hero1 from "../assets/hero-1.jpg";
 import hero2 from "../assets/hero-2.jpg";
 import hero3 from "../assets/hero-3.jpg";
@@ -23,9 +23,8 @@ export default function Home() {
 
   /* ================= HERO SLIDER ================= */
   const heroImages = [hero1, hero2, hero3, hero4];
-  const fallbackHero = "/images/rrnagar_hero.jpg";
   const [heroIndex, setHeroIndex] = useState(0);
-  const [heroSrc, setHeroSrc] = useState(heroImages[0] || fallbackHero);
+  const [heroSrc, setHeroSrc] = useState(heroImages[0]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -35,7 +34,7 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    setHeroSrc(heroImages[heroIndex] || fallbackHero);
+    setHeroSrc(heroImages[heroIndex]);
   }, [heroIndex]);
 
   /* ================= PRODUCTS ================= */
