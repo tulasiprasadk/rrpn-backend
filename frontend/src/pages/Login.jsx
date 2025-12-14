@@ -11,7 +11,7 @@ export default function Login() {
   const requestOtp = async () => {
     try {
       await axios.post(
-        "/api/customer/request-otp",
+        "/api/auth/request-email-otp",
         { email },
         { withCredentials: true }
       );

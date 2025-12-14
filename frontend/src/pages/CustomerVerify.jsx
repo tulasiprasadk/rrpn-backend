@@ -20,7 +20,7 @@ export default function CustomerVerify() {
 
   const handleVerify = async () => {
     try {
-      const res = await axios.post("/api/auth/verify-otp", { email, otp }, { withCredentials: true });
+      const res = await axios.post("/api/auth/verify-email-otp", { email, otp }, { withCredentials: true });
 
       // Check if this is a new user (first time login)
       if (res.data.isNewUser) {
