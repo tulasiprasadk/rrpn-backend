@@ -1,5 +1,3 @@
-// frontend/src/pages/Login.jsx
-
 import { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
@@ -9,9 +7,14 @@ export default function Login() {
   const navigate = useNavigate();
 
   const requestOtp = async () => {
+    if (!email) {
+      alert("Please enter your email address");
+      return;
+    }
+
     try {
       await axios.post(
-        "/api/auth/request-email-otp",
+        `${import.meta.env.VITE_API_URL}/api/auth/request-email-otp`,
         { email },
         { withCredentials: true }
       );
@@ -20,11 +23,18 @@ export default function Login() {
 
     } catch (err) {
       console.error("OTP Request Error:", err);
-      const msg =
-        err?.response?.data?.error ||
-        err?.message ||
-        "Unable to send OTP, please try again.";
-      alert(msg);
+
+      let message = "Unable to send OTP, please try again.";
+
+      if (typeof err?.response?.data?.error === "string") {
+        message = err.response.data.error;
+      } else if (typeof err?.response?.data?.message === "string") {
+        message = err.response.data.message;
+      } else if (typeof err?.message === "string") {
+        message = err.message;
+      }
+
+      alert(message);
     }
   };
 

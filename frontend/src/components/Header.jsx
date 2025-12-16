@@ -24,7 +24,13 @@ export default function Header() {
     let isMounted = true;
 
     axios
-      .get("/api/auth/me", { withCredentials: true })
+  .get(
+    import.meta.env.DEV
+      ? `${import.meta.env.VITE_API_URL}/api/auth/me`
+      : "/api/auth/me",
+    { withCredentials: true }
+  )
+
       .then((res) => {
         if (!isMounted) return;
 

@@ -9,15 +9,27 @@ export default function Footer() {
   return (
     <>
       <footer className="rn-footer">
-        <div className="rn-footer-inner container">
+        <div className="rn-footer-inner">
+
+          {/* LEFT */}
           <div className="left">
-            <div className="copyright">© {new Date().getFullYear()} RR Nagar. All rights reserved.</div>
-            <div className="contact">Contact: <a href="mailto:namaste@rrnagar.com">namaste@rrnagar.com</a> • 98440 07900</div>
+            <div className="contact">
+              Contact: Abhishek V, 98440 07900{" "}
+              <a href="mailto:namaste@rrnagar.com">namaste@rrnagar.com</a> •
+            </div>
           </div>
+
+          {/* CENTER */}
+          <div className="copyright">
+            © {new Date().getFullYear()} RR Nagar. All rights reserved.
+          </div>
+
+          {/* RIGHT */}
           <div className="right">
+            <a href="mailto:namaste@rrnagar.com" className="muted">Message</a>
             <Link to="/supplier/login" className="muted">Supplier</Link>
-            <button 
-              onClick={() => setShowPartnerModal(true)} 
+            <button
+              onClick={() => setShowPartnerModal(true)}
               className="muted partner-link-btn"
             >
               Partner
@@ -25,12 +37,13 @@ export default function Footer() {
             <Link to="/privacy" className="muted">Privacy</Link>
             <Link to="/terms" className="muted">Terms</Link>
           </div>
+
         </div>
       </footer>
 
-      <PartnerModal 
-        isOpen={showPartnerModal} 
-        onClose={() => setShowPartnerModal(false)} 
+      <PartnerModal
+        isOpen={showPartnerModal}
+        onClose={() => setShowPartnerModal(false)}
       />
     </>
   );

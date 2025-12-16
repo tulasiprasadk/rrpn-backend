@@ -7,17 +7,26 @@ import axios from "axios";
 // Detect environment
 const isDev = import.meta.env.DEV;
 
-// API base URL
-// - Dev: use Vite proxy (/api → localhost backend)
-// - Prod: use Render backend URL
+// --------------------
+// Axios configuration
+// --------------------
+// Dev  → use relative URLs (Vite proxy or same-origin)
+// Prod → use Render backend
 axios.defaults.baseURL = isDev
   ? ""
   : import.meta.env.VITE_API_URL;
 
 axios.defaults.withCredentials = true;
 
-// Router base (GitHub Pages / future custom domain)
-const baseName = import.meta.env.VITE_BASE_URL || "/";
+// --------------------
+// Router basename
+// --------------------
+// Dev  → "/"
+// Prod → "/rrnagar-coming-soon"
+const baseName =
+  !isDev && import.meta.env.VITE_BASE_URL
+    ? import.meta.env.VITE_BASE_URL
+    : "/";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>

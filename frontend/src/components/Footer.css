@@ -1,35 +1,76 @@
 .rn-footer {
-  background: linear-gradient(to bottom, #ffd600 0%, #ffd600 50%, #e31e24 50%, #e31e24 100%);
+  background: linear-gradient(
+    to bottom,
+    #ffd600 0%,
+    #ffd600 50%,
+    #e31e24 50%,
+    #e31e24 100%
+  );
   border-top: 1px solid #eee;
-  padding: 18px 0;
+
+  /* IMPORTANT: give footer a fixed visual height */
+  padding: 0;
   margin-top: 36px;
+  min-height: 72px;
+
+  display: flex;
+  align-items: center; /* vertical centering */
 }
 
+/* --------------------------------
+   Footer layout – 3 column grid
+   -------------------------------- */
 .rn-footer-inner {
   max-width: 1280px;
+  width: 100%;
   margin: 0 auto;
-  padding: 0 18px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+
+  /* minimal gap from screen edges */
+  padding: 0 4px;
+
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center; /* key fix */
+
   color: #000;
   font-size: 14px;
   font-weight: 600;
   text-shadow: none;
 }
 
-.rn-footer-inner a { 
-  color: #000; 
-  text-decoration: none; 
+/* Left: Contact */
+.rn-footer .left {
+  justify-self: start;
+  text-align: left;
+}
+
+/* Center: Copyright */
+.rn-footer .copyright {
+  justify-self: center;
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* Right: Links */
+.rn-footer .right {
+  justify-self: end;
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* Links */
+.rn-footer-inner a {
+  color: #000;
+  text-decoration: none;
   margin-left: 14px;
   font-weight: 600;
-  text-shadow: none;
 }
 
 .rn-footer-inner a:hover {
   text-decoration: underline;
 }
 
+/* Partner button */
 .partner-link-btn {
   background: none;
   border: none;
@@ -40,13 +81,31 @@
   margin-left: 14px;
   color: #000;
   font-weight: 600;
-  text-shadow: none;
 }
 
 .partner-link-btn:hover {
   text-decoration: underline;
 }
 
+/* --------------------------------
+   Mobile layout
+   -------------------------------- */
 @media (max-width: 780px) {
-  .rn-footer-inner { flex-direction: column; gap: 10px; text-align: center; }
+  .rn-footer {
+    padding: 12px 0;
+  }
+
+  .rn-footer-inner {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    text-align: center;
+  }
+
+  .rn-footer .left,
+  .rn-footer .right,
+  .rn-footer .copyright {
+    justify-self: center;
+    text-align: center;
+    white-space: normal;
+  }
 }

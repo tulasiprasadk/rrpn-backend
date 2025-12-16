@@ -52,6 +52,11 @@
   max-width: 800px;
   padding: 0 20px;
   z-index: 2;
+
+  /* +25% text scale without breaking grid */
+  font-size: 1.25em;
+}
+
 }
 
 .hero-title {
@@ -59,11 +64,13 @@
   font-weight: 800;
   margin-bottom: 8px;
   line-height: 1.2;
+ font-size: 1.25em;
 }
 
 .hero-sub {
   font-size: clamp(14px, 2.5vw, 16px);
   margin-bottom: 16px;
+ font-size: 1.25em;
 }
 
 .hero-search {
@@ -71,6 +78,7 @@
   justify-content: center;
   gap: 10px;
   flex-wrap: wrap;
+ font-size: 1.25em;
 }
 
 .hero-search-input {
@@ -80,6 +88,7 @@
   border-radius: 10px;
   border: none;
   font-size: 14px;
+ font-size: 1.25em;
 }
 
 .hero-search-btn {
@@ -91,6 +100,7 @@
   cursor: pointer;
   font-weight: 600;
   white-space: nowrap;
+ font-size: 1.25em;
 }
 
 /* Responsive adjustments */
