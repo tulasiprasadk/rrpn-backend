@@ -1,6 +1,6 @@
 /**
  * backend/index.js
- * RR Nagar Backend – FINAL STABLE FILE
+ * RR Nagar Backend – FINAL STABLE (VERCEL + RENDER)
  */
 
 require("dotenv").config();
@@ -25,10 +25,11 @@ if (isProd) {
 }
 
 /* =============================
-   CORS CONFIG — FINAL (VERCEL + RENDER SAFE)
+   CORS CONFIG — FINAL & SAFE
 ============================= */
 
 const allowedOrigins = [
+  // Local
   "http://localhost:5173",
   "http://localhost:5174",
   "http://127.0.0.1:5173",
@@ -44,8 +45,8 @@ const allowedOrigins = [
 
 app.use(
   cors({
-    origin: function (origin, callback) {
-      // Allow non-browser requests (Postman, server-to-server)
+    origin: (origin, callback) => {
+      // Allow Postman / curl / server-to-server
       if (!origin) return callback(null, true);
 
       if (allowedOrigins.includes(origin)) {
@@ -60,9 +61,6 @@ app.use(
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
-
-// ✅ Preflight MUST be handled explicitly
-app.options("/api/*", cors());
 
 /* =============================
    BODY PARSERS
@@ -80,9 +78,9 @@ app.use(
     saveUninitialized: false,
     name: "rrnagar.sid",
     cookie: {
-      maxAge: 24 * 60 * 60 * 1000,
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
       httpOnly: true,
-      secure: isProd,
+      secure: isProd,              // REQUIRED on Render + Vercel
       sameSite: isProd ? "none" : "lax",
       path: "/",
     },
@@ -90,7 +88,7 @@ app.use(
 );
 
 /* =============================
-   DEBUG LOG
+   DEBUG LOG (SAFE)
 ============================= */
 app.use((req, res, next) => {
   console.log(
@@ -103,6 +101,7 @@ app.use((req, res, next) => {
    ROUTES
 ============================= */
 
+// Health check
 app.get("/", (req, res) => {
   res.send("RR Nagar Backend Running");
 });
@@ -138,13 +137,14 @@ app.use("/api/analytics", require("./routes/analytics"));
 app.use("/api/upload", require("./routes/upload"));
 app.use("/api", require("./routes/partner"));
 
+// Static uploads
 app.use("/uploads", express.static("uploads"));
 
 /* =============================
-   ERROR HANDLER
+   GLOBAL ERROR HANDLER
 ============================= */
 app.use((err, req, res, next) => {
-  console.error("❌ Server error:", err);
+  console.error("❌ Server error:", err.message);
   res.status(500).json({ error: err.message });
 });
 
