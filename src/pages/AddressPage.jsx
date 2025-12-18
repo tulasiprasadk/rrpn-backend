@@ -50,12 +50,6 @@ export default function AddressPage() {
     <div style={{ padding: 20 }}>
       <h2>My Addresses</h2>
 
-      {/* DEBUG INFO */}
-      <div style={{ fontSize: '12px', background: '#f5f5f5', padding: 8, marginBottom: 12, borderRadius: 4 }}>
-        <strong>Debug:</strong> Loading={loading ? 'true' : 'false'}, Addresses={list.length}, Error={error ? 'yes' : 'no'}
-        <br />
-        <button onClick={load} style={{ marginTop: 4, fontSize: '11px' }}>Reload Now</button>
-      </div>
 
       {loading && <div style={{ color: "#666" }}>Loading addresses...</div>}
       

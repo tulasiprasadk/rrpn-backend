@@ -1,0 +1,14 @@
+[
+  { "category": "Fruits", "items": [
+    { "title": "Banana – Yelakki", "kn": "ಬಾಳೆಹಣ್ಣು – ಎಲಕ್ಕಿ", "price": 60, "unit": "Kg" },
+    { "title": "Banana – Nendran", "kn": "ಬಾಳೆಹಣ್ಣು – ನೆಂದ್ರನ್", "price": 60, "unit": "Kg" },
+    { "title": "Banana – Robusta", "kn": "ಬಾಳೆಹಣ್ಣು – ರೋಬಸ್ಟಾ", "price": 60, "unit": "Kg" },
+    { "title": "Banana – Poovan", "kn": "ಬಾಳೆಹಣ್ಣು – ಪೂವನ", "price": 60, "unit": "Kg" },
+    { "title": "Apple – Shimla", "kn": "ಸೇಬು – ಶಿಮ್ಲಾ", "price": 180, "unit": "Kg" },
+    { "title": "Apple – Fuji", "kn": "ಸೇಬು – ಫುಜೀ", "price": 220, "unit": "Kg" },
+    { "title": "Apple – Washington", "kn": "ಸೇಬು – ವಾಷಿಂಗ್ಟನ್", "price": 200, "unit": "Kg" },
+    { "title": "Apple – Royal Gala", "kn": "ಸೇಬು – ರಾಯಲ್ ಗಾಲಾ", "price": 220, "unit": "Kg" },
+    { "title": "Mango – Alphonso", "kn": "ಮಾವು – ಆಲ್ಫೋನ್ಸೋ", "price": 250, "unit": "Kg" },
+    { "title": "Mango – Badami", "kn": "ಮಾವು – ಬಾದಾಮಿ", "price": 120, "unit": "Kg" }
+  ] }
+]

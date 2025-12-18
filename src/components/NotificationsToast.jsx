@@ -51,7 +51,7 @@ function Toast({ toast, onClose }) {
           <span style={{ fontSize: 18 }}>{getIcon(toast.type)}</span>
           <strong style={titleStyle}>{toast.title || getTitleForType(toast.type)}</strong>
         </div>
-        <button onClick={onClose} style={closeBtnStyle}>
+        <button onClick={onClose} style={closeBtnStyle} aria-label="Close notification">
           ✕
         </button>
       </div>

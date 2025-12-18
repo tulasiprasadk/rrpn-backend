@@ -1,0 +1,102 @@
+[
+  {
+    "category": "Electrician",
+    "items": [
+      { "id": "elec1", "name": "Fan Installation", "kn": "ಫ್ಯಾನ್ ಅಳವಡಿಕೆ", "emoji": "🛠️", "subCategory": "Electrician", "priceType": "Starting From", "price": 300 },
+      { "id": "elec2", "name": "Switch Board Repair", "kn": "ಸ್ವಿಚ್ ಬೋರ್ಡ್ ದುರಸ್ತಿ", "emoji": "🔌", "subCategory": "Electrician", "priceType": "Inspection Based", "price": null },
+      { "id": "elec3", "name": "Wiring Work", "kn": "ವೈಯರಿಂಗ್ ಕೆಲಸ", "emoji": "🔧", "subCategory": "Electrician", "priceType": "Inspection Based", "price": null },
+      { "id": "elec4", "name": "Inverter Installation", "kn": "ಇನ್ವರ್ಟರ್ ಅಳವಡಿಕೆ", "emoji": "🔋", "subCategory": "Electrician", "priceType": "Starting From", "price": 1500 },
+      { "id": "elec5", "name": "Geyser Repair", "kn": "ಗೀಸರ್ ದುರಸ್ತಿ", "emoji": "♨️", "subCategory": "Electrician", "priceType": "Starting From", "price": 500 }
+    ]
+  },
+  {
+    "category": "Plumber",
+    "items": [
+      { "id": "plumb1", "name": "Bathroom Plumbing", "kn": "ಬಾತ್ ರೂಮ್ ಪ್ಲಂಬಿಂಗ್", "emoji": "🚽", "subCategory": "Plumber", "priceType": "Inspection Based", "price": null },
+      { "id": "plumb2", "name": "Tap Leakage Repair", "kn": "ಟ್ಯಾಪ್ ಲೀಕೆಜ್ ದುರಸ್ತಿ", "emoji": "🚰", "subCategory": "Plumber", "priceType": "Starting From", "price": 250 },
+      { "id": "plumb3", "name": "Pipeline Installation", "kn": "ಪೈಪ್ ಲೈನ್ ಅಳವಡಿಕೆ", "emoji": "🛠️", "subCategory": "Plumber", "priceType": "Inspection Based", "price": null },
+      { "id": "plumb4", "name": "Water Tank Cleaning", "kn": "ನೀರು ಟ್ಯಾಂಕ್ ಕ್ಲೀನಿಂಗ್", "emoji": "🧽", "subCategory": "Plumber", "priceType": "Starting From", "price": 800 }
+    ]
+  },
+  {
+    "category": "Carpenter",
+    "items": [
+      { "id": "carp1", "name": "Door Repair", "kn": "ಬಾಗಿಲು ದುರಸ್ತಿ", "emoji": "🚪", "subCategory": "Carpenter", "priceType": "Starting From", "price": 600 },
+      { "id": "carp2", "name": "Cupboard Work", "kn": "ಕಪ್ಬೋರ್ಡ್ ಕೆಲಸ", "emoji": "🚪", "subCategory": "Carpenter", "priceType": "Inspection Based", "price": null },
+      { "id": "carp3", "name": "Furniture Assembly", "kn": "ಫರ್ನಿಚರ್ ಅಸೆಂಬ್ಲಿ", "emoji": "🪑", "subCategory": "Carpenter", "priceType": "Starting From", "price": 700 }
+    ]
+  },
+  {
+    "category": "Cleaning",
+    "items": [
+      { "id": "clean1", "name": "House Deep Cleaning", "kn": "ಮನೆ ಡೀಪ್ ಕ್ಲೀನಿಂಗ್", "emoji": "🏠", "subCategory": "Cleaning", "priceType": "Starting From", "price": 2500 },
+      { "id": "clean2", "name": "Bathroom Cleaning", "kn": "ಬಾತ್ ರೂಮ್ ಕ್ಲೀನಿಂಗ್", "emoji": "🛁", "subCategory": "Cleaning", "priceType": "Starting From", "price": 700 },
+      { "id": "clean3", "name": "Sofa Cleaning", "kn": "ಸೋಫಾ ಕ್ಲೀನಿಂಗ್", "emoji": "🛋️", "subCategory": "Cleaning", "priceType": "Starting From", "price": 1200 },
+      { "id": "clean4", "name": "Water Tank Cleaning", "kn": "ನೀರು ಟ್ಯಾಂಕ್ ಕ್ಲೀನಿಂಗ್", "emoji": "🧽", "subCategory": "Cleaning", "priceType": "Starting From", "price": 800 }
+    ]
+  },
+  {
+    "category": "Pest Control",
+    "items": [
+      { "id": "pest1", "name": "Cockroach Control", "subCategory": "Pest Control", "priceType": "Starting From", "price": 1200 },
+      { "id": "pest2", "name": "Termite Control", "subCategory": "Pest Control", "priceType": "Inspection Based", "price": null },
+      { "id": "pest3", "name": "Mosquito Control", "subCategory": "Pest Control", "priceType": "Starting From", "price": 1000 }
+    ]
+  },
+  {
+    "category": "AC Service",
+    "items": [
+      { "id": "ac1", "name": "AC General Service", "subCategory": "AC Service", "priceType": "Starting From", "price": 600 },
+      { "id": "ac2", "name": "AC Gas Refill", "subCategory": "AC Service", "priceType": "Starting From", "price": 2200 },
+      { "id": "ac3", "name": "AC Installation", "subCategory": "AC Service", "priceType": "Starting From", "price": 1500 },
+      { "id": "ac4", "name": "AC Repair", "subCategory": "AC Service", "priceType": "Inspection Based", "price": null }
+    ]
+  },
+  {
+    "category": "RO Service",
+    "items": [
+      { "id": "ro1", "name": "RO Installation", "subCategory": "RO Service", "priceType": "Starting From", "price": 1200 },
+      { "id": "ro2", "name": "RO Filter Change", "subCategory": "RO Service", "priceType": "Starting From", "price": 900 },
+      { "id": "ro3", "name": "RO Repair", "subCategory": "RO Service", "priceType": "Inspection Based", "price": null }
+    ]
+  },
+  {
+    "category": "Appliance",
+    "items": [
+      { "id": "app1", "name": "Washing Machine Repair", "subCategory": "Appliance", "priceType": "Inspection Based", "price": null },
+      { "id": "app2", "name": "Refrigerator Repair", "subCategory": "Appliance", "priceType": "Inspection Based", "price": null },
+      { "id": "app3", "name": "Microwave Repair", "subCategory": "Appliance", "priceType": "Inspection Based", "price": null },
+      { "id": "app4", "name": "TV Repair", "subCategory": "Appliance", "priceType": "Inspection Based", "price": null }
+    ]
+  },
+  {
+    "category": "Painting",
+    "items": [
+      { "id": "paint1", "name": "Interior Painting", "subCategory": "Painting", "priceType": "Inspection Based", "price": null },
+      { "id": "paint2", "name": "Exterior Painting", "subCategory": "Painting", "priceType": "Inspection Based", "price": null },
+      { "id": "paint3", "name": "Wall Putty Work", "subCategory": "Painting", "priceType": "Inspection Based", "price": null }
+    ]
+  },
+  {
+    "category": "Internet & CCTV",
+    "items": [
+      { "id": "net1", "name": "WiFi Installation", "subCategory": "Internet & CCTV", "priceType": "Starting From", "price": 1000 },
+      { "id": "net2", "name": "CCTV Installation", "subCategory": "Internet & CCTV", "priceType": "Starting From", "price": 3500 }
+    ]
+  },
+  {
+    "category": "Packers & Movers",
+    "items": [
+      { "id": "pack1", "name": "Local House Shifting", "subCategory": "Packers & Movers", "priceType": "Inspection Based", "price": null },
+      { "id": "pack2", "name": "Office Shifting", "subCategory": "Packers & Movers", "priceType": "Inspection Based", "price": null }
+    ]
+  },
+  {
+    "category": "Misc",
+    "items": [
+      { "id": "misc1", "name": "Gas Stove Repair", "subCategory": "Misc", "priceType": "Starting From", "price": 400 },
+      { "id": "misc2", "name": "Solar Heater Service", "subCategory": "Misc", "priceType": "Inspection Based", "price": null },
+      { "id": "misc3", "name": "Borewell Motor Repair", "subCategory": "Misc", "priceType": "Inspection Based", "price": null }
+    ]
+  }
+]

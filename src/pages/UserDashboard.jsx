@@ -232,7 +232,7 @@ export default function UserDashboard() {
                       <div className="order-product">
                         <img 
                           src={order.Product?.image || "https://via.placeholder.com/80"} 
-                          alt="Product"
+                          alt={order.Product?.title ? `Product image of ${order.Product.title}` : 'Product image'}
                           className="product-img"
                         />
                         <div className="product-info">

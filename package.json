@@ -13,6 +13,7 @@
     "axios": "^1.13.2",
     "browser-image-compression": "^2.0.2",
     "chart.js": "^4.5.1",
+    "cors": "^2.8.5",
     "file-saver": "^2.0.5",
     "jodit-react": "^5.2.38",
     "papaparse": "^5.5.3",

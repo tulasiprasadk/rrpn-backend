@@ -47,7 +47,7 @@ function SupplierProducts() {
 
       {products.map((p) => (
         <div key={p.id} className="product-card">
-          <img src={p.image || '/placeholder.png'} alt={p.title} />
+          <img src={p.image || '/placeholder.png'} alt={p.title ? `Product image of ${p.title}` : 'Product image'} loading="lazy" />
           <div className="info">
             <h3>{p.title}</h3>
             <p>Price: ₹{p.price}</p>

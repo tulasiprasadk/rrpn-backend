@@ -70,10 +70,11 @@ export default function Header() {
     <header className="rn-header">
       <div className="rn-topbar">
 
-        <div className="rn-logo-wrap">
-          <Link to="/" className="rn-logo-link">
-            <img src={logo} alt="RR Nagar" className="rn-logo" />
-            <div className="rn-subtitle">RR ನಗರದ ಹೊಸ ಡಿಜಿಟಲ್ ಅನುಭವ</div>
+        <div className="rn-logo-wrap" style={{ marginTop: 0, paddingTop: 0 }}>
+          <Link to="/" className="rn-logo-link" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', textDecoration: 'none', marginTop: 0, paddingTop: 0 }}>
+            <img src={logo} alt="RR Nagar" className="rn-logo" style={{ marginTop: 0, paddingTop: 0, height: 72, width: 'auto', maxWidth: 180 }} />
+            <div style={{ fontWeight: 700, fontSize: 16, color: '#333', marginTop: 4, lineHeight: 1 }}>ತಾಜಾ, ತ್ವರಿತ, ತೃಪ್ತಿಕರ</div>
+            <div style={{ fontWeight: 500, fontSize: 12, color: '#C8102E', marginTop: 2, lineHeight: 1 }}>Fresh. Fast. Fulfillment.</div>
           </Link>
         </div>
 
@@ -81,7 +82,7 @@ export default function Header() {
           <Link className="rn-nav-item" to="/">Home</Link>
 
           <Link className="rn-nav-item cart-link" to="/cart">
-            🛒 Cart
+            Bag
             {cartCount > 0 && (
               <span className="cart-badge">{cartCount}</span>
             )}

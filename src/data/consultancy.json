@@ -1,0 +1,56 @@
+[
+  {
+    "category": "Business & Startup",
+    "items": [
+      { "id": "bus1", "name": "Startup Ideation Consulting", "kn": "ಸ್ಟಾರ್ಟಪ್ ಕಲ್ಪನೆ ಸಲಹೆ", "emoji": "💡", "subCategory": "Business & Startup", "priceType": "Fixed", "price": null },
+      { "id": "bus2", "name": "Business Plan Preparation", "kn": "ವ್ಯಾಪಾರ ಯೋಜನೆ ತಯಾರಿ", "emoji": "📄", "subCategory": "Business & Startup", "priceType": "Package", "price": null },
+      { "id": "bus3", "name": "Pitch Deck Consulting", "kn": "ಪಿಚ್ ಡೆಕ್ ಸಲಹೆ", "emoji": "📊", "subCategory": "Business & Startup", "priceType": "Package", "price": null },
+      { "id": "bus4", "name": "Market Research Consulting", "kn": "ಮಾರುಕಟ್ಟೆ ಸಂಶೋಧನೆ ಸಲಹೆ", "emoji": "🔍", "subCategory": "Business & Startup", "priceType": "Hourly", "price": null }
+    ]
+  },
+  {
+    "category": "IT & Software",
+    "items": [
+      { "id": "it1", "name": "Web Application Consulting", "kn": "ವೆಬ್ ಅಪ್ಲಿಕೇಶನ್ ಸಲಹೆ", "emoji": "💻", "subCategory": "IT & Software", "priceType": "Project-based", "price": null },
+      { "id": "it2", "name": "Mobile App Consulting", "kn": "ಮೊಬೈಲ್ ಆಪ್ ಸಲಹೆ", "emoji": "📱", "subCategory": "IT & Software", "priceType": "Package", "price": null },
+      { "id": "it3", "name": "Cybersecurity Consulting", "kn": "ಸೈಬರ್ ಸೆಕ್ಯುರಿಟಿ ಸಲಹೆ", "emoji": "🔒", "subCategory": "IT & Software", "priceType": "Project-based", "price": null }
+    ]
+  },
+  {
+    "category": "Finance & Legal",
+    "items": [
+      { "id": "fin1", "name": "GST Consulting", "kn": "ಜಿಎಸ್‌ಟಿ ಸಲಹೆ", "emoji": "💰", "subCategory": "Finance & Legal", "priceType": "Hourly", "price": null },
+      { "id": "fin2", "name": "Company Incorporation Consulting", "kn": "ಕಂಪನಿ ಸ್ಥಾಪನೆ ಸಲಹೆ", "emoji": "🏢", "subCategory": "Finance & Legal", "priceType": "Fixed", "price": null },
+      { "id": "fin3", "name": "Legal Compliance Consulting", "kn": "ಕಾನೂನು ಅನುಸರಣೆ ಸಲಹೆ", "emoji": "📜", "subCategory": "Finance & Legal", "priceType": "Retainer", "price": null }
+    ]
+  },
+  {
+    "category": "Marketing & Branding",
+    "items": [
+      { "id": "mkt1", "name": "Digital Marketing Consulting", "kn": "ಡಿಜಿಟಲ್ ಮಾರ್ಕೆಟಿಂಗ್ ಸಲಹೆ", "emoji": "📈", "subCategory": "Marketing & Branding", "priceType": "Monthly Retainer", "price": null },
+      { "id": "mkt2", "name": "SEO Consulting", "kn": "ಎಸ್‌ಇಒ ಸಲಹೆ", "emoji": "🔍", "subCategory": "Marketing & Branding", "priceType": "Monthly Retainer", "price": null },
+      { "id": "mkt3", "name": "Brand Identity Consulting", "kn": "ಬ್ರ್ಯಾಂಡ್ ಐಡೆಂಟಿಟಿ ಸಲಹೆ", "emoji": "🏷️", "subCategory": "Marketing & Branding", "priceType": "Project-based", "price": null }
+    ]
+  },
+  {
+    "category": "HR & Career",
+    "items": [
+      { "id": "hr1", "name": "Recruitment Consulting", "kn": "ನಿಯೋಜನೆ ಸಲಹೆ", "emoji": "🧑‍💼", "subCategory": "HR & Career", "priceType": "Retainer", "price": null },
+      { "id": "hr2", "name": "Career Counseling", "kn": "ವೃತ್ತಿ ಮಾರ್ಗದರ್ಶನ", "emoji": "🎓", "subCategory": "HR & Career", "priceType": "Hourly", "price": null }
+    ]
+  },
+  {
+    "category": "Education & Training",
+    "items": [
+      { "id": "edu1", "name": "Study Abroad Consulting", "kn": "ವಿದೇಶಿ ಅಧ್ಯಯನ ಸಲಹೆ", "emoji": "🌏", "subCategory": "Education & Training", "priceType": "Package", "price": null },
+      { "id": "edu2", "name": "Online Course Consulting", "kn": "ಆನ್ಲೈನ್ ಕೋರ್ಸ್ ಸಲಹೆ", "emoji": "💻", "subCategory": "Education & Training", "priceType": "Package", "price": null }
+    ]
+  },
+  {
+    "category": "Real Estate",
+    "items": [
+      { "id": "re1", "name": "Land Valuation Consulting", "kn": "ಭೂಮಿಯ ಮೌಲ್ಯಮಾಪನ ಸಲಹೆ", "emoji": "🌾", "subCategory": "Real Estate", "priceType": "Hourly", "price": null },
+      { "id": "re2", "name": "Property Tax Consulting", "kn": "ಆಸ್ತಿ ತೆರಿಗೆ ಸಲಹೆ", "emoji": "🏠", "subCategory": "Real Estate", "priceType": "Commission-based", "price": null }
+    ]
+  }
+]

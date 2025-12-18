@@ -17,7 +17,7 @@ export default function ProductDetail() {
     <div style={{ padding:16, maxWidth:900, margin:'0 auto' }}>
       <h1>{product.name}</h1>
       <div style={{ display:'flex', gap:20 }}>
-        <img src={product.images?.[0]} alt="" style={{ width:320, height:320, objectFit:'cover' }} />
+        <img src={product.images?.[0]} alt="" style={{ width:320, height:320, objectFit:'cover' }} loading="lazy" />
         <div>
           <p>{product.description}</p>
           <p>Price: ₹{variant.price ?? product.basePrice}</p>

@@ -43,10 +43,10 @@ import ad4 from "../assets/ads/ad4.jpg";
 const defaultCategories = [
   { id: 1, name: "Flowers", nameKannada: "ಹೂವುಗಳು", icon: "🌸" },
   { id: 2, name: "Crackers", nameKannada: "ಪಟಾಕಿಗಳು", icon: "🎆" },
-  { id: 3, name: "Vegetables", nameKannada: "ತರಕಾರಿಗಳು", icon: "🥬" },
-  { id: 4, name: "Fruits", nameKannada: "ಹಣ್ಣುಗಳು", icon: "🍎" },
-  { id: 5, name: "Milk Products", nameKannada: "ಹಾಲು ಉತ್ಪನ್ನಗಳು", icon: "🥛" },
-  { id: 6, name: "Groceries", nameKannada: "ಕಿರಾಣಿ ವಸ್ತುಗಳು", icon: "🛒" },
+  { id: 3, name: "Groceries", nameKannada: "ಕಿರಾಣಿ ವಸ್ತುಗಳು", icon: "🛒" },
+  { id: 4, name: "Pet Supplies", nameKannada: "ಪೆಟ್ ಸೇವೆ", icon: "🐾" },
+  { id: 5, name: "Local Services", nameKannada: "ಸ್ಥಳೀಯ ಸೇವೆಗಳು", icon: "🛠️" },
+  { id: 6, name: "Consultancy", nameKannada: "ಸಲಹಾ ಸೇವೆಗಳು", icon: "📑" },
 ];
 
 export default function Home() {
@@ -112,7 +112,22 @@ export default function Home() {
     if (!searchQuery.trim()) {
       setFilteredProducts(products.slice(0, 12));
     } else {
-      navigate(`/browse?q=${encodeURIComponent(searchQuery)}`);
+      const q = searchQuery.trim().toLowerCase();
+      if (["flowers", "flower", "ಹೂವುಗಳು", "ಹೂವು"].includes(q)) {
+        navigate("/flowers");
+      } else if (["crackers", "cracker", "ಪಟಾಕಿಗಳು", "ಪಟಾಕಿ"].includes(q)) {
+        navigate("/crackers");
+      } else if (["groceries", "grocery", "ಕಿರಾಣಿ", "ಕಿರಾಣಿ ವಸ್ತುಗಳು"].includes(q)) {
+        navigate("/groceries");
+      } else if (["pet services", "pet", "pets", "ಪೆಟ್", "ಪೆಟ್ ಸೇವೆ"].includes(q)) {
+        navigate("/petservices");
+      } else if (["local services", "local", "services", "ಸ್ಥಳೀಯ", "ಸ್ಥಳೀಯ ಸೇವೆಗಳು"].includes(q)) {
+        navigate("/localservices");
+      } else if (["consultancy", "consultant", "consulting", "ಸಲಹಾ", "ಸಲಹಾ ಸೇವೆಗಳು"].includes(q)) {
+        navigate("/consultancy");
+      } else {
+        navigate(`/browse?q=${encodeURIComponent(searchQuery)}`);
+      }
     }
   }
 
@@ -159,17 +174,34 @@ export default function Home() {
   /* 🔑 ONLY MODIFIED FUNCTION */
   function handleCategoryClick(id) {
     const category = categories.find((c) => c.id === id);
-
-    if (category?.name?.toLowerCase() === "crackers") {
+    if (!category) return;
+    const name = category.name?.toLowerCase() || "";
+    if (name.includes("flower")) {
+      navigate("/flowers");
+      return;
+    }
+    if (name.includes("cracker")) {
       navigate("/crackers");
       return;
     }
-    if (category?.name?.toLowerCase().includes("vegetable")) {
-      navigate("/vegetables");
+    if (name.includes("groceries")) {
+      navigate("/groceries");
       return;
     }
-    if (category?.name?.toLowerCase().includes("flower")) {
-      navigate("/flowers");
+    if (name.includes("grocery")) {
+      navigate("/groceries");
+      return;
+    }
+    if (name.includes("pet")) {
+      navigate("/petservices");
+      return;
+    }
+    if (name.includes("local")) {
+      navigate("/localservices");
+      return;
+    }
+    if (name.includes("consult")) {
+      navigate("/consultancy");
       return;
     }
     navigate(`/browse?category=${id}`);
@@ -228,6 +260,7 @@ export default function Home() {
               <img
                 src={heroSrc}
                 alt="RR Nagar"
+                loading="lazy"
                 onError={(e) => (e.currentTarget.src = hero1)}
               />
             </div>
@@ -282,7 +315,7 @@ export default function Home() {
                     className="ad-item"
                   >
                     <div className="ad-title">{ad.title}</div>
-                    <img src={ad.image} alt={ad.title} />
+                    <img src={ad.image} alt={ad.title} loading="lazy" />
                     <div className="ad-cta">Tap to view</div>
                   </a>
                 ))}
@@ -321,6 +354,7 @@ export default function Home() {
                   <img
                     src={product.image || "/images/product-placeholder.png"}
                     alt={product.title}
+                    loading="lazy"
                   />
                   <h3>{product.title}</h3>
                   <p>₹{product.price}</p>

@@ -33,7 +33,7 @@ export default function HeroBanner() {
 
         {/* Hero Image */}
         <div className="hero-right">
-          <img src={heroImg} alt="RR Nagar Market" />
+          <img src={heroImg} alt="RR Nagar Market" loading="lazy" />
         </div>
       </div>
     </section>

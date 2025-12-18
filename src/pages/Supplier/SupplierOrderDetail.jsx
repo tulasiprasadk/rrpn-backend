@@ -77,7 +77,7 @@ function SupplierOrderDetail() {
       <h3>Items</h3>
       {items.map((item) => (
         <div className="supplier-order-item" key={item.id}>
-          <img src={item.product_images?.[0]} alt="" />
+          <img src={item.product_images?.[0]} alt={item.product_name ? `Product image of ${item.product_name}` : 'Product image'} />
           <div>
             <p>{item.product_name}</p>
             <p>{item.variety_name}</p>

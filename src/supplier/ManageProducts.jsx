@@ -14,7 +14,7 @@ export default function ManageProducts() {
       <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(200px,1fr))', gap:16 }}>
         {products.map(p=>(
           <div key={p._id} style={{ border:'1px solid #ddd', padding:12 }}>
-            <img src={p.images && p.images[0]} style={{ width:'100%', height:120, objectFit:'cover' }} alt="" />
+            <img src={p.images && p.images[0]} style={{ width:'100%', height:120, objectFit:'cover' }} alt={p.name ? `Product image of ${p.name}` : 'Product image'} loading="lazy" />
             <h4>{p.name}</h4>
             <p>Variants: {p.variants?.length || 0}</p>
             <p>Status: {p.status}</p>

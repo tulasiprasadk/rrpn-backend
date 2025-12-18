@@ -38,7 +38,7 @@ export default function ProductDetail() {
     <div style={{ padding: 20 }}>
       <div style={{ display: "flex", gap: 20 }}>
         <div style={{ flex: "0 0 320px" }}>
-          <img src={product.imageUrl} alt={product.name} style={{ width: "100%", borderRadius: 8 }} />
+          <img src={product.imageUrl} alt={product.name} style={{ width: "100%", borderRadius: 8 }} loading="lazy" />
         </div>
 
         <div style={{ flex: 1 }}>
@@ -79,7 +79,7 @@ export default function ProductDetail() {
             style={{ width: 180, cursor: "pointer" }}
             onClick={() => navigate(`/product/${r.id}`)}
           >
-            <img src={r.imageUrl} alt="" style={{ width: "100%", height: 120, objectFit: "cover" }} />
+            <img src={r.imageUrl} alt={r.name ? `Product image of ${r.name}` : 'Product image'} style={{ width: "100%", height: 120, objectFit: "cover" }} loading="lazy" />
             <div>{r.name}</div>
             <div>₹{r.price}</div>
           </div>
@@ -152,7 +152,7 @@ export default function ProductDetail() {
   return (
     <div>
       <h2>{p.name}</h2>
-      <img src={p.imageUrl} style={{ width: 200 }} />
+      <img src={p.imageUrl} style={{ width: 200 }} loading="lazy" />
       <p>{p.description}</p>
       <b>₹{p.price}</b>
     </div>

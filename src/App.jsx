@@ -1,3 +1,8 @@
+// import HomeCompare from "./pages/HomeCompare.jsx";
+import Groceries from "./pages/Groceries.jsx";
+import LocalServices from "./pages/LocalServices.jsx";
+import Consultancy from "./pages/Consultancy.jsx";
+import PetServices from "./pages/PetServices.jsx";
 // frontend/src/App.jsx
 
 import React from "react";
@@ -5,6 +10,7 @@ import axios from "axios";
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 
 import { AdminAuthProvider } from "./context/AdminAuthContext";
+import { CrackerCartProvider } from "./context/CrackerCartContext";
 
 /* LAYOUT */
 import Header from "./components/Header";
@@ -91,7 +97,12 @@ function AppWrapper() {
 
           {/* SPECIAL */}
           <Route path="/crackers" element={<Crackers />} />
+          {/* <Route path="/home-compare" element={<HomeCompare />} /> */}
+          <Route path="/groceries" element={<Groceries />} />
           <Route path="/flowers" element={<Flowers />} />
+          <Route path="/localservices" element={<LocalServices />} />
+          <Route path="/consultancy" element={<Consultancy />} />
+          <Route path="/petservices" element={<PetServices />} />
 
           {/* AUTH */}
           <Route path="/login" element={<Login />} />
@@ -171,10 +182,11 @@ function AppWrapper() {
 /* MAIN */
 export default function App() {
   axios.defaults.withCredentials = true;
-
   return (
     <AdminAuthProvider>
-      <AppWrapper />
+      <CrackerCartProvider>
+        <AppWrapper />
+      </CrackerCartProvider>
     </AdminAuthProvider>
   );
 }

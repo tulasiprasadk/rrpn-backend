@@ -1,0 +1,66 @@
+/* Crackers & Groceries shared styles */
+.crackers-page, .groceries-page {
+  padding: 32px 0;
+  background: #f9f9f9;
+}
+.crackers-title, .groceries-title {
+  font-size: 2.2em;
+  font-weight: 700;
+  margin-bottom: 24px;
+  text-align: center;
+}
+.crackers-list, .groceries-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  justify-content: center;
+}
+.cracker-card, .grocery-card {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  padding: 16px;
+  width: 220px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  transition: box-shadow 0.2s;
+}
+.cracker-card:hover, .grocery-card:hover {
+  box-shadow: 0 4px 16px rgba(0,0,0,0.10);
+}
+.cracker-card img, .grocery-card img {
+  width: 120px;
+  height: 120px;
+  object-fit: contain;
+  margin-bottom: 12px;
+}
+.cracker-card h3, .grocery-card h3 {
+  font-size: 1.1em;
+  margin: 0 0 8px 0;
+}
+.cracker-card p, .grocery-card p {
+  font-size: 1em;
+  color: #444;
+  margin-bottom: 12px;
+}
+.cracker-card button, .grocery-card button {
+  background: #c8102e;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 18px;
+  font-size: 1em;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.cracker-card button:hover, .grocery-card button:hover {
+  background: #a00d24;
+}
+.loading, .empty {
+  text-align: center;
+  color: #888;
+  font-size: 1.2em;
+  margin-top: 40px;
+}

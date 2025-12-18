@@ -6,10 +6,10 @@ export default function MegaAd({ image, link, alt = "Ad", children, position = "
     <div className={`mega-ad mega-ad-${position}`}>
       {link ? (
         <a href={link} target="_blank" rel="noopener noreferrer">
-          {image ? <img src={image} alt={alt} /> : children}
+          {image ? <img src={image} alt={alt} loading="lazy" /> : children}
         </a>
       ) : image ? (
-        <img src={image} alt={alt} />
+        <img src={image} alt={alt} loading="lazy" />
       ) : (
         children
       )}
