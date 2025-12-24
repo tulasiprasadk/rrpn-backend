@@ -1,30 +1,27 @@
-
+// Emoji and Kannada mapping for common crackers
+const crackerInfo = {
+  "Sparklers": { emoji: "✨", kn: "ಸ್ಪಾರ್ಕ್ಲರ್ಸ್" },
+  "Flowerpot": { emoji: "🏵️", kn: "ಫ್ಲವರ್ ಪಾಟ್" },
+  "Chakra": { emoji: "🌀", kn: "ಚಕ್ರ" },
+  "Rocket": { emoji: "🚀", kn: "ರಾಕೆಟ್" },
+  "Bomb": { emoji: "💣", kn: "ಬಾಂಬ್" },
+  "Pencil": { emoji: "✏️", kn: "ಪೆನ್ಸಿಲ್" },
+  "Twinkling Star": { emoji: "🌟", kn: "ಟ್ವಿಂಕ್ಲಿಂಗ್ ಸ್ಟಾರ್" },
+  "Ground Chakkar": { emoji: "🌀", kn: "ಗ್ರೌಂಡ್ ಚಕ್ರ" },
+  "Anar": { emoji: "🎇", kn: "ಅನಾರ್" },
+  "Bijili": { emoji: "⚡", kn: "ಬಿಜಿಲಿ" },
+  "Zamin Chakkar": { emoji: "🌀", kn: "ಜಮೀನ್ ಚಕ್ರ" },
+  "Rocket Bomb": { emoji: "🚀", kn: "ರಾಕೆಟ್ ಬಾಂಬ್" },
+  "Deluxe": { emoji: "🎆", kn: "ಡಿಲಕ್ಸ್" },
+  // Add more as needed
+};
 import crackers from "../data/crackers.json";
 import CrackerCard from "../components/CrackerCard";
 import { useCrackerCart } from "../context/CrackerCartContext";
 import CartPanel from "../components/CartPanel";
 
 export default function Crackers() {
-  // All hooks and context first
   const { addItem } = useCrackerCart();
-  // All derived/constant variables after hooks
-  const crackerInfo = {
-    "Sparklers": { emoji: "✨", kn: "ಸ್ಪಾರ್ಕ್ಲರ್ಸ್" },
-    "Flowerpot": { emoji: "🏵️", kn: "ಫ್ಲವರ್ ಪಾಟ್" },
-    "Chakra": { emoji: "🌀", kn: "ಚಕ್ರ" },
-    "Rocket": { emoji: "🚀", kn: "ರಾಕೆಟ್" },
-    "Bomb": { emoji: "💣", kn: "ಬಾಂಬ್" },
-    "Pencil": { emoji: "✏️", kn: "ಪೆನ್ಸಿಲ್" },
-    "Twinkling Star": { emoji: "🌟", kn: "ಟ್ವಿಂಕ್ಲಿಂಗ್ ಸ್ಟಾರ್" },
-    "Ground Chakkar": { emoji: "🌀", kn: "ಗ್ರೌಂಡ್ ಚಕ್ರ" },
-    "Anar": { emoji: "🎇", kn: "ಅನಾರ್" },
-    "Bijili": { emoji: "⚡", kn: "ಬಿಜಿಲಿ" },
-    "Zamin Chakkar": { emoji: "🌀", kn: "ಜಮೀನ್ ಚಕ್ರ" },
-    "Rocket Bomb": { emoji: "🚀", kn: "ರಾಕೆಟ್ ಬಾಂಬ್" },
-    "Deluxe": { emoji: "🎆", kn: "ಡಿಲಕ್ಸ್" },
-    // Add more as needed
-  };
-
   return (
     <div
       style={{

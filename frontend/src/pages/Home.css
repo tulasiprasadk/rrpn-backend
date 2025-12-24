@@ -1,85 +1,6 @@
 /* ===================================
-   ADS GRID SECTION
-=================================== */
-.ads-grid-section {
-  margin: 32px 0 24px 0;
-}
-.ads-grid-section h2 {
-  font-size: 1.5rem;
-  margin-bottom: 16px;
-  text-align: left;
-}
-.ads-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 20px;
-}
-.ad-item {
-  background: #fffbe6;
-  border-radius: 16px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 16px;
-  min-height: 180px;
-}
-.ad-item img {
-  max-width: 100%;
-  max-height: 140px;
-  object-fit: contain;
-  border-radius: 12px;
-}
-/* ===================================
-   HOME LAYOUT — VERCEL FIX
-=================================== */
-
-.home-layout {
-  display: flex;
-  align-items: flex-start;
-  gap: 24px;
-  max-width: 1200px;     /* 🔑 prevents overlap */
-  margin: 0 auto;
-  padding: 0 16px;
-  box-sizing: border-box;
-}
-
-.home-sidebar {
-  flex: 0 0 120px;       /* 🔑 limits ad width */
-  max-width: 120px;
-  box-sizing: border-box;
-}
-
-/* Hide ads on smaller screens */
-@media (max-width: 1100px) {
-  .home-sidebar {
-    display: none;
-  }
-}
-/* =================================================
-   HOME PAGE LAYOUT (FIXES MEGA AD OVERLAP)
-================================================= */
-
-.home-layout {
-  max-width: 1400px;
-  margin: 0 auto;
-  display: flex;
-  align-items: flex-start;
-  gap: 24px;
-  box-sizing: border-box;
-}
-
-.home-sidebar {
-  flex: 0 0 120px;
-  max-width: 120px;
-  min-width: 100px;
-  box-sizing: border-box;
-  z-index: 1;
-}
-
-/* =================================================
    PAGE BASE
-================================================= */
+=================================== */
 
 .home {
   background: #ffffff;
@@ -87,24 +8,26 @@
   padding-bottom: 40px;
 }
 
-/* =================================================
+/* ===================================
    HERO
-================================================= */
+=================================== */
 
 .hero {
   position: relative;
   width: 100%;
-  height: 400px;
+  height: 400px;              /* FIX: use height, not max-height */
   overflow: hidden;
 }
 
+/* HERO IMAGE */
 .hero img {
   width: 100%;
-  height: 100%;
+  height: 100%;               /* FIX: fill hero height */
   object-fit: cover;
   display: block;
 }
 
+/* HERO TEXT (OVERLAY) */
 .hero-text {
   position: absolute;
   top: 50%;
@@ -115,7 +38,6 @@
   color: #fff;
   width: 100%;
   padding: 0 16px;
-  box-sizing: border-box;
 }
 
 .hero-text h1 {
@@ -126,10 +48,7 @@
   margin-bottom: 16px;
 }
 
-/* =================================================
-   HERO SEARCH
-================================================= */
-
+/* HERO SEARCH BAR */
 .hero-search {
   display: flex;
   align-items: center;
@@ -137,9 +56,9 @@
   background: rgba(255, 255, 255, 0.85);
   padding: 12px 16px;
   border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   max-width: 480px;
   margin: 0 auto;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .hero-search input {
@@ -159,6 +78,7 @@
   border-radius: 6px;
   font-size: 1rem;
   cursor: pointer;
+  transition: background 0.2s;
 }
 
 .hero-search button:hover {
@@ -166,13 +86,21 @@
 }
 
 /* =================================================
-   CATEGORIES
+   CONTENT / SECTIONS
 ================================================= */
+.content {
+  width: 100%;
+  margin: 40px 0;
+}
 
-.cat-row {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: 16px;
+@media (max-width: 1100px) {
+  .cat-row { grid-template-columns: repeat(3, 1fr); }
+}
+@media (max-width: 700px) {
+  .cat-row { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 480px) {
+  .cat-row { grid-template-columns: 1fr; }
 }
 
 .cat-card {
@@ -185,27 +113,46 @@
   justify-content: center;
   align-items: center;
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.cat-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+  font-family: 'Noto Sans Kannada', system-ui, sans-serif;
 }
 
 .cat-icon {
   font-size: 48px;
+  font-family: 'Noto Sans Kannada', system-ui, sans-serif;
 }
 
 .cat-name {
   font-size: 20px;
   font-weight: 800;
+  font-family: 'Noto Sans Kannada', system-ui, sans-serif;
 }
 
-/* =================================================
-   ADS SCROLL
-================================================= */
+.cat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 20px rgba(0,0,0,.15);
+}
+
+.cat-card .icon {
+  font-size: 40px;
+  line-height: 1;
+}
+}
+
+.cat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 20px rgba(0,0,0,.15);
+}
+
+.cat-card .icon {
+  font-size: 40px;
+  line-height: 1;
+}
+
+/* ===================================
+   ADS GRID (RIGHT → LEFT)
+=================================== */
 
 .ad-scroll-container {
   width: 100%;
@@ -221,7 +168,7 @@
 
 @keyframes ads-scroll {
   from { transform: translateX(0); }
-  to { transform: translateX(-50%); }
+  to   { transform: translateX(-50%); }
 }
 
 .ad-banner {
@@ -231,20 +178,22 @@
   object-fit: cover;
 }
 
-/* =================================================
-   DISCOVER SCROLL
-================================================= */
+/* ===================================
+   DISCOVER GRID (LEFT → RIGHT)
+   SAME MODEL AS ADS
+=================================== */
 
 .discover-scroll {
   width: 100%;
-  overflow: hidden;
+  overflow: hidden;          /* 🔒 important */
   padding: 12px 0;
+  position: relative;
 }
 
 .discover-track {
   display: flex;
   gap: 48px;
-  width: max-content;
+  width: max-content;        /* 🔑 key */
   animation: discover-scroll 30s linear infinite;
 }
 
@@ -254,17 +203,37 @@
 
 @keyframes discover-scroll {
   from { transform: translateX(-50%); }
-  to { transform: translateX(0); }
+  to   { transform: translateX(0); }
 }
 
 .discover-scroll:hover .discover-track {
   animation-play-state: paused;
 }
 
-/* =================================================
-   PRODUCTS GRID
-================================================= */
+/* ---------- DISCOVER ---------- */
+.discover-track {
+  display: flex;
+  gap: 48px;
+  width: max-content;        /* 🔑 key */
+  animation: discover-scroll 30s linear infinite;
+}
 
+.discover-track > * {
+  flex: 0 0 auto;
+}
+
+@keyframes discover-scroll {
+  from { transform: translateX(-50%); }
+  to   { transform: translateX(0); }
+}
+
+.discover-scroll:hover .discover-track {
+  animation-play-state: paused;
+}
+
+/* ===================================
+   PRODUCTS GRID
+=================================== */
 .products-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
@@ -275,40 +244,75 @@
   background: #fff;
   border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  transition: transform 0.2s, box-shadow 0.2s;
+  box-shadow: 0 2px 8px rgba(0,0,0,.1);
+  transition: transform .2s, box-shadow .2s;
 }
 
 .product-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 8px 20px rgba(227, 30, 36, 0.2);
+  box-shadow: 0 8px 20px rgba(227,30,36,.2);
 }
 
 /* =================================================
    RESPONSIVE
 ================================================= */
-
 @media (max-width: 1100px) {
-  .home-sidebar {
-    display: none;
+  .cat-row {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 700px) {
+  .cat-row {
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 
 @media (max-width: 480px) {
   .hero {
-    height: 220px;
+    height: 220px;           /* 🔑 live mobile crop */
   }
 
   .hero-text {
+    position: absolute;
     top: 0;
     left: 0;
-    transform: none;
-    background: rgba(0, 0, 0, 0.35);
-    padding: 24px 16px;
+    width: 100%;
+    color: #fff;
+    z-index: 10;
+    background: rgba(0,0,0,0.35);
+    padding: 32px 0 24px 0;
     border-radius: 0 0 16px 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    box-sizing: border-box;
   }
 
   .hero-search {
     width: 95vw;
+  }
+
+  .cat-row {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 18px;
+    overflow-x: auto;
+    padding-bottom: 8px;
+    scroll-snap-type: x mandatory;
+  }
+
+  .cat-card {
+    width: 110px;
+    height: 110px;
+    margin: 0 auto;
+    scroll-snap-align: start;
+    font-size: 16px;
+    padding: 10px 0;
+  }
+
+  .ad-item,
+  .discover-item {
+    width: 90vw;
   }
 }

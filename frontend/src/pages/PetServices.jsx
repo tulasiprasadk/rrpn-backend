@@ -1,11 +1,12 @@
 import React from "react";
 import petServices from "../data/pet_services.json";
 import CartPanel from "../components/CartPanel";
-import { useCrackerCart } from "../context/CrackerCartContext";
+import { CrackerCartProvider, useCrackerCart } from "../context/CrackerCartContext";
 
 export default function PetServices() {
   const { addItem } = useCrackerCart();
   return (
+    <CrackerCartProvider>
       <div style={{ display: "flex", minHeight: "100vh", background: "#FFF8E1" }}>
         {/* LEFT: PET SERVICES */}
         <div style={{ flex: 1, padding: "24px 32px" }}>
@@ -22,7 +23,7 @@ export default function PetServices() {
                 {cat.items.map((service) => (
                   <div
                     key={service.id}
-                    style={{ border: '1px solid #eee', borderRadius: 12, padding: 12, background: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 110, cursor: 'pointer', transition: 'box-shadow 0.2s', boxShadow: '0 0 0 rgba(0,0,0,0)', textAlign: 'center' }}
+                    style={{ border: '1px solid #eee', borderRadius: 12, padding: 12, background: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 110, cursor: 'pointer', transition: 'box-shadow 0.2s', boxShadow: '0 0 0 rgba(0,0,0,0)' }}
                     onClick={() => addItem({ id: `${cat.category}-${service.name}`, name: service.name, price: service.price, unit: service.unit })}
                     onMouseOver={e => e.currentTarget.style.boxShadow = '0 2px 12px rgba(200,16,46,0.08)'}
                     onMouseOut={e => e.currentTarget.style.boxShadow = '0 0 0 rgba(0,0,0,0)'}
@@ -45,5 +46,6 @@ export default function PetServices() {
         {/* RIGHT: CART */}
         <CartPanel orderType="PET_SERVICES" />
       </div>
+    </CrackerCartProvider>
   );
 }

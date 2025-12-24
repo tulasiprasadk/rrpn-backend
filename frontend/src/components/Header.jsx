@@ -29,13 +29,8 @@ export default function Header() {
         <div className="rn-logo-wrap">
           <Link to="/" className="rn-logo-link">
             <img src={logo} alt="RR Nagar" className="rn-logo" />
-            <div className="rn-subtitle" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', marginTop: 2 }}>
-              <span style={{ fontSize: '1rem', fontWeight: 700, color: '#111', lineHeight: 1.1, fontFamily: 'Noto Sans Kannada, sans-serif' }}>
-                ತಾಜಾ, ತ್ವರಿತ, ತೃಪ್ತಿಕರ
-              </span>
-              <span style={{ fontSize: '0.75rem', fontWeight: 500, color: '#888', marginTop: 2, letterSpacing: '0.02em' }}>
-                Fresh. Fast. Fulfillment.
-              </span>
+            <div className="rn-subtitle">
+              RR ನಗರದ ಹೊಸ ಡಿಜಿಟಲ್ ಅನುಭವ
             </div>
           </Link>
         </div>
