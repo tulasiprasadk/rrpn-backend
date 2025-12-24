@@ -1,0 +1,96 @@
+.payment-page {
+  padding: 20px;
+  max-width: 500px;
+  margin: auto;
+  font-family: system-ui, sans-serif;
+}
+
+.pay-title {
+  text-align: center;
+  margin-bottom: 20px;
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.method-box {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.method {
+  padding: 10px 18px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  background: #f9f9f9;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.method.active {
+  background: #222;
+  color: white;
+  border-color: #222;
+}
+
+.pay-card {
+  padding: 20px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.1);
+}
+
+.qr-box {
+  margin: 15px auto;
+  width: fit-content;
+  padding: 10px;
+  background: white;
+  border-radius: 12px;
+  border: 1px solid #eee;
+}
+
+.upi-id {
+  text-align: center;
+  margin-top: 10px;
+}
+
+.wallet-box {
+  padding: 12px;
+  background: #f3f3f3;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.input-box {
+  width: 100%;
+  margin-top: 15px;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+}
+
+.confirm-btn {
+  width: 100%;
+  padding: 12px;
+  background: #222;
+  color: white;
+  font-size: 16px;
+  border-radius: 10px;
+  border: none;
+  margin-top: 20px;
+}
+.upload-box {
+  margin-top: 15px;
+  padding: 10px;
+  background: #fafafa;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.preview-img {
+  margin-top: 10px;
+  width: 100%;
+  max-width: 220px;
+  border-radius: 10px;
+}

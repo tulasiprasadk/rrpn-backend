@@ -1,0 +1,89 @@
+.payment-page,
+.payment-submitted-page {
+  max-width: 500px;
+  margin: auto;
+  padding: 20px;
+}
+
+.payment-instructions {
+  background: #fff7d1;
+  padding: 15px;
+  border-radius: 10px;
+  margin-bottom: 20px;
+}
+
+.upi-box {
+  padding: 10px;
+  background: #ffe48d;
+  border-radius: 6px;
+  margin-bottom: 10px;
+}
+
+.qr-img {
+  width: 180px;
+  display: block;
+  margin: 10px auto;
+}
+
+.note {
+  font-size: 14px;
+  margin-top: 8px;
+}
+
+.unr-box input {
+  width: 100%;
+  padding: 10px;
+  margin-top: 6px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+
+.screenshot-box input {
+  margin-top: 10px;
+}
+
+.preview-block {
+  text-align: center;
+}
+
+.preview-img {
+  width: 200px;
+  border-radius: 10px;
+  margin-bottom: 10px;
+}
+
+.upload-again {
+  padding: 8px 12px;
+  background: #ffb300;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #000;
+}
+
+.submit-payment-btn,
+.go-dashboard-btn {
+  width: 100%;
+  padding: 12px;
+  margin-top: 20px;
+  font-size: 16px;
+  background: #ffb200;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+/* Payment Submitted Page */
+.submitted-box {
+  background: #e8ffe0;
+  padding: 15px;
+  border-radius: 10px;
+  margin-top: 15px;
+}
+
+.submitted-img {
+  width: 220px;
+  display: block;
+  border-radius: 10px;
+  margin: 10px auto;
+}

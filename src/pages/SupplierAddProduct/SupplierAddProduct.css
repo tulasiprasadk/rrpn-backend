@@ -1,0 +1,34 @@
+.add-product {
+  padding: 20px;
+  max-width: 700px;
+  margin: auto;
+}
+
+.add-product input,
+.add-product textarea {
+  width: 100%;
+  padding: 12px;
+  margin: 8px 0;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+}
+
+.variety-box,
+.subvariety-box {
+  padding: 12px;
+  background: #fff;
+  margin: 10px 0;
+  border-radius: 10px;
+  box-shadow: 0 2px 5px #eee;
+}
+
+.save-btn {
+  background: #ff4646;
+  color: white;
+  padding: 12px;
+  width: 100%;
+  border: none;
+  border-radius: 8px;
+  margin-top: 15px;
+  cursor: pointer;
+}

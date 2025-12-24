@@ -1,0 +1,10 @@
+.saved-box {
+  background: #fff8d2;
+  padding: 15px;
+  border-radius: 10px;
+}
+
+.saved-item {
+  padding: 8px 0;
+  border-bottom: 1px solid #e0c656;
+}

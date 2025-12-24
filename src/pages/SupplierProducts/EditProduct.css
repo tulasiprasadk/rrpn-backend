@@ -1,0 +1,24 @@
+.ep-container {
+  max-width: 600px;
+  margin: auto;
+  padding: 20px;
+}
+
+.ep-container input,
+.ep-container textarea {
+  width: 100%;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  margin-bottom: 12px;
+}
+
+.ep-container button {
+  padding: 14px;
+  background: #28a745;
+  color: white;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+}

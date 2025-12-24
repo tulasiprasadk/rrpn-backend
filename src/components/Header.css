@@ -1,0 +1,86 @@
+/* frontend/src/components/Header.css */
+.rn-header {
+  width: 100%;
+  box-sizing: border-box;
+  font-family: 'Noto Sans Kannada', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+}
+
+.rn-topbar {
+  /* Karnataka flag colors: top half yellow (#ffd600), bottom half red (#e31e24) */
+  background: linear-gradient(to bottom, #ffd600 0%, #ffd600 50%, #e31e24 50%, #e31e24 100%);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 24px;
+  box-sizing: border-box;
+}
+
+.rn-logo-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.rn-logo {
+  width: 84px;
+  height: 84px;
+  object-fit: contain;
+  border-radius: 6px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.rn-subtitle {
+  font-size: 20px;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 1px 0 rgba(0,0,0,0.15);
+  margin-left: 8px;
+  font-family: 'Noto Sans Kannada', system-ui, -apple-system, sans-serif;
+}
+
+.rn-nav {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.rn-nav-item {
+  text-decoration: none;
+  color: #111;
+  background: transparent;
+  padding: 6px 8px;
+  font-weight: 700;
+}
+
+.rn-nav-logout {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-weight: 700;
+  padding: 6px 8px;
+}
+
+.rn-nav-logout:hover {
+  background: #e31e24;
+  color: white;
+}
+
+.cart-link {
+  position: relative;
+}
+
+.cart-badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: #e31e24;
+  color: white;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: bold;
+}

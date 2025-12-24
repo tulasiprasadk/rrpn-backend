@@ -1,0 +1,54 @@
+.order-detail {
+  padding: 20px;
+  max-width: 600px;
+  margin: auto;
+}
+
+.timeline {
+  display: flex;
+  justify-content: space-between;
+  margin: 20px 0;
+  position: relative;
+}
+
+.timeline::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 5%;
+  width: 90%;
+  height: 4px;
+  background: #ddd;
+  z-index: 1;
+}
+
+.timeline .step {
+  position: relative;
+  z-index: 2;
+  padding: 8px;
+  background: #ccc;
+  color: #fff;
+  border-radius: 20px;
+  font-size: 12px;
+}
+
+.timeline .step.done {
+  background: #ff4646;
+}
+
+.order-item {
+  display: flex;
+  gap: 12px;
+  background: #fff;
+  padding: 12px;
+  border-radius: 10px;
+  margin-bottom: 12px;
+  box-shadow: 0 2px 5px #ddd;
+}
+
+.order-item img {
+  width: 70px;
+  height: 70px;
+  border-radius: 8px;
+  object-fit: cover;
+}

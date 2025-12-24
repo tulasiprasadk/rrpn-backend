@@ -1,0 +1,9 @@
+title,variety,subVariety,price,unit,description,categoryId,categoryName
+Red Roses Bouquet,Bouquets,Small Bouquet,150,piece,Beautiful small red roses bouquet perfect for gifting,1,Flowers
+Red Roses Bouquet,Bouquets,Large Bouquet,500,piece,Large premium red roses bouquet with 24 roses,1,Flowers
+Marigold Garland,Garlands,Large Garland,200,piece,Colorful marigold garland for decoration,2,Garlands
+Jasmine Flowers,Bound Flowers,Jasmine,150,bunch,Fragrant jasmine flowers for pooja,1,Flowers
+Lily Flower,Bouquets,Large Bouquet,350,piece,Elegant lily flowers for decoration,1,Flowers
+Loose Rose Petals,Unbound Flowers,Loose Roses,150,kg,Fresh rose petals loose by weight,1,Flowers
+Door Decoration Garland,Garlands,Door Garland,200,piece,Colorful door garland,2,Garlands
+Wedding Garland,Garlands,Wedding Garland,1500,piece,Premium wedding garland for bride and groom,2,Garlands

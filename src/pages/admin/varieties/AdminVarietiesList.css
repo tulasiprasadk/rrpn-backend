@@ -1,0 +1,204 @@
+/* Admin Varieties List Styling */
+.admin-varieties {
+  padding: 20px;
+  background: #ffd600;
+  min-height: 100vh;
+}
+
+.varieties-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+.varieties-header h1 {
+  margin: 0;
+  color: #333;
+}
+
+.btn-primary {
+  background: #ffd600;
+  color: #333;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+  background: #e6c200;
+  transform: translateY(-2px);
+}
+
+.varieties-filters {
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.varieties-filters label {
+  font-weight: 600;
+}
+
+.varieties-filters select {
+  padding: 10px 15px;
+  border: 2px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.loading {
+  text-align: center;
+  padding: 60px 20px;
+  font-size: 18px;
+  color: #777;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 80px 20px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.empty-state p {
+  font-size: 18px;
+  color: #777;
+  margin-bottom: 20px;
+}
+
+.empty-state button {
+  background: #ffd600;
+  color: #333;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.varieties-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 20px;
+}
+
+.variety-card {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  transition: all 0.3s ease;
+}
+
+.variety-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 20px rgba(255, 214, 0, 0.3);
+}
+
+.variety-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  padding-bottom: 15px;
+  border-bottom: 2px solid #ffd600;
+}
+
+.variety-header h3 {
+  margin: 0;
+  color: #333;
+  font-size: 20px;
+}
+
+.category-badge {
+  background: #e31e24;
+  color: white;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.variety-body {
+  margin-bottom: 15px;
+}
+
+.sub-varieties-label {
+  font-weight: 600;
+  margin-bottom: 10px;
+  color: #666;
+}
+
+.sub-varieties-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 15px;
+}
+
+.sub-variety-tag {
+  background: #f5f5f5;
+  border: 1px solid #ddd;
+  padding: 6px 12px;
+  border-radius: 15px;
+  font-size: 13px;
+  color: #333;
+}
+
+.no-subs {
+  color: #999;
+  font-style: italic;
+  font-size: 14px;
+}
+
+.variety-metadata {
+  background: #f9f9f9;
+  padding: 12px;
+  border-radius: 6px;
+  margin-top: 10px;
+}
+
+.variety-metadata p {
+  margin: 5px 0;
+  font-size: 14px;
+  color: #666;
+}
+
+.variety-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.variety-actions button {
+  flex: 1;
+  padding: 10px;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-edit {
+  background: #4CAF50;
+  color: white;
+}
+
+.btn-edit:hover {
+  background: #45a049;
+}
+
+.btn-delete {
+  background: #f44336;
+  color: white;
+}
+
+.btn-delete:hover {
+  background: #da190b;
+}

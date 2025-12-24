@@ -1,0 +1,50 @@
+.supplier-order-detail {
+  padding: 20px;
+  max-width: 700px;
+  margin: auto;
+}
+
+.box {
+  padding: 15px;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 2px 5px #ddd;
+  margin-bottom: 15px;
+}
+
+.status-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.status-buttons button {
+  padding: 8px 12px;
+  border: none;
+  background: #ddd;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.status-buttons button.active {
+  background: #ff4646;
+  color: #fff;
+}
+
+.supplier-order-item {
+  display: flex;
+  gap: 12px;
+  padding: 12px;
+  background: #fff;
+  margin-bottom: 12px;
+  border-radius: 10px;
+  box-shadow: 0 2px 5px #ddd;
+}
+
+.supplier-order-item img {
+  width: 70px;
+  height: 70px;
+  object-fit: cover;
+  border-radius: 8px;
+}

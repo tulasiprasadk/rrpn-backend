@@ -1,0 +1,30 @@
+.checkout-page {
+  max-width: 500px;
+  margin: auto;
+  padding: 20px;
+}
+
+.checkout-page h2 {
+  margin-bottom: 10px;
+}
+
+.checkout-page input,
+.checkout-page select {
+  width: 100%;
+  padding: 12px;
+  margin: 8px 0;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+}
+
+.checkout-page button {
+  width: 100%;
+  background: #ff4646;
+  color: white;
+  border: none;
+  padding: 12px;
+  margin-top: 15px;
+  font-size: 18px;
+  border-radius: 8px;
+  cursor: pointer;
+}

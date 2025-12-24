@@ -1,0 +1,27 @@
+.orders-box {
+  background: #fff8d2;
+  padding: 15px;
+  border-radius: 10px;
+}
+
+.order-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 0;
+}
+
+.order-status {
+  padding: 3px 8px;
+  border-radius: 5px;
+  font-size: 13px;
+}
+
+.pending {
+  background: #ffd700;
+  color: #444;
+}
+
+.success {
+  background: #4caf50;
+  color: white;
+}

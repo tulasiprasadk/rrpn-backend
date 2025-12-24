@@ -1,0 +1,71 @@
+.navbar-wrapper {
+  width: 100%;
+  background: #ffca00;
+  font-family: 'Noto Sans Kannada', \"Inter\", system-ui, sans-serif;
+}
+
+.navbar-top {
+  background: #ffca00;
+  padding: 10px 20px;
+  display: flex;
+  align-items: center;
+}
+
+.nav-logo {
+  height: 55px;
+}
+
+.navbar-bottom {
+  background: #c8102e;
+  padding: 6px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: white;
+}
+
+.nav-text {
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.nav-links a {
+  color: white;
+  text-decoration: none;
+  margin-left: 20px;
+  font-size: 14px;
+  transition: opacity 0.2s;
+}
+
+.nav-links a:hover {
+  opacity: 0.7;
+}
+
+.nav-links {
+  display: flex;
+  align-items: center;
+}
+
+.logout-btn {
+  background: #ffd500;
+  color: #c8102e;
+  border: none;
+  padding: 6px 16px;
+  margin-left: 20px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  transition: 0.2s;
+}
+
+.logout-btn:hover {
+  background: #ffed4e;
+  transform: scale(1.05);
+}
+
+.user-name {
+  color: #ffd500;
+  font-weight: 600;
+}

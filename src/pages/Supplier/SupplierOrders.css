@@ -1,0 +1,41 @@
+.supplier-orders-page {
+  padding: 20px;
+  max-width: 700px;
+  margin: auto;
+}
+
+.supplier-orders-page h2 {
+  margin-bottom: 10px;
+}
+
+.supplier-order-card {
+  background: #fff;
+  padding: 15px;
+  border-radius: 12px;
+  box-shadow: 0 2px 5px #ddd;
+  margin-bottom: 12px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.supplier-order-card:hover {
+  transform: scale(1.02);
+}
+
+.status-tag {
+  margin-top: 8px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  width: fit-content;
+  font-weight: bold;
+  text-transform: capitalize;
+  color: white;
+}
+
+/* Status colors */
+.status-pending { background: #ffc107; }
+.status-confirmed { background: #28a745; }
+.status-packed { background: #0069d9; }
+.status-out_for_delivery { background: #17a2b8; }
+.status-delivered { background: #20c997; }
+.status-cancelled { background: #dc3545; }

@@ -1,0 +1,31 @@
+/* Admin Products List Styling */
+.admin-button {
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  text-decoration: none;
+  display: inline-block;
+  transition: all 0.3s ease;
+}
+
+.admin-button.primary {
+  background: #e31e24;
+  color: white;
+}
+
+.admin-button.primary:hover {
+  background: #c11a1f;
+}
+
+.admin-button.outline {
+  background: white;
+  color: #e31e24;
+  border: 2px solid #e31e24;
+}
+
+.admin-button.outline:hover {
+  background: #e31e24;
+  color: white;
+}
