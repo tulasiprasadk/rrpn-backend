@@ -1,9 +1,8 @@
-const express = require("express");
-const router = express.Router();
-const { Order, Product, Supplier, Address } = require("../../models");
 
-// Unified notification service
-const notifyCustomer = require("../../services/notificationService");
+import express from "express";
+import { Order, Product, Supplier, Address } from "../../models/index.js";
+import notifyCustomer from "../../services/notificationService.js";
+const router = express.Router();
 
 /* ===========================================================
    LIST ALL ORDERS (Admin)
@@ -128,4 +127,4 @@ router.put("/:id/reject", async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;

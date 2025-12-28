@@ -1,6 +1,7 @@
-const express = require("express");
+
+import express from "express";
+import { Notification } from "../../models/index.js";
 const router = express.Router();
-const { Notification } = require("../../models");
 
 /* Get all unread notifications */
 router.get("/", async (req, res) => {
@@ -21,4 +22,4 @@ router.put("/mark-read", async (req, res) => {
   res.json({ success: true });
 });
 
-module.exports = router;
+export default router;
