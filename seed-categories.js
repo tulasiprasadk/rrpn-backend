@@ -1,4 +1,5 @@
-const { sequelize, Category } = require('./models');
+
+import { sequelize, Category } from './models/index.js';
 
 const categories = [
   { name: 'Groceries', icon: '🛒' },
