@@ -1,4 +1,4 @@
-module.exports = (sequelize, DataTypes) => {
+export default (sequelize, DataTypes) => {
   return sequelize.define('AnalyticsVisit', {
     path: DataTypes.STRING,
     referrer: DataTypes.STRING,
