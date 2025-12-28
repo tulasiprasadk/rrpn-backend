@@ -52,7 +52,8 @@ export async function sendOTP(phone, otp) {
 // ...existing code for sendViaTwilio, sendViaMSG91, sendViaFast2SMS...
   }
 
-  const twilio = require('twilio')(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
+  const { default: twilioPkg } = await import('twilio');
+  const twilio = twilioPkg(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
   
   await twilio.messages.create({
     body: message,
@@ -141,7 +142,4 @@ async function sendSMS(phone, message) {
   }
 }
 
-module.exports = {
-  sendOTP,
-  sendSMS
-};
+export { sendOTP, sendSMS };
