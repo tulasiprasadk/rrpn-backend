@@ -1,12 +1,12 @@
 // Importing necessary modules
 import express from "express";
-import auth from "./auth/index.js";
-import address from "./address/index.js";
-import dashboardStats from "./dashboard-stats/index.js";
-import payment from "./payment/index.js";
-import profile from "./profile/index.js";
-import savedSuppliers from "./saved-suppliers/index.js";
-import cart from "./cart/index.js";
+import auth from "./auth.js";
+import address from "./address.js";
+import dashboardStats from "./dashboard-stats.js";
+import payment from "./payment.js";
+import profile from "./profile.js";
+import savedSuppliers from "./saved-suppliers.js";
+import cart from "./cart.js";
 
 const router = express.Router();
 
