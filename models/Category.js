@@ -1,7 +1,9 @@
-module.exports = (sequelize, DataTypes) => {
+const Category = (sequelize, DataTypes) => {
   return sequelize.define('Category', {
     name: { type: DataTypes.STRING, allowNull: false },
     icon: { type: DataTypes.STRING, defaultValue: "📦" },
     image: { type: DataTypes.STRING, allowNull: true } // image URL for category
   });
 };
+
+export default Category;

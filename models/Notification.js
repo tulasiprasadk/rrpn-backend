@@ -1,4 +1,4 @@
-module.exports = (sequelize, DataTypes) => {
+const Notification = (sequelize, DataTypes) => {
   return sequelize.define("Notification", {
     type: {
       type: DataTypes.STRING, // e.g., "order_created", "payment_submitted"
@@ -18,3 +18,5 @@ module.exports = (sequelize, DataTypes) => {
     }
   });
 };
+
+export default Notification;

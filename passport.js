@@ -1,7 +1,9 @@
 // backend/passport.js
-const passport = require('passport');
-const GoogleStrategy = require('passport-google-oauth20').Strategy;
-const { Supplier, Customer } = require('./models');
+
+import passport from 'passport';
+import pkg from 'passport-google-oauth20';
+const { Strategy: GoogleStrategy } = pkg;
+import { Supplier, Customer } from './models/index.js';
 
 
 // Support both Supplier and Customer serialization
@@ -46,7 +48,7 @@ passport.use('supplier-google', new GoogleStrategy({
   }
 }));
 
-module.exports = passport;
+export default passport;
 
 // Google OAuth for Customer (user)
 passport.use('customer-google', new GoogleStrategy({

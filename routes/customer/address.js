@@ -1,6 +1,6 @@
-const express = require("express");
+import express from "express";
+import { Address } from "../../models/index.js";
 const router = express.Router();
-const { Address } = require("../../models");
 
 /* ======================================
    MIDDLEWARE — Require Login
@@ -95,4 +95,4 @@ router.put("/:id/default", requireLogin, async (req, res) => {
 /* ======================================
    EXPORT ROUTER
 ====================================== */
-module.exports = router;
+export default router;

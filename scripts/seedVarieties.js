@@ -1,5 +1,6 @@
 // backend/scripts/seedVarieties.js
-const { sequelize, Category, Variety } = require('../models');
+
+import { sequelize, Category, Variety } from '../models/index.js';
 
 const varietiesData = {
   "Flowers": [

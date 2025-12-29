@@ -1,4 +1,4 @@
-module.exports = (sequelize, DataTypes) => {
+export default (sequelize, DataTypes) => {
   const Admin = sequelize.define('Admin', {
     name: {
       type: DataTypes.STRING,

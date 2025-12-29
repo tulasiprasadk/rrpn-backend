@@ -1,4 +1,4 @@
-module.exports = (sequelize, DataTypes) => {
+const Product = (sequelize, DataTypes) => {
   return sequelize.define('Product', {
     title: { type: DataTypes.STRING, allowNull: false },
     titleKannada: DataTypes.STRING,  // Kannada translation
@@ -20,3 +20,5 @@ module.exports = (sequelize, DataTypes) => {
     }
   });
 };
+
+export default Product;

@@ -1,6 +1,7 @@
-const express = require('express');
+
+import express from 'express';
+import { Product, Supplier, ProductSupplier } from '../../models/index.js';
 const router = express.Router();
-const { Product, Supplier, ProductSupplier } = require('../../models');
 
 // Get suppliers for a product
 router.get('/:productId/suppliers', async (req, res) => {
@@ -83,4 +84,4 @@ router.delete('/:productId/suppliers/:supplierId', async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;

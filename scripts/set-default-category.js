@@ -1,4 +1,5 @@
-const { Product } = require('../models');
+
+import { Product } from '../models/index.js';
 
 (async () => {
   try {

@@ -3,8 +3,9 @@
  * Run: node backend/scripts/create-admin.js
  */
 
-const bcrypt = require('bcrypt');
-const { Admin, sequelize } = require('../models');
+
+import bcrypt from 'bcrypt';
+import { Admin, sequelize } from '../models/index.js';
 
 async function createAdmin() {
   try {

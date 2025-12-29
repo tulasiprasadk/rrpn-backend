@@ -1,4 +1,5 @@
-module.exports = (sequelize, DataTypes) => {
+
+const Ad = (sequelize, DataTypes) => {
   return sequelize.define('Ad', {
     location: DataTypes.ENUM('top', 'bottom', 'left', 'right'),
     title: DataTypes.STRING,
@@ -8,3 +9,5 @@ module.exports = (sequelize, DataTypes) => {
     order: { type: DataTypes.INTEGER, defaultValue: 0 }
   });
 };
+
+export default Ad;

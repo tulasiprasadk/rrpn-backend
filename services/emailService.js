@@ -2,7 +2,7 @@
 // Lightweight email sender for OTP and notifications
 // Uses SMTP if configured; falls back to console logging in development
 
-const nodemailer = require('nodemailer');
+import nodemailer from 'nodemailer';
 
 const SMTP_HOST = process.env.SMTP_HOST;
 const SMTP_PORT = parseInt(process.env.SMTP_PORT || '587', 10);
@@ -24,7 +24,7 @@ if (SMTP_HOST && SMTP_USER && SMTP_PASS) {
   });
 }
 
-async function sendEmail(to, subject, text) {
+export async function sendEmail(to, subject, text) {
   if (!to) return false;
 
   if (transporter) {
@@ -42,7 +42,7 @@ async function sendEmail(to, subject, text) {
   return true;
 }
 
-async function sendOTP(email, otp) {
+export async function sendOTP(email, otp) {
   const subject = 'Your RR Nagar verification code';
   const message = `Your RR Nagar verification code is: ${otp}. Valid for 10 minutes. Do not share this code.`;
   try {
@@ -52,5 +52,3 @@ async function sendOTP(email, otp) {
     return false;
   }
 }
-
-module.exports = { sendEmail, sendOTP };

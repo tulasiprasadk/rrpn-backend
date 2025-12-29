@@ -4,10 +4,10 @@
  * ✅ FIXED: OTP stored in DB (no in-memory store)
  */
 
-const express = require("express");
+import express from "express";
+import { Customer } from "../../models/index.js";
+import { sendOTP } from "../../services/emailService.js";
 const router = express.Router();
-const { Customer } = require("../../models");
-const { sendOTP } = require("../../services/emailService");
 
 /* =====================================================
    REQUEST EMAIL OTP
@@ -153,4 +153,4 @@ router.post("/logout", (req, res) => {
   });
 });
 
-module.exports = router;
+export default router;

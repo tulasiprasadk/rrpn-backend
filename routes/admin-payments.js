@@ -1,8 +1,9 @@
-const express = require("express");
+
+import express from "express";
+import { Order, Product, Supplier } from "../models/index.js";
+import adminNotify from "../services/adminNotify.js";
+import { sendNotificationToSupplier, sendNotificationToCustomer } from "../utils/notify.js";
 const router = express.Router();
-const { Order, Product, Supplier } = require("../models");
-const adminNotify = require("../services/adminNotify");
-const { sendNotificationToSupplier, sendNotificationToCustomer } = require("../utils/notify");
 
 /* ============================================================
    GET ALL PENDING PAYMENTS
@@ -101,4 +102,4 @@ router.post("/:id/reject", async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;

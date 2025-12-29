@@ -1,10 +1,7 @@
-import 'dotenv/config';
-import express from "express";
-import serverless from "serverless-http";
-import cors from "cors";
-import bodyParser from "body-parser";
-import session from "express-session";
+import "dotenv/config";
+import app from "../src/app.js";
 
+<<<<<<< HEAD
 import routes from "../routes/index.js";
 import "../config/database.js"; // ensure DB connection
 import passport from "../passport.js";
@@ -53,3 +50,9 @@ const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
   console.log(`Backend listening on http://localhost:${PORT}`);
 });
+=======
+export { app };
+export default function handler(req, res) {
+	return app(req, res);
+}
+>>>>>>> 6ad866bc3b02abfaafe4c4d9ece89858474b19cd

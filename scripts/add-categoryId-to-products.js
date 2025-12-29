@@ -1,4 +1,5 @@
-const { sequelize, Product, Category } = require('../models');
+
+import { sequelize, Product, Category } from '../models/index.js';
 
 (async () => {
   try {

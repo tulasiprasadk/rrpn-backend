@@ -1,4 +1,4 @@
-module.exports = (sequelize, DataTypes) => {
+const Shop = (sequelize, DataTypes) => {
   return sequelize.define('Shop', {
     name: {
       type: DataTypes.STRING,
@@ -22,3 +22,5 @@ module.exports = (sequelize, DataTypes) => {
     }
   });
 };
+
+export default Shop;

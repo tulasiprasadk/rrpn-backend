@@ -1,4 +1,4 @@
-module.exports = (sequelize, DataTypes) => {
+const Supplier = (sequelize, DataTypes) => {
   return sequelize.define('Supplier', {
     name: { type: DataTypes.STRING, allowNull: false },
     businessName: DataTypes.STRING,
@@ -10,14 +10,10 @@ module.exports = (sequelize, DataTypes) => {
     address: DataTypes.TEXT,
     gstNumber: DataTypes.STRING,
     panNumber: DataTypes.STRING,
-    
-    // KYC Documents
     businessLicense: DataTypes.STRING, // file path
     gstCertificate: DataTypes.STRING,  // file path
     idProof: DataTypes.STRING,         // file path
     bankDetails: DataTypes.JSON,       // {accountNumber, ifsc, bankName}
-    
-    // Approval Status
     status: { 
       type: DataTypes.ENUM('pending', 'approved', 'rejected'), 
       defaultValue: 'pending' 
@@ -25,8 +21,9 @@ module.exports = (sequelize, DataTypes) => {
     rejectionReason: DataTypes.TEXT,
     approvedBy: DataTypes.INTEGER,     // admin ID
     approvedAt: DataTypes.DATE,
-    
     acceptedTnC: { type: DataTypes.BOOLEAN, defaultValue: false },
     metadata: DataTypes.JSON
   });
 };
+
+export default Supplier;

@@ -1,4 +1,5 @@
-const { Product, Supplier, Category, sequelize } = require("../models");
+
+import { Product, Supplier, Category, sequelize } from "../models/index.js";
 
 async function seed() {
 

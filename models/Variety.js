@@ -1,5 +1,4 @@
-// backend/models/Variety.js
-module.exports = (sequelize, DataTypes) => {
+const Variety = (sequelize, DataTypes) => {
   return sequelize.define('Variety', {
     name: { 
       type: DataTypes.STRING, 
@@ -15,3 +14,5 @@ module.exports = (sequelize, DataTypes) => {
     } // Additional info like units, price ranges, etc
   });
 };
+
+export default Variety;

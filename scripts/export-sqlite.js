@@ -1,5 +1,7 @@
-const sqlite3 = require('sqlite3').verbose();
-const fs = require('fs');
+
+import sqlite3pkg from 'sqlite3';
+const sqlite3 = sqlite3pkg.verbose();
+import fs from 'fs';
 
 const db = new sqlite3.Database('./data/dev.sqlite');
 

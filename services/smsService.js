@@ -3,7 +3,7 @@
  * Configure via environment variables
  */
 
-const axios = require('axios');
+import axios from 'axios';
 
 const SMS_PROVIDER = process.env.SMS_PROVIDER || 'console'; // 'twilio', 'msg91', 'console'
 const SMS_API_KEY = process.env.SMS_API_KEY || '';
@@ -21,20 +21,17 @@ const TWILIO_PHONE_NUMBER = process.env.TWILIO_PHONE_NUMBER || '';
  * @param {string} otp - OTP code
  * @returns {Promise<boolean>} Success status
  */
-async function sendOTP(phone, otp) {
+export async function sendOTP(phone, otp) {
   const message = `Your RR Nagar verification code is: ${otp}. Valid for 10 minutes. Do not share this code.`;
 
   try {
     switch (SMS_PROVIDER) {
       case 'twilio':
         return await sendViaTwilio(phone, message);
-      
       case 'msg91':
         return await sendViaMSG91(phone, otp);
-      
       case 'fast2sms':
         return await sendViaFast2SMS(phone, otp);
-      
       case 'console':
       default:
         // Development mode - just log to console
@@ -52,15 +49,11 @@ async function sendOTP(phone, otp) {
   }
 }
 
-/**
- * Send SMS via Twilio
- */
-async function sendViaTwilio(phone, message) {
-  if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_PHONE_NUMBER) {
-    throw new Error('Twilio credentials not configured');
+// ...existing code for sendViaTwilio, sendViaMSG91, sendViaFast2SMS...
   }
 
-  const twilio = require('twilio')(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
+  const { default: twilioPkg } = await import('twilio');
+  const twilio = twilioPkg(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
   
   await twilio.messages.create({
     body: message,
@@ -149,7 +142,4 @@ async function sendSMS(phone, message) {
   }
 }
 
-module.exports = {
-  sendOTP,
-  sendSMS
-};
+export { sendOTP, sendSMS };

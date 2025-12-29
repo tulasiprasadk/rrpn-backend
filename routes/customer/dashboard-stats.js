@@ -1,6 +1,6 @@
-const express = require("express");
+import express from "express";
+import { Order, Address } from "../../models/index.js";
 const router = express.Router();
-const { Order, Address } = require("../../models");
 
 function requireLogin(req, res, next) {
   if (!req.session?.customerId) {
@@ -29,4 +29,4 @@ router.get("/", requireLogin, async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;

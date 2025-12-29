@@ -1,6 +1,6 @@
-require('dotenv').config();   // <-- ADD THIS
 
-const { Product, Supplier, Ad, Category, sequelize } = require('./models');
+import 'dotenv/config';
+import { Product, Supplier, Ad, Category, sequelize } from './models/index.js';
 
 async function seed() {
   try {

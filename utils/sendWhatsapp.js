@@ -1,12 +1,14 @@
-const msg91 = require("msg91")(
+import msg91 from "msg91";
+
+const msg91Client = msg91(
   process.env.MSG91_AUTH_KEY,
   "RRNAGAR",      // your sender ID
   4               // route
 );
 
-async function sendWhatsapp(to, message) {
+export default async function sendWhatsapp(to, message) {
   try {
-    await msg91.sendWhatsapp({
+    await msg91Client.sendWhatsapp({
       flow_id: process.env.MSG91_WHATSAPP_FLOW_ID,
       recipients: [
         {
@@ -21,5 +23,3 @@ async function sendWhatsapp(to, message) {
     console.error("WHATSAPP ERROR:", err);
   }
 }
-
-module.exports = sendWhatsapp;

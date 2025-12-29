@@ -1,10 +1,10 @@
-const express = require("express");
+import express from "express";
+import multer from "multer";
+import sharp from "sharp";
+import path from "path";
+import fs from "fs";
+import { Order } from "../../models/index.js";
 const router = express.Router();
-const multer = require("multer");
-const sharp = require("sharp");
-const path = require("path");
-const fs = require("fs");
-const { Order } = require("../../models");
 
 function requireLogin(req, res, next) {
   if (!req.session.customerId) {
@@ -108,4 +108,4 @@ router.post(
   }
 );
 
-module.exports = router;
+export default router;

@@ -1,5 +1,4 @@
-const db = require("../models");
-const Notification = db.Notification;
+import { Notification } from "../models/index.js";
 
 /**
  * Create a new notification for admin
@@ -7,7 +6,7 @@ const Notification = db.Notification;
  * @param {string} message
  * @param {object} meta  (optional metadata)
  */
-async function notifyAdmin(title, message, meta = {}) {
+export async function notifyAdmin(title, message, meta = {}) {
   try {
     await Notification.create({
       title,
@@ -19,7 +18,3 @@ async function notifyAdmin(title, message, meta = {}) {
     console.error("Notification error:", err);
   }
 }
-
-module.exports = {
-  notifyAdmin,
-};

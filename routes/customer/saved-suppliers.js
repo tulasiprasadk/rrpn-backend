@@ -1,6 +1,6 @@
-const express = require("express");
+import express from "express";
+import { Supplier, Order } from "../../models/index.js";
 const router = express.Router();
-const { Supplier } = require("../../models");
 
 /* ======================================
    MIDDLEWARE — Require Login
@@ -12,12 +12,9 @@ function requireLogin(req, res, next) {
   next();
 }
 
-/* ======================================
-   GET ALL SAVED SUPPLIERS (from orders)
-====================================== */
+
 router.get("/", requireLogin, async (req, res) => {
   try {
-    const { Order } = require("../../models");
     const customerId = req.session.customerId;
 
     // Get unique suppliers from customer's orders
@@ -56,5 +53,5 @@ router.get("/", requireLogin, async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;
 

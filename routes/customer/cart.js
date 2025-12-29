@@ -1,6 +1,12 @@
+<<<<<<< HEAD
 const express = require("express");
 const router = express.Router();
 const { CartItem, Product, Customer } = require("../../models");
+=======
+import express from "express";
+import { CartItem, Product, Customer, Category } from "../../models/index.js";
+const router = express.Router();
+>>>>>>> 6ad866bc3b02abfaafe4c4d9ece89858474b19cd
 
 // Middleware to require login
 function requireLogin(req, res, next) {
@@ -20,7 +26,11 @@ router.get("/", requireLogin, async (req, res) => {
           model: Product,
           include: [
             {
+<<<<<<< HEAD
               model: require("../../models").Category,
+=======
+              model: Category,
+>>>>>>> 6ad866bc3b02abfaafe4c4d9ece89858474b19cd
               attributes: ["name"]
             }
           ],
@@ -122,4 +132,8 @@ router.post("/clear", requireLogin, async (req, res) => {
   }
 });
 
+<<<<<<< HEAD
 module.exports = router;
+=======
+export default router;
+>>>>>>> 6ad866bc3b02abfaafe4c4d9ece89858474b19cd

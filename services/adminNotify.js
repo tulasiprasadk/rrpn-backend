@@ -1,6 +1,6 @@
-const { Notification } = require("../models");
+import { Notification } from "../models/index.js";
 
-async function adminNotify(type, title, message) {
+const adminNotify = async (type, title, message) => {
   try {
     await Notification.create({
       type,
@@ -11,6 +11,6 @@ async function adminNotify(type, title, message) {
   } catch (err) {
     console.error("ADMIN NOTIFY ERROR:", err);
   }
-}
+};
 
-module.exports = adminNotify;
+export default adminNotify;

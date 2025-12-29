@@ -1,6 +1,5 @@
-module.exports = (sequelize, DataTypes) => {
+const StockHistory = (sequelize, DataTypes) => {
   return sequelize.define('StockHistory', {
-  
     change: {
       type: DataTypes.INTEGER, // +10, -5 etc.
       allowNull: false
@@ -11,3 +10,5 @@ module.exports = (sequelize, DataTypes) => {
     }
   });
 };
+
+export default StockHistory;
