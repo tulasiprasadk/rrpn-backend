@@ -1,7 +1,8 @@
 import express from "express";
-import { Ad } from "../models/index.js";
+import { models } from "../config/database.js";
 
 const router = express.Router();
+const { Ad } = models;
 
 router.get("/", async (req, res) => {
   try {
