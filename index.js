@@ -1,3 +1,4 @@
+console.log("🔥 INDEX.JS VERSION 2025-12-30");
 import express from "express";
 import cors from "cors";
 import routes from "./routes/index.js";
