@@ -11,7 +11,11 @@ const app = express();
 
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: [
+      "http://localhost:5173",
+      "https://rrw-frontend.vercel.app",
+      "https://rrw-frontend-bshkgchh2-prasads-projects-1f1a36aa.vercel.app"
+    ],
     credentials: true,
   })
 );
