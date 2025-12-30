@@ -1,4 +1,5 @@
 import { Sequelize } from "sequelize";
+import initModels from "../models/index.js";
 
 const sequelize = new Sequelize(process.env.DATABASE_URL, {
   dialect: "postgres",
@@ -11,17 +12,19 @@ const sequelize = new Sequelize(process.env.DATABASE_URL, {
   },
 });
 
-// 👇 ADD THIS
+// 🔥 Load all models + relations FIRST
+const models = initModels(sequelize);
+
 (async () => {
   try {
     await sequelize.authenticate();
     console.log("✅ Database connected");
 
-    await sequelize.sync(); // creates tables if missing
+    await sequelize.sync();
     console.log("✅ Database synced");
   } catch (err) {
-    console.error("❌ Database error:", err);
+    console.error("❌ Database error:", err.message);
   }
 })();
 
-export default sequelize;
+export { sequelize, models };
