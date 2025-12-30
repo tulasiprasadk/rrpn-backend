@@ -1,13 +1,14 @@
 /**
  * backend/routes/customer/auth.js
  * Customer Authentication Routes
- * ✅ FIXED: OTP stored in DB (no in-memory store)
+ * OTP stored in DB (no in-memory store)
  */
 
 import express from "express";
 import { models } from "../../config/database.js";
-const { Customer } = models;
 import { sendOTP } from "../../services/emailService.js";
+
+const { Customer } = models;
 const router = express.Router();
 
 /* =====================================================
@@ -24,7 +25,7 @@ router.post("/request-email-otp", async (req, res) => {
   try {
     let customer;
 
-    // Email login OR username (phone)
+    // Email OR username login
     if (email.includes("@")) {
       customer = await Customer.findOne({ where: { email } });
 
@@ -44,23 +45,23 @@ router.post("/request-email-otp", async (req, res) => {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
-    // ✅ SAVE OTP TO DATABASE
+    // Save OTP in DB
     await customer.update({
       otpCode: otp,
       otpExpiresAt: expiresAt,
     });
 
-    // Send OTP email
+    // Send OTP
     await sendOTP(customer.email, otp);
 
-    console.log("📧 OTP SENT:", customer.email, otp);
+    console.log("📧 CUSTOMER OTP SENT:", customer.email, otp);
 
     res.json({
       success: true,
       message: "OTP sent to email",
     });
   } catch (err) {
-    console.error("OTP Send Error:", err);
+    console.error("Customer OTP Send Error:", err);
     res.status(500).json({ error: "Failed to send OTP" });
   }
 });
@@ -89,7 +90,6 @@ router.post("/verify-email-otp", async (req, res) => {
       return res.status(401).json({ error: "Invalid OTP" });
     }
 
-    // Validate OTP + expiry
     if (
       customer.otpCode !== otp ||
       new Date() > customer.otpExpiresAt
@@ -97,13 +97,13 @@ router.post("/verify-email-otp", async (req, res) => {
       return res.status(401).json({ error: "Invalid or expired OTP" });
     }
 
-    // ✅ CLEAR OTP AFTER SUCCESS
+    // Clear OTP after success
     await customer.update({
       otpCode: null,
       otpExpiresAt: null,
     });
 
-    // Save login session
+    // Save session
     req.session.customerId = customer.id;
 
     res.json({
@@ -112,7 +112,7 @@ router.post("/verify-email-otp", async (req, res) => {
       customerId: customer.id,
     });
   } catch (err) {
-    console.error("Verify OTP Error:", err);
+    console.error("Customer Verify OTP Error:", err);
     res.status(500).json({ error: "Verification failed" });
   }
 });
@@ -121,26 +121,28 @@ router.post("/verify-email-otp", async (req, res) => {
    CHECK LOGIN STATUS
    GET /api/auth/me
 ===================================================== */
-router.get("/me", (req, res) => {
+router.get("/me", async (req, res) => {
   if (!req.session?.customerId) {
     return res.status(401).json({ loggedIn: false });
   }
 
-  // Return full customer object (excluding sensitive fields) as 'user' for frontend consistency
-  const { Customer } = require("../../models");
-  Customer.findByPk(req.session.customerId, {
-    attributes: { exclude: ["otpCode", "otpExpiresAt", "password"] }
-  })
-    .then(customer => {
-      if (!customer) {
-        return res.status(401).json({ loggedIn: false });
-      }
-      res.json({
-        loggedIn: true,
-        user: customer
-      });
-    })
-    .catch(() => res.status(500).json({ loggedIn: false }));
+  try {
+    const customer = await Customer.findByPk(req.session.customerId, {
+      attributes: { exclude: ["otpCode", "otpExpiresAt", "password"] },
+    });
+
+    if (!customer) {
+      return res.status(401).json({ loggedIn: false });
+    }
+
+    res.json({
+      loggedIn: true,
+      user: customer,
+    });
+  } catch (err) {
+    console.error("Customer Auth Check Error:", err);
+    res.status(500).json({ loggedIn: false });
+  }
 });
 
 /* =====================================================
