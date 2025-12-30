@@ -1,6 +1,9 @@
 import express from 'express';
 import bcrypt from 'bcrypt';
-import { Category, Ad, AnalyticsVisit, Product, Admin } from '../models/index.js';
+import { models } from "../config/database.js";
+
+const { Category, Ad, AnalyticsVisit, Product, Admin, Supplier, Order, Customer } = models;
+
 import { translateToKannada } from '../services/translator.js';
 const router = express.Router();
 
@@ -122,8 +125,6 @@ router.get('/admins/pending', requireSuperAdmin, async (req, res) => {
 
 router.get('/stats', async (req, res) => {
   try {
-    const { Supplier, Order, Customer } = require('../models');
-
     res.json({
       totalSuppliers: await Supplier.count(),
       totalProducts: await Product.count(),

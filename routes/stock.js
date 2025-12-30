@@ -1,6 +1,8 @@
 
 import express from 'express';
-import { StockHistory } from '../models/index.js';
+import { models } from "../config/database.js";
+const { StockHistory } = models;
+
 const router = express.Router();
 
 // GET stock history

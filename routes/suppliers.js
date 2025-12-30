@@ -4,7 +4,9 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import bcrypt from 'bcrypt';
-import { Supplier, Product, Order } from '../models/index.js';
+import { models } from "../config/database.js";
+const { Supplier, Product, Order } = models;
+
 import { sendNotificationToAdmin } from '../utils/notify.js';
 import adminNotify from '../services/adminNotify.js';
 import { sendOTP as sendOTPSMS } from '../services/smsService.js';

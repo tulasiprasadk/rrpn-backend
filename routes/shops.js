@@ -1,6 +1,8 @@
 
 import express from 'express';
-import { Shop } from '../models/index.js';
+import { models } from "../config/database.js";
+const { Shop } = models;
+
 const router = express.Router();
 
 // GET all shops

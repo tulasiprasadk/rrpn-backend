@@ -1,7 +1,9 @@
 // backend/routes/varieties.js
 
 import express from 'express';
-import { Variety, Category } from '../models/index.js';
+import { models } from "../config/database.js";
+const { Variety, Category } = models;
+
 const router = express.Router();
 
 // Get all varieties (with optional category filter)

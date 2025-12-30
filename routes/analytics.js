@@ -1,6 +1,8 @@
 
 import express from 'express';
-import { AnalyticsVisit } from '../models/index.js';
+import { models } from "../config/database.js";
+const { AnalyticsVisit } = models;
+
 const router = express.Router();
 
 // CREATE visit log
