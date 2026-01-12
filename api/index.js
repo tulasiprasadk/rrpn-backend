@@ -64,7 +64,16 @@ app.get("/health", (req, res) => {
   });
 });
 
-// Initialize passport and routes (with error handling)
+// Auth status - MUST work without database
+app.get("/api/auth/status", (req, res) => {
+  res.json({
+    googleConfigured: !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET),
+    googleClientId: process.env.GOOGLE_CLIENT_ID ? "configured" : "missing",
+    timestamp: new Date().toISOString(),
+  });
+});
+
+// Initialize passport and routes (with error handling - non-blocking)
 let passportInitialized = false;
 let routesMounted = false;
 
