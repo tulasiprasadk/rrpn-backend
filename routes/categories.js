@@ -20,8 +20,21 @@ router.get('/', async (req, res) => {
 
     res.json(result.rows);
   } catch (err) {
-    console.error('Categories API error:', err.message);
-    res.status(500).json({ error: 'Failed to load categories' });
+    console.error('Categories API error:', err.message || err);
+    
+    // Check if it's a database connection error
+    if (err.code === 'ENOTFOUND' || err.message?.includes('ENOTFOUND')) {
+      return res.status(503).json({ 
+        error: "Database connection failed",
+        message: "Cannot connect to database. Please check DATABASE_URL configuration.",
+        details: process.env.NODE_ENV === 'development' ? err.message : undefined
+      });
+    }
+    
+    res.status(500).json({ 
+      error: "Failed to load categories",
+      message: err.message || "Internal server error"
+    });
   }
 });
 

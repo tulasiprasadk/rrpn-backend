@@ -61,7 +61,20 @@ router.get("/", async (req, res) => {
     res.json(productsWithBasePrice);
   } catch (err) {
     console.error("Error fetching products:", err);
-    res.status(500).json({ error: "Failed to fetch products" });
+    
+    // Check if it's a database connection error
+    if (err.name === 'SequelizeHostNotFoundError' || err.code === 'ENOTFOUND') {
+      return res.status(503).json({ 
+        error: "Database connection failed",
+        message: "Cannot connect to database. Please check DATABASE_URL configuration.",
+        details: process.env.NODE_ENV === 'development' ? err.message : undefined
+      });
+    }
+    
+    res.status(500).json({ 
+      error: "Failed to fetch products",
+      message: err.message || "Internal server error"
+    });
   }
 });
 
