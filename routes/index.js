@@ -7,12 +7,20 @@ import suppliers from "./suppliers.js";
 import supplierProducts from "./supplier/products.js";
 import customers from "./customers.js";
 import customerRoutes from "./customer/index.js";
+import payments from "./payments.js";
 
 const router = express.Router();
 
 // Health check endpoints
 router.get("/health", (req, res) => {
   res.json({ ok: true, timestamp: new Date().toISOString() });
+});
+
+// General auth status endpoint (frontend compatibility)
+router.get("/auth/status", (req, res) => {
+  res.json({
+    googleConfigured: !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET),
+  });
 });
 
 router.use("/products", products);
@@ -23,5 +31,6 @@ router.use("/suppliers", suppliers);
 router.use("/supplier/products", supplierProducts);
 router.use("/customers", customers);
 router.use("/customer", customerRoutes);
+router.use("/payments", payments);
 
 export default router;

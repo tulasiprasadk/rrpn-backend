@@ -122,6 +122,7 @@ router.post("/verify-email-otp", async (req, res) => {
 /* =====================================================
    CHECK LOGIN STATUS
    GET /api/auth/me
+   GET /api/auth/status (alias for compatibility)
 ===================================================== */
 router.get("/me", async (req, res) => {
   if (!req.session?.customerId) {
@@ -147,6 +148,14 @@ router.get("/me", async (req, res) => {
   }
 });
 
+// Auth status endpoint (frontend compatibility)
+// Returns Google OAuth configuration status
+router.get("/status", (req, res) => {
+  res.json({
+    googleConfigured: !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET),
+  });
+});
+
 /* =====================================================
    LOGOUT
    POST /api/auth/logout
@@ -161,11 +170,29 @@ router.post("/logout", (req, res) => {
 /* =====================================================
    GOOGLE OAUTH — CUSTOMER
    GET /api/customer/auth/google
+   GET /api/customers/auth/google (also supported)
 ===================================================== */
 router.get("/google", (req, res, next) => {
-  passport.authenticate("google-customer", {
-    scope: ["profile", "email"],
-  })(req, res, next);
+  try {
+    // Check if Google OAuth is configured
+    if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+      return res.status(400).json({ 
+        error: "Google OAuth not configured",
+        message: "GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET must be set"
+      });
+    }
+    
+    // This should redirect immediately to Google - no waiting
+    passport.authenticate("google-customer", {
+      scope: ["profile", "email"],
+    })(req, res, next);
+  } catch (err) {
+    console.error("Error in Google OAuth route:", err);
+    res.status(500).json({ 
+      error: "OAuth error", 
+      message: err.message || "Failed to initiate Google OAuth"
+    });
+  }
 });
 
 /* =====================================================
