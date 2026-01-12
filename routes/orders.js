@@ -3,7 +3,8 @@ import express from "express";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
-import { Order, Product, Supplier, Address, Notification } from "../config/database.js";
+import { models } from "../config/database.js";
+const { Order, Product, Supplier, Address, Notification } = models;
 const router = express.Router();
 
 // Configure multer for payment screenshots

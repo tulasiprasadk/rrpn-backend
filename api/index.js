@@ -1,5 +1,4 @@
 import "dotenv/config";
-import "dotenv/config";
 import express from "express";
 import serverless from "serverless-http";
 import cors from "cors";
@@ -25,10 +24,14 @@ app.use(
 app.use(bodyParser.json());
 app.use(
   session({
-    secret: "your-secret-key", // TODO: use a strong secret in production!
+    secret: process.env.SESSION_SECRET || "fallback-secret-change-in-production",
     resave: false,
     saveUninitialized: false,
-    cookie: { secure: false }, // set to true if using HTTPS
+    cookie: {
+      secure: process.env.NODE_ENV === "production",
+      httpOnly: true,
+      sameSite: "lax",
+    },
   })
 );
 app.use(passport.initialize());
