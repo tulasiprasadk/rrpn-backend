@@ -12,6 +12,14 @@ const router = express.Router();
 ===================================================== */
 router.get("/", async (req, res) => {
   try {
+    // Check if database is available
+    if (!Product || !Category) {
+      return res.status(503).json({ 
+        error: "Database not available",
+        message: "Database connection is not ready. Please try again later."
+      });
+    }
+
     const { categoryId, q } = req.query;
 
     const where = {
