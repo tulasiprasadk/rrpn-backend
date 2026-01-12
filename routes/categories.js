@@ -3,14 +3,33 @@ import pkg from 'pg';
 const { Pool } = pkg;
 
 const router = express.Router();
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-});
+
+// Lazy pool creation to prevent blocking
+let pool;
+function getPool() {
+  if (!pool && process.env.DATABASE_URL) {
+    pool = new Pool({
+      connectionString: process.env.DATABASE_URL,
+      connectionTimeoutMillis: 10000, // 10 second timeout
+      idleTimeoutMillis: 10000,
+      max: 5,
+    });
+  }
+  return pool;
+}
 
 // GET /api/categories
 router.get('/', async (req, res) => {
   try {
-    const result = await pool.query(
+    const dbPool = getPool();
+    if (!dbPool) {
+      return res.status(503).json({ 
+        error: "Database not configured",
+        message: "DATABASE_URL is not set"
+      });
+    }
+    
+    const result = await dbPool.query(
       `
       SELECT id, name, icon
       FROM "Categories"
