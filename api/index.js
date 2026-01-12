@@ -2,8 +2,6 @@ import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import session from "express-session";
-import passport from "../passport.js";
-import routes from "../routes/index.js";
 import serverless from "serverless-http";
 
 const app = express();
@@ -60,12 +58,7 @@ app.use(
   })
 );
 
-// Initialize passport
-const passportInstance = passport.default || passport;
-app.use(passportInstance.initialize());
-app.use(passportInstance.session());
-
-// Root - MUST be before /api routes
+// Root - MUST work without any dependencies
 app.get("/", (req, res) => {
   res.json({
     message: "RR Nagar Backend API",
@@ -92,9 +85,38 @@ app.get("/health", (req, res) => {
   });
 });
 
-// Mount routes
-const routesHandler = routes.default || routes;
-app.use("/api", routesHandler);
+// Initialize passport and routes (lazy, after basic routes)
+let passportInitialized = false;
+let routesMounted = false;
+
+app.use(async (req, res, next) => {
+  // Initialize passport once
+  if (!passportInitialized) {
+    try {
+      const passport = (await import("../passport.js")).default;
+      const p = passport.default || passport;
+      app.use(p.initialize());
+      app.use(p.session());
+      passportInitialized = true;
+    } catch (err) {
+      console.error("Passport init error:", err);
+    }
+  }
+  
+  // Mount routes once
+  if (!routesMounted && req.path.startsWith('/api')) {
+    try {
+      const routes = (await import("../routes/index.js")).default;
+      const handler = routes.default || routes;
+      app.use("/api", handler);
+      routesMounted = true;
+    } catch (err) {
+      console.error("Routes mount error:", err);
+    }
+  }
+  
+  next();
+});
 
 // Error handler
 app.use((err, req, res, next) => {
@@ -108,8 +130,4 @@ app.use((req, res) => {
 });
 
 // Export for Vercel serverless
-// Use serverless-http wrapper for better Vercel compatibility
 export default serverless(app);
-
-// Also export as handler for Vercel compatibility
-export const handler = app;
