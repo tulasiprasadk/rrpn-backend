@@ -4,6 +4,7 @@ import cors from "cors";
 import session from "express-session";
 import passport from "../passport.js";
 import routes from "../routes/index.js";
+import serverless from "serverless-http";
 
 const app = express();
 
@@ -75,7 +76,8 @@ app.use((req, res) => {
 });
 
 // Export for Vercel serverless
-export default app;
+// Use serverless-http wrapper for better Vercel compatibility
+export default serverless(app);
 
 // Also export as handler for Vercel compatibility
 export const handler = app;
