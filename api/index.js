@@ -65,21 +65,30 @@ const passportInstance = passport.default || passport;
 app.use(passportInstance.initialize());
 app.use(passportInstance.session());
 
-// Health check - MUST work
-app.get("/api/health", (req, res) => {
-  res.json({ ok: true });
-});
-
-app.get("/health", (req, res) => {
-  res.json({ ok: true });
-});
-
-// Root
+// Root - MUST be before /api routes
 app.get("/", (req, res) => {
   res.json({
     message: "RR Nagar Backend API",
     version: "1.0.0",
     status: "running",
+    timestamp: new Date().toISOString(),
+  });
+});
+
+// Health check - MUST work (no database dependency)
+app.get("/api/health", (req, res) => {
+  res.json({ 
+    ok: true,
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime()
+  });
+});
+
+app.get("/health", (req, res) => {
+  res.json({ 
+    ok: true,
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime()
   });
 });
 
