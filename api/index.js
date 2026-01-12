@@ -1,43 +1,50 @@
 import "dotenv/config";
 import express from "express";
-import cors from "cors";
-import session from "express-session";
 import serverless from "serverless-http";
+import cors from "cors";
+import bodyParser from "body-parser";
+import session from "express-session";
+
+import routes from "../routes/index.js";
+import passport from "../passport.js";
 
 const app = express();
 
 // Trust proxy for Vercel
 app.set("trust proxy", 1);
 
-// CORS - Allow all in production for now
+// CORS - Allow multiple origins
 app.use(
   cors({
-    origin: true, // Allow all origins
+    origin: [
+      "http://localhost:5173",
+      "https://rrw-frontend.vercel.app",
+      "https://rrnagarfinal-frontend.vercel.app",
+      process.env.FRONTEND_URL,
+    ].filter(Boolean),
     credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
   })
 );
 
-// Body parser
-app.use(express.json());
+app.use(bodyParser.json());
 
-// Session
 app.use(
   session({
-    name: "rrnagar.sid",
     secret: process.env.SESSION_SECRET || "fallback-secret",
     resave: false,
     saveUninitialized: false,
-    cookie: {
-      secure: true,
+    cookie: { 
+      secure: true, // true for HTTPS
       httpOnly: true,
       sameSite: "none",
     },
   })
 );
 
-// Root - MUST work without any dependencies
+app.use(passport.initialize());
+app.use(passport.session());
+
+// Root route
 app.get("/", (req, res) => {
   res.json({
     message: "RR Nagar Backend API",
@@ -47,16 +54,8 @@ app.get("/", (req, res) => {
   });
 });
 
-// Health check - MUST work (no database dependency)
+// Health check
 app.get("/api/health", (req, res) => {
-  res.json({ 
-    ok: true,
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime()
-  });
-});
-
-app.get("/health", (req, res) => {
   res.json({ 
     ok: true,
     timestamp: new Date().toISOString(),
@@ -73,48 +72,7 @@ app.get("/api/auth/status", (req, res) => {
   });
 });
 
-// Initialize passport and routes (with error handling - non-blocking)
-let passportInitialized = false;
-let routesMounted = false;
-
-// Try to initialize passport (non-blocking)
-try {
-  import("../passport.js").then((passportModule) => {
-    try {
-      const passport = passportModule.default || passportModule;
-      const p = passport.default || passport;
-      app.use(p.initialize());
-      app.use(p.session());
-      passportInitialized = true;
-      console.log("✅ Passport initialized");
-    } catch (err) {
-      console.error("❌ Passport init error:", err.message);
-    }
-  }).catch((err) => {
-    console.error("❌ Passport import error:", err.message);
-  });
-} catch (err) {
-  console.error("❌ Passport setup error:", err.message);
-}
-
-// Try to mount routes (non-blocking)
-try {
-  import("../routes/index.js").then((routesModule) => {
-    try {
-      const routes = routesModule.default || routesModule;
-      const handler = routes.default || routes;
-      app.use("/api", handler);
-      routesMounted = true;
-      console.log("✅ Routes mounted");
-    } catch (err) {
-      console.error("❌ Routes mount error:", err.message);
-    }
-  }).catch((err) => {
-    console.error("❌ Routes import error:", err.message);
-  });
-} catch (err) {
-  console.error("❌ Routes setup error:", err.message);
-}
+app.use("/api", routes);
 
 // Error handler
 app.use((err, req, res, next) => {

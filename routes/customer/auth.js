@@ -183,7 +183,7 @@ router.get("/google", (req, res, next) => {
     }
     
     // This should redirect immediately to Google - no waiting
-    passport.authenticate("google-customer", {
+    passport.authenticate("customer-google", {
       scope: ["profile", "email"],
     })(req, res, next);
   } catch (err) {
@@ -202,7 +202,7 @@ router.get("/google", (req, res, next) => {
 router.get("/google/callback", (req, res, next) => {
   const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
   
-  passport.authenticate("google-customer", {
+  passport.authenticate("customer-google", {
     failureRedirect: `${frontendUrl}/login?error=google_failed`,
     session: true,
   })(req, res, (err) => {
