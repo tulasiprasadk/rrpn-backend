@@ -81,35 +81,42 @@ app.get("/health", (req, res) => {
   });
 });
 
-// Initialize passport and routes (lazy, after basic routes)
+// Initialize passport and routes (lazy, only when needed)
 let initialized = false;
+let initPromise = null;
 
 async function initializeApp() {
   if (initialized) return;
+  if (initPromise) return initPromise;
   
-  try {
-    // Load passport
-    const passportModule = await import("../passport.js");
-    const passport = passportModule.default || passportModule;
-    const p = passport.default || passport;
-    app.use(p.initialize());
-    app.use(p.session());
-    
-    // Load routes
-    const routesModule = await import("../routes/index.js");
-    const routes = routesModule.default || routesModule;
-    const handler = routes.default || routes;
-    app.use("/api", handler);
-    
-    initialized = true;
-  } catch (err) {
-    console.error("Initialization error:", err);
-  }
+  initPromise = (async () => {
+    try {
+      // Load passport
+      const passportModule = await import("../passport.js");
+      const passport = passportModule.default || passportModule;
+      const p = passport.default || passport;
+      app.use(p.initialize());
+      app.use(p.session());
+      
+      // Load routes
+      const routesModule = await import("../routes/index.js");
+      const routes = routesModule.default || routesModule;
+      const handler = routes.default || routes;
+      app.use("/api", handler);
+      
+      initialized = true;
+      console.log("✅ Passport and routes initialized");
+    } catch (err) {
+      console.error("❌ Initialization error:", err);
+    }
+  })();
+  
+  return initPromise;
 }
 
-// Middleware to initialize on first request
+// Middleware to initialize on first /api request
 app.use(async (req, res, next) => {
-  if (!initialized && req.path.startsWith('/api')) {
+  if (!initialized && (req.path.startsWith('/api') || req.path === '/')) {
     await initializeApp();
   }
   next();
