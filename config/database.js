@@ -41,8 +41,16 @@ if (process.env.DATABASE_URL) {
 
 /**
  * Initialize all models and associations ONCE
+ * Wrap in try-catch to prevent crashes during import
  */
-const models = initModels(sequelize);
+let models;
+try {
+  models = initModels(sequelize);
+} catch (err) {
+  console.error("❌ Error initializing models:", err.message || err);
+  // Create empty models object to prevent crashes
+  models = {};
+}
 
 /**
  * Non-blocking DB bootstrap

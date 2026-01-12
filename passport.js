@@ -54,7 +54,7 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
   }));
 
   // Google OAuth for Customer (user)
-  passport.use('customer-google', new GoogleStrategy({
+  passport.use('google-customer', new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
     callbackURL: process.env.GOOGLE_CUSTOMER_CALLBACK_URL || '/api/customers/auth/google/callback',

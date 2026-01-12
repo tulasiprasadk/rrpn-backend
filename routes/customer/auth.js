@@ -5,6 +5,8 @@
  */
 
 import express from "express";
+import passport from "passport";
+import "../../passport.js";
 import { models } from "../../config/database.js";
 import { sendOTP } from "../../services/emailService.js";
 
@@ -153,6 +155,45 @@ router.post("/logout", (req, res) => {
   req.session.destroy(() => {
     res.clearCookie("rrnagar.sid");
     res.json({ success: true });
+  });
+});
+
+/* =====================================================
+   GOOGLE OAUTH — CUSTOMER
+   GET /api/customer/auth/google
+===================================================== */
+router.get("/google", (req, res, next) => {
+  passport.authenticate("google-customer", {
+    scope: ["profile", "email"],
+  })(req, res, next);
+});
+
+/* =====================================================
+   GOOGLE OAUTH CALLBACK — CUSTOMER
+   GET /api/customer/auth/google/callback
+===================================================== */
+router.get("/google/callback", (req, res, next) => {
+  const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+  
+  passport.authenticate("google-customer", {
+    failureRedirect: `${frontendUrl}/login?error=google_failed`,
+    session: true,
+  })(req, res, (err) => {
+    if (err) {
+      console.error("Google OAuth callback error:", err);
+      return res.redirect(`${frontendUrl}/login?error=google_failed`);
+    }
+    
+    if (!req.user) {
+      console.error("No user after Google OAuth");
+      return res.redirect(`${frontendUrl}/login?error=google_failed`);
+    }
+    
+    // Save customer in session
+    req.session.customerId = req.user.id;
+    
+    // Redirect to dashboard
+    return res.redirect(`${frontendUrl}/dashboard`);
   });
 });
 
