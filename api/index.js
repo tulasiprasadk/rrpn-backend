@@ -9,27 +9,10 @@ const app = express();
 // Trust proxy for Vercel
 app.set("trust proxy", 1);
 
-// CORS - Allow multiple origins for production
-const allowedOrigins = [
-  process.env.FRONTEND_URL,
-  "https://rrnagarfinal-frontend.vercel.app",
-  "http://localhost:5173",
-].filter(Boolean);
-
+// CORS - Allow all in production for now
 app.use(
   cors({
-    origin: function (origin, callback) {
-      if (!origin) return callback(null, true);
-      if (allowedOrigins.some(allowed => origin === allowed || origin.startsWith(allowed))) {
-        callback(null, true);
-      } else {
-        if (process.env.NODE_ENV === 'production') {
-          callback(null, true);
-        } else {
-          callback(new Error('Not allowed by CORS'));
-        }
-      }
-    },
+    origin: true, // Allow all origins
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
@@ -81,51 +64,53 @@ app.get("/health", (req, res) => {
   });
 });
 
-// Initialize passport and routes (lazy, only when needed)
-let initialized = false;
-let initPromise = null;
+// Initialize passport and routes (with error handling)
+let passportInitialized = false;
+let routesMounted = false;
 
-async function initializeApp() {
-  if (initialized) return;
-  if (initPromise) return initPromise;
-  
-  initPromise = (async () => {
+// Try to initialize passport (non-blocking)
+try {
+  import("../passport.js").then((passportModule) => {
     try {
-      // Load passport
-      const passportModule = await import("../passport.js");
       const passport = passportModule.default || passportModule;
       const p = passport.default || passport;
       app.use(p.initialize());
       app.use(p.session());
-      
-      // Load routes
-      const routesModule = await import("../routes/index.js");
+      passportInitialized = true;
+      console.log("✅ Passport initialized");
+    } catch (err) {
+      console.error("❌ Passport init error:", err.message);
+    }
+  }).catch((err) => {
+    console.error("❌ Passport import error:", err.message);
+  });
+} catch (err) {
+  console.error("❌ Passport setup error:", err.message);
+}
+
+// Try to mount routes (non-blocking)
+try {
+  import("../routes/index.js").then((routesModule) => {
+    try {
       const routes = routesModule.default || routesModule;
       const handler = routes.default || routes;
       app.use("/api", handler);
-      
-      initialized = true;
-      console.log("✅ Passport and routes initialized");
+      routesMounted = true;
+      console.log("✅ Routes mounted");
     } catch (err) {
-      console.error("❌ Initialization error:", err);
+      console.error("❌ Routes mount error:", err.message);
     }
-  })();
-  
-  return initPromise;
+  }).catch((err) => {
+    console.error("❌ Routes import error:", err.message);
+  });
+} catch (err) {
+  console.error("❌ Routes setup error:", err.message);
 }
-
-// Middleware to initialize on first /api request
-app.use(async (req, res, next) => {
-  if (!initialized && (req.path.startsWith('/api') || req.path === '/')) {
-    await initializeApp();
-  }
-  next();
-});
 
 // Error handler
 app.use((err, req, res, next) => {
   console.error("Error:", err);
-  res.status(500).json({ error: "Internal server error" });
+  res.status(500).json({ error: "Internal server error", message: err.message });
 });
 
 // 404 handler
