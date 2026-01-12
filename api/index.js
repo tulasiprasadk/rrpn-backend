@@ -19,14 +19,10 @@ const allowedOrigins = [
 app.use(
   cors({
     origin: function (origin, callback) {
-      // Allow requests with no origin (like mobile apps or curl requests)
       if (!origin) return callback(null, true);
-      
-      // Check if origin is in allowed list
       if (allowedOrigins.some(allowed => origin === allowed || origin.startsWith(allowed))) {
         callback(null, true);
       } else {
-        // In production, be more permissive for now
         if (process.env.NODE_ENV === 'production') {
           callback(null, true);
         } else {
@@ -86,35 +82,36 @@ app.get("/health", (req, res) => {
 });
 
 // Initialize passport and routes (lazy, after basic routes)
-let passportInitialized = false;
-let routesMounted = false;
+let initialized = false;
 
+async function initializeApp() {
+  if (initialized) return;
+  
+  try {
+    // Load passport
+    const passportModule = await import("../passport.js");
+    const passport = passportModule.default || passportModule;
+    const p = passport.default || passport;
+    app.use(p.initialize());
+    app.use(p.session());
+    
+    // Load routes
+    const routesModule = await import("../routes/index.js");
+    const routes = routesModule.default || routesModule;
+    const handler = routes.default || routes;
+    app.use("/api", handler);
+    
+    initialized = true;
+  } catch (err) {
+    console.error("Initialization error:", err);
+  }
+}
+
+// Middleware to initialize on first request
 app.use(async (req, res, next) => {
-  // Initialize passport once
-  if (!passportInitialized) {
-    try {
-      const passport = (await import("../passport.js")).default;
-      const p = passport.default || passport;
-      app.use(p.initialize());
-      app.use(p.session());
-      passportInitialized = true;
-    } catch (err) {
-      console.error("Passport init error:", err);
-    }
+  if (!initialized && req.path.startsWith('/api')) {
+    await initializeApp();
   }
-  
-  // Mount routes once
-  if (!routesMounted && req.path.startsWith('/api')) {
-    try {
-      const routes = (await import("../routes/index.js")).default;
-      const handler = routes.default || routes;
-      app.use("/api", handler);
-      routesMounted = true;
-    } catch (err) {
-      console.error("Routes mount error:", err);
-    }
-  }
-  
   next();
 });
 
