@@ -173,7 +173,7 @@ router.post("/bulk", async (req, res) => {
     }
 
     // Bulk insert (fast + atomic)
-    await Product.bulkCreate(validProducts);
+    await models.Product.bulkCreate(validProducts);
 
     res.json({
       success: true,
