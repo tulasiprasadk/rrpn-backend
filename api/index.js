@@ -2,6 +2,7 @@ import "dotenv/config";
 import express from "express";
 import serverless from "serverless-http";
 import cors from "cors";
+import session from "express-session";
 
 const app = express();
 
@@ -20,6 +21,22 @@ app.use(cors({
 
 // Body parser
 app.use(express.json());
+
+// Session middleware - Required for OAuth
+app.use(
+  session({
+    name: "rrnagar.sid",
+    secret: process.env.SESSION_SECRET || "fallback-secret",
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: process.env.NODE_ENV === 'production', // true for HTTPS in production
+      httpOnly: true,
+      sameSite: process.env.NODE_ENV === 'production' ? "none" : "lax", // "none" for cross-site in production
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    },
+  })
+);
 
 // ============================================
 // CRITICAL ENDPOINTS - Defined FIRST, no dependencies
@@ -52,12 +69,32 @@ app.get("/", (req, res) => {
 });
 
 // ============================================
-// LAZY LOAD ROUTES - Only when needed
+// LAZY LOAD PASSPORT & ROUTES - Only when needed
 // ============================================
 
+let passportLoaded = false;
+let passportInstance = null;
 let routesLoaded = false;
 let routesHandler = null;
 
+// Initialize passport middleware (lazy load)
+async function initializePassport() {
+  if (!passportLoaded) {
+    try {
+      const passport = await import("../passport.js");
+      passportInstance = passport.default || passport;
+      app.use(passportInstance.initialize());
+      app.use(passportInstance.session());
+      passportLoaded = true;
+    } catch (err) {
+      console.error("Failed to load passport:", err);
+      throw err;
+    }
+  }
+  return passportInstance;
+}
+
+// Middleware to lazy-load passport and routes
 app.use("/api", async (req, res, next) => {
   // Skip for endpoints already defined above
   const skipPaths = ["/ping", "/health", "/auth/status"];
@@ -65,6 +102,23 @@ app.use("/api", async (req, res, next) => {
   
   if (skipPaths.includes(path)) {
     return next();
+  }
+  
+  // Load passport if needed (for OAuth routes)
+  const isOAuthRoute = path.includes("/auth/google") || 
+                       path.includes("/customers/auth") || 
+                       path.includes("/suppliers/auth");
+  
+  if (isOAuthRoute && !passportLoaded) {
+    try {
+      await initializePassport();
+    } catch (err) {
+      console.error("Failed to initialize passport for OAuth:", err);
+      return res.status(500).json({ 
+        error: "OAuth not available", 
+        message: "Failed to initialize authentication" 
+      });
+    }
   }
   
   // Lazy load routes on first request

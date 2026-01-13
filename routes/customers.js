@@ -31,7 +31,7 @@ router.get(
       }
       
       // This should redirect immediately to Google - no waiting
-      passportInstance.authenticate("google-customer", {
+      passportInstance.authenticate("customer-google", {
         scope: ["profile", "email"],
       })(req, res, next);
     } catch (err) {
