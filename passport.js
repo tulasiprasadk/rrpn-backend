@@ -40,11 +40,23 @@ passport.deserializeUser(async (obj, done) => {
   }
 });
 
-if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+const googleConfigured = !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
+
+// Preferred single callback env variable. Fall back to older per-type vars if present.
+const GOOGLE_CALLBACK_URL = process.env.GOOGLE_CALLBACK_URL;
+const defaultSupplierCallback = (process.env.BACKEND_URL || 'http://localhost:3000') + '/api/suppliers/auth/google/callback';
+const defaultCustomerCallback = (process.env.BACKEND_URL || 'http://localhost:3000') + '/api/customers/auth/google/callback';
+
+if (googleConfigured) {
+  // Warn if older callback vars are present but recommend standardizing to GOOGLE_CALLBACK_URL
+  if (process.env.GOOGLE_CUSTOMER_CALLBACK_URL || process.env.GOOGLE_SUPPLIER_CALLBACK_URL) {
+    console.warn('Notice: Detected legacy GOOGLE_CUSTOMER_CALLBACK_URL or GOOGLE_SUPPLIER_CALLBACK_URL. Prefer setting GOOGLE_CALLBACK_URL for both callbacks to standardize production config.');
+  }
+
   passport.use('supplier-google', new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    callbackURL: process.env.GOOGLE_SUPPLIER_CALLBACK_URL || '/api/suppliers/auth/google/callback',
+    callbackURL: GOOGLE_CALLBACK_URL || process.env.GOOGLE_SUPPLIER_CALLBACK_URL || defaultSupplierCallback,
   }, async (accessToken, refreshToken, profile, done) => {
   try {
     const { Supplier: SupplierModel } = await getModels();
@@ -69,7 +81,7 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
   passport.use('customer-google', new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    callbackURL: process.env.GOOGLE_CUSTOMER_CALLBACK_URL || (process.env.BACKEND_URL || 'http://localhost:3000') + '/api/customers/auth/google/callback',
+    callbackURL: GOOGLE_CALLBACK_URL || process.env.GOOGLE_CUSTOMER_CALLBACK_URL || defaultCustomerCallback,
   }, async (accessToken, refreshToken, profile, done) => {
   try {
     const { Customer: CustomerModel } = await getModels();

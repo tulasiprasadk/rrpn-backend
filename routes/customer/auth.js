@@ -13,6 +13,11 @@ import { sendOTP } from "../../services/emailService.js";
 const { Customer } = models;
 const router = express.Router();
 
+// Verify callback URL if GOOGLE_CALLBACK_URL is set
+if (process.env.GOOGLE_CALLBACK_URL && !process.env.GOOGLE_CALLBACK_URL.endsWith('/api/customers/auth/google/callback')) {
+  console.warn('GOOGLE_CALLBACK_URL does not match expected customer callback path (/api/customers/auth/google/callback). Ensure your Google Console redirect URI matches the customer callback or set GOOGLE_CALLBACK_URL appropriately.');
+}
+
 /* =====================================================
    REQUEST EMAIL OTP
    POST /api/auth/request-email-otp

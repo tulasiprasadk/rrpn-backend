@@ -66,11 +66,13 @@ app.get("/api/health", (req, res) => {
 
 // Auth status - MUST work without database
 app.get("/api/auth/status", (req, res) => {
-  res.json({
-    googleConfigured: !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET),
-    googleClientId: process.env.GOOGLE_CLIENT_ID ? "configured" : "missing",
-    timestamp: new Date().toISOString(),
-  });
+  // Return a minimal, safe status so production can detect availability
+  const googleConfigured = !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
+  // Safe logging for presence (non-secret) - will appear in Vercel function logs
+  console.log(`GOOGLE_CLIENT_ID set: ${!!process.env.GOOGLE_CLIENT_ID}`);
+  console.log(`GOOGLE_CLIENT_SECRET set: ${!!process.env.GOOGLE_CLIENT_SECRET}`);
+
+  res.json({ googleConfigured });
 });
 
 app.use("/api", routes);

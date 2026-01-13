@@ -14,6 +14,11 @@ import { sendOTP as sendOTPSMS } from "../services/smsService.js";
 
 const router = express.Router();
 
+// Verify callback URL if GOOGLE_CALLBACK_URL is set
+if (process.env.GOOGLE_CALLBACK_URL && !process.env.GOOGLE_CALLBACK_URL.endsWith('/api/suppliers/auth/google/callback')) {
+  console.warn('GOOGLE_CALLBACK_URL does not match expected supplier callback path (/api/suppliers/auth/google/callback). Ensure your Google Console redirect URI matches the supplier callback or set GOOGLE_CALLBACK_URL appropriately.');
+}
+
 /* ============================================================
    GOOGLE OAUTH — SUPPLIER
    GET /api/suppliers/auth/google
