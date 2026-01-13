@@ -56,12 +56,19 @@ app.get("/api/health", (req, res) => {
   res.json({ ok: true });
 });
 
-// Auth status - must respond immediately
-app.get("/api/auth/status", (req, res) => {
-  const googleConfigured = !!(
-    process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
-  );
-  res.json({ googleConfigured });
+// Auth status - must respond immediately (defined before session middleware to avoid issues)
+app.get("/api/auth/status", (req, res, next) => {
+  try {
+    console.log("Handling /api/auth/status request");
+    const googleConfigured = !!(
+      process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
+    );
+    console.log("Google configured:", googleConfigured);
+    res.json({ googleConfigured });
+  } catch (err) {
+    console.error("Error in /api/auth/status:", err);
+    res.status(500).json({ error: "Internal server error", googleConfigured: false });
+  }
 });
 
 // Error handler
