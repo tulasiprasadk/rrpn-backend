@@ -24,13 +24,20 @@ async function createAdmin() {
     // Hash password
     const hashedPassword = await bcrypt.hash('admin123', 10);
 
+    // Check if this is the first admin (auto-approve first admin)
+    const adminCount = await Admin.count();
+    const isFirstAdmin = adminCount === 0;
+
     // Create admin
     const admin = await Admin.create({
       name: 'Admin',
       email: 'admin@rrnagar.com',
       password: hashedPassword,
       role: 'super_admin',
-      isActive: true
+      isActive: true,
+      isApproved: isFirstAdmin, // Auto-approve first admin
+      approvedAt: isFirstAdmin ? new Date() : null,
+      approvedBy: isFirstAdmin ? null : null // First admin approves themselves
     });
 
     console.log('✅ Admin user created successfully!');

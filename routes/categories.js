@@ -3,14 +3,33 @@ import pkg from 'pg';
 const { Pool } = pkg;
 
 const router = express.Router();
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-});
+
+// Lazy pool creation to prevent blocking
+let pool;
+function getPool() {
+  if (!pool && process.env.DATABASE_URL) {
+    pool = new Pool({
+      connectionString: process.env.DATABASE_URL,
+      connectionTimeoutMillis: 10000, // 10 second timeout
+      idleTimeoutMillis: 10000,
+      max: 5,
+    });
+  }
+  return pool;
+}
 
 // GET /api/categories
 router.get('/', async (req, res) => {
   try {
-    const result = await pool.query(
+    const dbPool = getPool();
+    if (!dbPool) {
+      return res.status(503).json({ 
+        error: "Database not configured",
+        message: "DATABASE_URL is not set"
+      });
+    }
+    
+    const result = await dbPool.query(
       `
       SELECT id, name, icon
       FROM "Categories"
@@ -20,8 +39,21 @@ router.get('/', async (req, res) => {
 
     res.json(result.rows);
   } catch (err) {
-    console.error('Categories API error:', err.message);
-    res.status(500).json({ error: 'Failed to load categories' });
+    console.error('Categories API error:', err.message || err);
+    
+    // Check if it's a database connection error
+    if (err.code === 'ENOTFOUND' || err.message?.includes('ENOTFOUND')) {
+      return res.status(503).json({ 
+        error: "Database connection failed",
+        message: "Cannot connect to database. Please check DATABASE_URL configuration.",
+        details: process.env.NODE_ENV === 'development' ? err.message : undefined
+      });
+    }
+    
+    res.status(500).json({ 
+      error: "Failed to load categories",
+      message: err.message || "Internal server error"
+    });
   }
 });
 

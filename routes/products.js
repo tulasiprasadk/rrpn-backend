@@ -1,7 +1,20 @@
 import express from "express";
-import { models } from "../config/database.js";
-const { Product, Category } = models;
 import { Op } from "sequelize";
+
+// Lazy load models to prevent blocking
+let Product, Category;
+async function getModels() {
+  if (!Product || !Category) {
+    try {
+      const { models } = await import("../config/database.js");
+      Product = models.Product;
+      Category = models.Category;
+    } catch (err) {
+      console.error("Error loading models:", err);
+    }
+  }
+  return { Product, Category };
+}
 
 const router = express.Router();
 
@@ -12,6 +25,16 @@ const router = express.Router();
 ===================================================== */
 router.get("/", async (req, res) => {
   try {
+    // Lazy load models
+    const models = await getModels();
+    if (!models.Product || !models.Category) {
+      return res.status(503).json({ 
+        error: "Database not available",
+        message: "Database connection is not ready. Please try again later."
+      });
+    }
+    
+    const { Product, Category } = models;
     const { categoryId, q } = req.query;
 
     const where = {
@@ -32,7 +55,7 @@ router.get("/", async (req, res) => {
       ];
     }
 
-    const products = await Product.findAll({
+    const products = await models.Product.findAll({
       where,
       include: [
         {
@@ -53,7 +76,20 @@ router.get("/", async (req, res) => {
     res.json(productsWithBasePrice);
   } catch (err) {
     console.error("Error fetching products:", err);
-    res.status(500).json({ error: "Failed to fetch products" });
+    
+    // Check if it's a database connection error
+    if (err.name === 'SequelizeHostNotFoundError' || err.code === 'ENOTFOUND') {
+      return res.status(503).json({ 
+        error: "Database connection failed",
+        message: "Cannot connect to database. Please check DATABASE_URL configuration.",
+        details: process.env.NODE_ENV === 'development' ? err.message : undefined
+      });
+    }
+    
+    res.status(500).json({ 
+      error: "Failed to fetch products",
+      message: err.message || "Internal server error"
+    });
   }
 });
 
@@ -79,7 +115,11 @@ router.post("/bulk", async (req, res) => {
     }
 
     // Load categories once (for name → id mapping)
-    const categories = await Category.findAll({
+    const models = await getModels();
+    if (!models.Category) {
+      return res.status(503).json({ error: "Database not available" });
+    }
+    const categories = await models.Category.findAll({
       attributes: ["id", "name"],
     });
 
@@ -133,7 +173,7 @@ router.post("/bulk", async (req, res) => {
     }
 
     // Bulk insert (fast + atomic)
-    await Product.bulkCreate(validProducts);
+    await models.Product.bulkCreate(validProducts);
 
     res.json({
       success: true,

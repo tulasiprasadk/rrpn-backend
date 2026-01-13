@@ -13,6 +13,11 @@ import { sendOTP } from "../../services/emailService.js";
 const { Customer } = models;
 const router = express.Router();
 
+// Verify callback URL if GOOGLE_CALLBACK_URL is set
+if (process.env.GOOGLE_CALLBACK_URL && !process.env.GOOGLE_CALLBACK_URL.endsWith('/api/customers/auth/google/callback')) {
+  console.warn('GOOGLE_CALLBACK_URL does not match expected customer callback path (/api/customers/auth/google/callback). Ensure your Google Console redirect URI matches the customer callback or set GOOGLE_CALLBACK_URL appropriately.');
+}
+
 /* =====================================================
    REQUEST EMAIL OTP
    POST /api/auth/request-email-otp
@@ -170,11 +175,29 @@ router.post("/logout", (req, res) => {
 /* =====================================================
    GOOGLE OAUTH — CUSTOMER
    GET /api/customer/auth/google
+   GET /api/customers/auth/google (also supported)
 ===================================================== */
 router.get("/google", (req, res, next) => {
-  passport.authenticate("google-customer", {
-    scope: ["profile", "email"],
-  })(req, res, next);
+  try {
+    // Check if Google OAuth is configured
+    if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+      return res.status(400).json({ 
+        error: "Google OAuth not configured",
+        message: "GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET must be set"
+      });
+    }
+    
+    // This should redirect immediately to Google - no waiting
+    passport.authenticate("customer-google", {
+      scope: ["profile", "email"],
+    })(req, res, next);
+  } catch (err) {
+    console.error("Error in Google OAuth route:", err);
+    res.status(500).json({ 
+      error: "OAuth error", 
+      message: err.message || "Failed to initiate Google OAuth"
+    });
+  }
 });
 
 /* =====================================================
@@ -184,7 +207,7 @@ router.get("/google", (req, res, next) => {
 router.get("/google/callback", (req, res, next) => {
   const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
   
-  passport.authenticate("google-customer", {
+  passport.authenticate("customer-google", {
     failureRedirect: `${frontendUrl}/login?error=google_failed`,
     session: true,
   })(req, res, (err) => {

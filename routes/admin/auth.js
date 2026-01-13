@@ -92,6 +92,14 @@ router.post("/verify-email-otp", async (req, res) => {
       return res.status(403).json({ error: "Access denied" });
     }
 
+    // Check if admin is approved
+    if (!admin.isApproved) {
+      return res.status(403).json({ 
+        error: "Account is pending approval. Only approved admins can login.",
+        requiresApproval: true
+      });
+    }
+
     // Update last login
     await admin.update({ lastLogin: new Date() });
 

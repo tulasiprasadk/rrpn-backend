@@ -1,5 +1,6 @@
 import express from "express";
 import passport from "../passport.js";
+import jwt from "jsonwebtoken";
 
 const router = express.Router();
 
@@ -53,7 +54,7 @@ router.get(
     const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
     const passportInstance = passport.default || passport;
     
-    passportInstance.authenticate("google-customer", {
+    passportInstance.authenticate("customer-google", {
       failureRedirect: `${frontendUrl}/login?error=google_failed`,
       session: true,
     })(req, res, (err) => {
@@ -67,11 +68,24 @@ router.get(
         return res.redirect(`${frontendUrl}/login?error=google_failed`);
       }
       
+      // Generate JWT token for frontend
+      const token = jwt.sign(
+        {
+          id: req.user.id,
+          email: req.user.email,
+          role: "customer",
+        },
+        process.env.JWT_SECRET || process.env.SESSION_SECRET || "fallback-secret",
+        { expiresIn: "7d" }
+      );
+      
       // Save customer in session
       req.session.customerId = req.user.id;
       
-      // Redirect to dashboard
-      return res.redirect(`${frontendUrl}/dashboard`);
+      // Redirect to OAuth success page with token
+      return res.redirect(
+        `${frontendUrl}/oauth-success?token=${token}&role=customer`
+      );
     });
   }
 );

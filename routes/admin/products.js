@@ -1,10 +1,80 @@
 
 import express from 'express';
 import { models } from '../../config/database.js';
-const { Product, Supplier, ProductSupplier } = models;
+import { requireAdmin } from './middleware.js';
+import { translateToKannada } from '../../services/translator.js';
+const { Product, Supplier, ProductSupplier, Category } = models;
 const router = express.Router();
 
-// Get suppliers for a product
+// GET /api/admin/products/:id - Get single product for editing
+router.get('/:id', requireAdmin, async (req, res) => {
+  try {
+    const product = await Product.findByPk(req.params.id, {
+      include: [{ model: Category, attributes: ['id', 'name'] }]
+    });
+    if (!product) {
+      return res.status(404).json({ error: 'Product not found' });
+    }
+    res.json(product);
+  } catch (error) {
+    console.error('Error fetching product:', error);
+    res.status(500).json({ error: 'Failed to fetch product' });
+  }
+});
+
+// PUT /api/admin/products/:id - Update product (including price)
+router.put('/:id', requireAdmin, async (req, res) => {
+  try {
+    const product = await Product.findByPk(req.params.id);
+    if (!product) {
+      return res.status(404).json({ error: 'Product not found' });
+    }
+
+    const { title, price, description, unit, variety, subVariety, categoryId, monthlyPrice, hasMonthlyPackage } = req.body;
+    
+    const updateData = {};
+    if (title !== undefined) updateData.title = title;
+    if (price !== undefined) updateData.price = parseFloat(price);
+    if (description !== undefined) updateData.description = description;
+    if (unit !== undefined) updateData.unit = unit;
+    if (variety !== undefined) updateData.variety = variety;
+    if (subVariety !== undefined) updateData.subVariety = subVariety;
+    if (categoryId !== undefined) updateData.CategoryId = categoryId ? parseInt(categoryId) : null;
+    if (monthlyPrice !== undefined) updateData.monthlyPrice = monthlyPrice ? parseFloat(monthlyPrice) : null;
+    if (hasMonthlyPackage !== undefined) updateData.hasMonthlyPackage = hasMonthlyPackage === true || hasMonthlyPackage === 'true';
+
+    await product.update(updateData);
+
+    console.log('✅ Product updated:', {
+      id: product.id,
+      title: updateData.title || product.title,
+      price: updateData.price !== undefined ? updateData.price : product.price,
+      monthlyPrice: updateData.monthlyPrice !== undefined ? updateData.monthlyPrice : product.monthlyPrice
+    });
+
+    res.json({ success: true, product });
+  } catch (error) {
+    console.error('Error updating product:', error);
+    res.status(500).json({ error: 'Failed to update product', details: error.message });
+  }
+});
+
+// DELETE /api/admin/products/:id - Delete product
+router.delete('/:id', requireAdmin, async (req, res) => {
+  try {
+    const product = await Product.findByPk(req.params.id);
+    if (!product) {
+      return res.status(404).json({ error: 'Product not found' });
+    }
+    await product.destroy();
+    res.json({ success: true, message: 'Product deleted' });
+  } catch (error) {
+    console.error('Error deleting product:', error);
+    res.status(500).json({ error: 'Failed to delete product' });
+  }
+});
+
+// Get suppliers for a product (must come after /:id routes to avoid conflict)
 router.get('/:productId/suppliers', async (req, res) => {
   try {
     const product = await Product.findByPk(req.params.productId, {

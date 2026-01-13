@@ -1,25 +1,32 @@
 import "dotenv/config";
 import express from "express";
+import serverless from "serverless-http";
 import cors from "cors";
+import bodyParser from "body-parser";
 import session from "express-session";
-import passport from "../backend/passport.js";
-import routes from "../backend/routes/index.js";
+
+import routes from "../routes/index.js";
+import passport from "../passport.js";
 
 const app = express();
 
 // Trust proxy for Vercel
 app.set("trust proxy", 1);
 
-// CORS - MUST be early
+// CORS - Allow multiple origins
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL || "http://localhost:5173",
+    origin: [
+      "http://localhost:5173",
+      "https://rrw-frontend.vercel.app",
+      "https://rrnagarfinal-frontend.vercel.app",
+      process.env.FRONTEND_URL,
+    ].filter(Boolean),
     credentials: true,
   })
 );
 
-// Body parser
-app.use(express.json());
+app.use(bodyParser.json());
 
 // ============================================
 // CRITICAL: Health checks at the VERY TOP
@@ -45,21 +52,25 @@ app.get("/health", (req, res) => {
   res.json({ ok: true });
 });
 
-// Root - MUST work immediately
+// Root route
 app.get("/", (req, res) => {
   res.json({
     message: "RR Nagar Backend API",
     version: "1.0.0",
     status: "running",
+    timestamp: new Date().toISOString(),
   });
 });
 
 // Auth status - MUST work without database
-// Defined here to ensure it works even if routes have issues
 app.get("/api/auth/status", (req, res) => {
-  res.json({
-    googleConfigured: !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET),
-  });
+  // Return a minimal, safe status so production can detect availability
+  const googleConfigured = !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
+  // Safe logging for presence (non-secret) - will appear in Vercel function logs
+  console.log(`GOOGLE_CLIENT_ID set: ${!!process.env.GOOGLE_CLIENT_ID}`);
+  console.log(`GOOGLE_CLIENT_SECRET set: ${!!process.env.GOOGLE_CLIENT_SECRET}`);
+
+  res.json({ googleConfigured });
 });
 
 // ============================================
@@ -74,10 +85,11 @@ app.use(
     secret: process.env.SESSION_SECRET || "fallback-secret",
     resave: false,
     saveUninitialized: false,
-    cookie: {
-      secure: true,
+    cookie: { 
+      secure: process.env.NODE_ENV === 'production', // true for HTTPS in production, false for localhost
       httpOnly: true,
-      sameSite: "none",
+      sameSite: process.env.NODE_ENV === 'production' ? "none" : "lax", // "none" for cross-site in production, "lax" for localhost
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
     },
   })
 );
@@ -94,7 +106,7 @@ app.use("/api", routesHandler);
 // Error handler - MUST be after routes
 app.use((err, req, res, next) => {
   console.error("Error:", err);
-  res.status(500).json({ error: "Internal server error" });
+  res.status(500).json({ error: "Internal server error", message: err.message });
 });
 
 // 404 handler - MUST be last
@@ -103,4 +115,4 @@ app.use((req, res) => {
 });
 
 // Export for Vercel serverless
-export default app;
+export default serverless(app);

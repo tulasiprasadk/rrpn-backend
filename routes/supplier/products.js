@@ -1,16 +1,38 @@
 
 import express from 'express';
 import { models } from '../../config/database.js';
+import jwt from 'jsonwebtoken';
 const { Product, ProductSupplier, Supplier } = models;
 const router = express.Router();
 
-// Middleware to check supplier authentication using session
+// Middleware to check supplier authentication - supports both session and JWT
 function requireSupplier(req, res, next) {
-  if (!req.session || !req.session.supplierId) {
-    return res.status(401).json({ error: 'Not authenticated as supplier' });
+  // Check session first
+  if (req.session && req.session.supplierId) {
+    req.supplierId = req.session.supplierId;
+    return next();
   }
-  req.supplierId = req.session.supplierId;
-  next();
+
+  // Check JWT token
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith("Bearer ")) {
+    const token = authHeader.substring(7);
+    try {
+      const decoded = jwt.verify(
+        token,
+        process.env.JWT_SECRET || process.env.SESSION_SECRET || "fallback-secret"
+      );
+      if (decoded.role === "supplier" && decoded.id) {
+        req.supplierId = decoded.id;
+        req.session.supplierId = decoded.id;
+        return next();
+      }
+    } catch (err) {
+      // JWT invalid
+    }
+  }
+
+  return res.status(401).json({ error: 'Not authenticated as supplier' });
 }
 
 // GET /api/supplier/products/:id - Get product details for editing

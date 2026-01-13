@@ -18,6 +18,7 @@ import getReview from "./Review.js";
 import getPlatformConfig from "./PlatformConfig.js";
 import getAdClick from "./AdClick.js";
 import getOTPSession from "./OTPSession.js";
+import getBlog from "./Blog.js";
 
 export default function initModels(sequelize) {
   const Admin = getAdmin(sequelize, DataTypes);
@@ -39,6 +40,7 @@ export default function initModels(sequelize) {
   const PlatformConfig = getPlatformConfig(sequelize, DataTypes);
   const AdClick = getAdClick(sequelize, DataTypes);
   const OTPSession = getOTPSession(sequelize, DataTypes);
+  const Blog = getBlog(sequelize, DataTypes);
 
   // Junction table
   const ProductSupplier = sequelize.define("ProductSupplier", {
@@ -71,8 +73,8 @@ export default function initModels(sequelize) {
   Product.hasMany(StockHistory);
   StockHistory.belongsTo(Product);
 
-  Customer.hasMany(Order, { foreignKey: 'customerId' });
-  Order.belongsTo(Customer, { foreignKey: 'customerId' });
+  Customer.hasMany(Order, { foreignKey: 'CustomerId' });
+  Order.belongsTo(Customer, { foreignKey: 'CustomerId' });
 
   Address.hasMany(Order, { foreignKey: 'addressId' });
   Order.belongsTo(Address, { foreignKey: 'addressId' });
@@ -102,6 +104,10 @@ export default function initModels(sequelize) {
   Customer.hasMany(AdClick, { foreignKey: 'customerId' });
   AdClick.belongsTo(Customer, { foreignKey: 'customerId' });
 
+  // Blog associations
+  Blog.belongsTo(Admin, { foreignKey: 'authorId', as: 'author' });
+  Admin.hasMany(Blog, { foreignKey: 'authorId', as: 'blogs' });
+
   return {
     Admin,
     Ad,
@@ -122,6 +128,7 @@ export default function initModels(sequelize) {
     Review,
     PlatformConfig,
     AdClick,
-    OTPSession
+    OTPSession,
+    Blog
   };
 }
