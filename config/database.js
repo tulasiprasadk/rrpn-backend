@@ -53,6 +53,7 @@ if (process.env.DATABASE_URL) {
 /**
  * Initialize all models and associations ONCE
  * Wrap in try-catch to prevent crashes during import
+ * NOTE: This runs synchronously but only sets up associations, doesn't connect to DB
  */
 let models;
 try {

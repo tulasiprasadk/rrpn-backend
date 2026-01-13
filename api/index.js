@@ -7,8 +7,9 @@ import session from "express-session";
 
 const app = express();
 
-// DO NOT import routes or passport here - they will be lazy loaded
-// This ensures health checks work immediately without any blocking
+// CRITICAL: DO NOT import routes, passport, or database here
+// They will be lazy loaded to prevent blocking serverless startup
+// Health checks must work immediately without any heavy imports
 
 // Trust proxy for Vercel
 app.set("trust proxy", 1);
@@ -126,20 +127,29 @@ app.use(async (req, res, next) => {
   next();
 });
 
-// Pre-load routes in background after app starts (non-blocking)
+// Pre-load routes in background (non-blocking)
+// This starts immediately but doesn't block the module export
 let routesPromise = null;
 function preloadRoutes() {
   if (!routesPromise) {
-    routesPromise = import("../routes/index.js").catch(err => {
-      console.error("Routes preload error:", err);
-      return null;
-    });
+    // Use setImmediate to defer to next tick, ensuring module exports first
+    routesPromise = Promise.resolve().then(() => 
+      import("../routes/index.js").catch(err => {
+        console.error("Routes preload error:", err);
+        return null;
+      })
+    );
   }
   return routesPromise;
 }
 
-// Start preloading routes immediately (non-blocking)
-preloadRoutes();
+// Start preloading in background (non-blocking)
+// Don't await - let it run in background
+setImmediate(() => {
+  preloadRoutes().catch(err => {
+    console.error("Background route preload failed:", err);
+  });
+});
 
 // Lazy load routes - use preloaded promise if available
 app.use("/api", async (req, res, next) => {
@@ -198,4 +208,6 @@ app.use((req, res) => {
 });
 
 // Export for Vercel serverless
+// CRITICAL: This must export immediately without blocking
+// Health checks defined above will work even if routes aren't loaded yet
 export default serverless(app);
