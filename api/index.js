@@ -142,15 +142,23 @@ preloadRoutes();
 
 // Lazy load routes - use preloaded promise if available
 app.use("/api", async (req, res, next) => {
-  // Health check endpoints don't need routes
-  if (req.path === "/ping" || req.path === "/health" || req.path === "/auth/status") {
-    return next();
+  // Skip route loading for endpoints that are already defined above
+  const skipRoutes = ["/ping", "/health", "/auth/status"];
+  const pathWithoutApi = req.path.startsWith("/api") ? req.path.substring(4) : req.path;
+  
+  if (skipRoutes.includes(pathWithoutApi) || skipRoutes.includes(req.path)) {
+    return next(); // Let the already-defined routes handle it
   }
   
   if (!routesLoaded) {
     try {
-      // Use preloaded promise or load now
-      const routesModule = await preloadRoutes();
+      // Use preloaded promise or load now with timeout
+      const loadPromise = preloadRoutes();
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error("Route loading timeout")), 5000)
+      );
+      
+      const routesModule = await Promise.race([loadPromise, timeoutPromise]);
       if (!routesModule) {
         return res.status(503).json({ error: "Routes not available", message: "Failed to load routes" });
       }
@@ -166,6 +174,10 @@ app.use("/api", async (req, res, next) => {
       return routesHandler(req, res, next);
     } catch (err) {
       console.error("Routes lazy load error:", err);
+      // If routes fail to load, return error but don't block
+      if (err.message === "Route loading timeout") {
+        return res.status(504).json({ error: "Service temporarily unavailable", message: "Routes are loading, please try again in a few seconds" });
+      }
       return res.status(503).json({ error: "Routes initialization failed", message: err.message });
     }
   }
