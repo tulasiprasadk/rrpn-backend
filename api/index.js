@@ -5,9 +5,6 @@ import cors from "cors";
 import bodyParser from "body-parser";
 import session from "express-session";
 
-import routes from "../routes/index.js";
-import passport from "../passport.js";
-
 const app = express();
 
 // Trust proxy for Vercel
@@ -94,12 +91,16 @@ app.use(
   })
 );
 
+// Import passport and routes - but they won't block health checks
+import passport from "../passport.js";
+import routes from "../routes/index.js";
+
 // Initialize passport
 const passportInstance = passport.default || passport;
 app.use(passportInstance.initialize());
 app.use(passportInstance.session());
 
-// Mount routes - routes are imported but don't execute blocking code
+// Mount routes - routes are imported but health checks above work first
 const routesHandler = routes.default || routes;
 app.use("/api", routesHandler);
 
