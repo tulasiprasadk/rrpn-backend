@@ -1,6 +1,7 @@
 import express from "express";
 import multer from "multer";
-import sharp from "sharp";
+// Lazy load sharp to avoid blocking route loading if sharp fails to load
+// import sharp from "sharp";
 import path from "path";
 import fs from "fs";
 import { models } from "../../config/database.js";
@@ -75,6 +76,8 @@ router.post(
       // ------------------------------
       // APPLY WATERMARK
       // ------------------------------
+      // Lazy load sharp only when needed
+      const sharp = (await import("sharp")).default;
       await sharp(inputPath)
         .composite([
           {
