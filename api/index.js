@@ -34,6 +34,12 @@ app.use(
 // Register BEFORE bodyParser, session, passport, routes
 // ============================================
 
+// ============================================
+// CRITICAL: Define ALL health/status endpoints FIRST
+// BEFORE any middleware (CORS, bodyParser, session, etc.)
+// These must work immediately without any processing
+// ============================================
+
 // Ping endpoint - absolute minimum, no dependencies
 app.get("/api/ping", (req, res) => {
   res.status(200).send("pong");
@@ -52,17 +58,8 @@ app.get("/health", (req, res) => {
   res.json({ ok: true });
 });
 
-// Root route
-app.get("/", (req, res) => {
-  res.json({
-    message: "RR Nagar Backend API",
-    version: "1.0.0",
-    status: "running",
-    timestamp: new Date().toISOString(),
-  });
-});
-
-// Auth status - MUST work without database
+// Auth status - MUST work without database or any middleware
+// Defined here BEFORE CORS/bodyParser to ensure it works immediately
 app.get("/api/auth/status", (req, res) => {
   // Return a minimal, safe status so production can detect availability
   const googleConfigured = !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
@@ -73,7 +70,35 @@ app.get("/api/auth/status", (req, res) => {
   res.json({ googleConfigured });
 });
 
-// Now add bodyParser and other middleware AFTER health checks
+// Root route
+app.get("/", (req, res) => {
+  res.json({
+    message: "RR Nagar Backend API",
+    version: "1.0.0",
+    status: "running",
+    timestamp: new Date().toISOString(),
+  });
+});
+
+// ============================================
+// NOW add middleware AFTER all critical endpoints
+// ============================================
+
+// CORS - Allow multiple origins
+app.use(
+  cors({
+    origin: [
+      "http://localhost:5173",
+      "https://rrw-frontend.vercel.app",
+      "https://rrnagarfinal-frontend.vercel.app",
+      "https://rrpn-frontend.vercel.app", // Current frontend URL
+      process.env.FRONTEND_URL,
+    ].filter(Boolean),
+    credentials: true,
+  })
+);
+
+// Body parser
 app.use(bodyParser.json());
 
 // ============================================
