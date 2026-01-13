@@ -84,35 +84,39 @@ app.use((req, res) => {
 
 /**
  * REQUIRED FOR CLOUD RUN:
- * Must listen on PORT=8080 IMMEDIATELY
- * Start server first, then load routes in background
+ * Must listen on PORT=8080
+ * Load routes BEFORE starting server to ensure they're available immediately
  */
 const PORT = process.env.PORT || 8080;
-const server = app.listen(PORT, () => {
-  console.log(`🚀 Cloud Run backend running on port ${PORT}`);
-  console.log(`✓ Health endpoints available: /, /api/health, /api/auth/status`);
-  
-  // Load Passport and Routes asynchronously AFTER server starts
-  // Health endpoints above will work even if these fail
-  (async () => {
-    try {
-      const passport = (await import("./passport.js")).default;
-      app.use(passport.initialize());
-      app.use(passport.session());
-      console.log("✓ Passport loaded");
-    } catch (err) {
-      console.error("⚠ Passport load error:", err.message);
-      console.error("Stack:", err.stack);
-    }
 
-    try {
-      const routes = (await import("./routes/index.js")).default;
-      app.use("/api", routes);
-      console.log("✓ Routes loaded");
-    } catch (err) {
-      console.error("⚠ Routes load error:", err.message);
-      console.error("Stack:", err.stack);
-      // Health endpoints are already defined above, so they'll still work
-    }
-  })();
-});
+// Load Passport and Routes BEFORE starting server
+// This ensures routes are available immediately when server starts
+(async () => {
+  try {
+    const passport = (await import("./passport.js")).default;
+    app.use(passport.initialize());
+    app.use(passport.session());
+    console.log("✓ Passport loaded");
+  } catch (err) {
+    console.error("⚠ Passport load error:", err.message);
+    console.error("Stack:", err.stack);
+    // Continue even if passport fails - health endpoints will still work
+  }
+
+  try {
+    const routes = (await import("./routes/index.js")).default;
+    app.use("/api", routes);
+    console.log("✓ Routes loaded");
+  } catch (err) {
+    console.error("⚠ Routes load error:", err.message);
+    console.error("Stack:", err.stack);
+    // Health endpoints are already defined above, so they'll still work
+  }
+
+  // Start server AFTER routes are loaded
+  app.listen(PORT, () => {
+    console.log(`🚀 Cloud Run backend running on port ${PORT}`);
+    console.log(`✓ Health endpoints available: /, /api/health, /api/auth/status`);
+    console.log(`✓ All routes loaded and ready`);
+  });
+})();
