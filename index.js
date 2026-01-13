@@ -135,6 +135,12 @@ app.use((req, res) => {
 export default app;
 
 /**
+ * Cloud Run compatibility: Export handler for serverless-http
+ */
+import serverless from "serverless-http";
+export const handler = serverless(app);
+
+/**
  * Local development only
  */
 if (process.env.NODE_ENV !== "production") {
