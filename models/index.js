@@ -13,6 +13,11 @@ import getCartItem from "./CartItem.js";
 import getAddress from "./Address.js";
 import getNotification from "./Notification.js";
 import getVariety from "./Variety.js";
+import getPayment from "./Payment.js";
+import getReview from "./Review.js";
+import getPlatformConfig from "./PlatformConfig.js";
+import getAdClick from "./AdClick.js";
+import getOTPSession from "./OTPSession.js";
 
 export default function initModels(sequelize) {
   const Admin = getAdmin(sequelize, DataTypes);
@@ -29,6 +34,11 @@ export default function initModels(sequelize) {
   const Address = getAddress(sequelize, DataTypes);
   const Notification = getNotification(sequelize, DataTypes);
   const Variety = getVariety(sequelize, DataTypes);
+  const Payment = getPayment(sequelize, DataTypes);
+  const Review = getReview(sequelize, DataTypes);
+  const PlatformConfig = getPlatformConfig(sequelize, DataTypes);
+  const AdClick = getAdClick(sequelize, DataTypes);
+  const OTPSession = getOTPSession(sequelize, DataTypes);
 
   // Junction table
   const ProductSupplier = sequelize.define("ProductSupplier", {
@@ -70,6 +80,28 @@ export default function initModels(sequelize) {
   Customer.hasMany(Address);
   Address.belongsTo(Customer);
 
+  // Associations for new models
+  Order.hasMany(Payment, { foreignKey: 'orderId' });
+  Payment.belongsTo(Order, { foreignKey: 'orderId' });
+
+  Order.hasOne(Review, { foreignKey: 'orderId' });
+  Review.belongsTo(Order, { foreignKey: 'orderId' });
+
+  Customer.hasMany(Review, { foreignKey: 'customerId' });
+  Review.belongsTo(Customer, { foreignKey: 'customerId' });
+
+  Product.hasMany(Review, { foreignKey: 'productId' });
+  Review.belongsTo(Product, { foreignKey: 'productId' });
+
+  Supplier.hasMany(Review, { foreignKey: 'supplierId' });
+  Review.belongsTo(Supplier, { foreignKey: 'supplierId' });
+
+  Ad.hasMany(AdClick, { foreignKey: 'adId' });
+  AdClick.belongsTo(Ad, { foreignKey: 'adId' });
+
+  Customer.hasMany(AdClick, { foreignKey: 'customerId' });
+  AdClick.belongsTo(Customer, { foreignKey: 'customerId' });
+
   return {
     Admin,
     Ad,
@@ -85,6 +117,11 @@ export default function initModels(sequelize) {
     Address,
     Notification,
     Variety,
-    ProductSupplier
+    ProductSupplier,
+    Payment,
+    Review,
+    PlatformConfig,
+    AdClick,
+    OTPSession
   };
 }

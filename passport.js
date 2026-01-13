@@ -3,8 +3,17 @@
 import passport from 'passport';
 import pkg from 'passport-google-oauth20';
 const { Strategy: GoogleStrategy } = pkg;
-import { models } from './config/database.js';
-const { Supplier, Customer } = models;
+
+// Lazy load models to avoid blocking on import
+let Supplier, Customer;
+async function getModels() {
+  if (!Supplier || !Customer) {
+    const { models } = await import('./config/database.js');
+    Supplier = models.Supplier;
+    Customer = models.Customer;
+  }
+  return { Supplier, Customer };
+}
 
 
 // Support both Supplier and Customer serialization
@@ -18,11 +27,12 @@ passport.serializeUser((user, done) => {
 
 passport.deserializeUser(async (obj, done) => {
   try {
+    const { Supplier: SupplierModel, Customer: CustomerModel } = await getModels();
     if (obj.type === 'Supplier') {
-      const supplier = await Supplier.findByPk(obj.id);
+      const supplier = await SupplierModel.findByPk(obj.id);
       return done(null, supplier);
     } else {
-      const customer = await Customer.findByPk(obj.id);
+      const customer = await CustomerModel.findByPk(obj.id);
       return done(null, customer);
     }
   } catch (err) {
@@ -37,10 +47,11 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
     callbackURL: process.env.GOOGLE_SUPPLIER_CALLBACK_URL || '/api/suppliers/auth/google/callback',
   }, async (accessToken, refreshToken, profile, done) => {
   try {
+    const { Supplier: SupplierModel } = await getModels();
     const email = profile.emails[0].value;
-    let supplier = await Supplier.findOne({ where: { email } });
+    let supplier = await SupplierModel.findOne({ where: { email } });
     if (!supplier) {
-      supplier = await Supplier.create({
+      supplier = await SupplierModel.create({
         name: profile.displayName,
         email,
         status: 'pending', // Admin must approve
@@ -57,13 +68,14 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
   passport.use('google-customer', new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    callbackURL: process.env.GOOGLE_CUSTOMER_CALLBACK_URL || '/api/customers/auth/google/callback',
+    callbackURL: process.env.GOOGLE_CUSTOMER_CALLBACK_URL || 'https://rrnagarfinal-backend.vercel.app/api/customers/auth/google/callback',
   }, async (accessToken, refreshToken, profile, done) => {
   try {
+    const { Customer: CustomerModel } = await getModels();
     const email = profile.emails[0].value;
-    let customer = await Customer.findOne({ where: { email } });
+    let customer = await CustomerModel.findOne({ where: { email } });
     if (!customer) {
-      customer = await Customer.create({
+      customer = await CustomerModel.create({
         name: profile.displayName,
         email,
         username: email,

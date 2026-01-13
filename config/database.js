@@ -24,12 +24,21 @@ if (process.env.DATABASE_URL) {
         }
       : {},
     pool: {
-      max: 5, // VERY IMPORTANT for Cloud Run
+      max: 5, // VERY IMPORTANT for serverless
       min: 0,
-      acquire: 30000,
+      acquire: 10000, // Reduced from 30000 - fail faster
       idle: 10000,
     },
+    // Prevent Sequelize from trying to connect on instantiation
+    // Connection will happen on first query
+    retry: {
+      max: 1, // Only retry once
+    },
   });
+  
+  // CRITICAL: Do NOT authenticate or sync here
+  // This would block serverless function startup
+  // Connection happens lazily on first query
 } else {
   // Local development: use SQLite file storage
   sequelize = new Sequelize({

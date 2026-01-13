@@ -122,6 +122,7 @@ router.post("/verify-email-otp", async (req, res) => {
 /* =====================================================
    CHECK LOGIN STATUS
    GET /api/auth/me
+   GET /api/auth/status (alias for compatibility)
 ===================================================== */
 router.get("/me", async (req, res) => {
   if (!req.session?.customerId) {
@@ -145,6 +146,14 @@ router.get("/me", async (req, res) => {
     console.error("Customer Auth Check Error:", err);
     res.status(500).json({ loggedIn: false });
   }
+});
+
+// Auth status endpoint (frontend compatibility)
+// Returns Google OAuth configuration status
+router.get("/status", (req, res) => {
+  res.json({
+    googleConfigured: !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET),
+  });
 });
 
 /* =====================================================
