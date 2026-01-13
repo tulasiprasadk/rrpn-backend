@@ -3,29 +3,21 @@ import express from "express";
 import cors from "cors";
 import bodyParser from "body-parser";
 import session from "express-session";
-import serverless from "serverless-http";
 import routes from "./routes/index.js";
 import passport from "./passport.js";
 import { initDatabase } from "./config/database.js";
 
 const app = express();
 
-/**
- * Initialize database (NON-BLOCKING)
- * IMPORTANT: Never await this in serverless
- */
+// Initialize database (non-blocking)
 initDatabase().catch(err => {
   console.error("Database init error:", err.message);
 });
 
-/**
- * Trust proxy (required on Vercel)
- */
+// Trust proxy
 app.set("trust proxy", 1);
 
-/**
- * CORS
- */
+// CORS
 app.use(
   cors({
     origin: [
@@ -36,130 +28,67 @@ app.use(
   })
 );
 
-/**
- * Body parser
- */
 app.use(bodyParser.json());
 
-/**
- * Sessions
- * NOTE: Works locally, but NOT ideal for serverless.
- * Recommended long-term: JWT / token-based auth.
- */
+// Session
 app.use(
   session({
     secret: process.env.SESSION_SECRET || "fallback-secret",
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: false, // must be false unless behind HTTPS with proper proxy config
+      secure: false,
       httpOnly: true,
       sameSite: "lax",
     },
   })
 );
 
-/**
- * Passport
- */
+// Passport
 app.use(passport.initialize());
 app.use(passport.session());
 
-/**
- * Root route
- */
+// Root
 app.get("/", (req, res) => {
   res.json({
     message: "RR Nagar Backend API",
-    version: "1.0.0",
     status: "running",
     timestamp: new Date().toISOString(),
   });
 });
 
-/**
- * Health check
- */
+// Health
 app.get("/api/health", (req, res) => {
-  res.json({
-    ok: true,
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-  });
+  res.json({ ok: true });
 });
 
-/**
- * Auth status
- */
+// Auth status
 app.get("/api/auth/status", (req, res) => {
   const googleConfigured = !!(
     process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
   );
-
-  res.json({
-    googleConfigured,
-    timestamp: new Date().toISOString(),
-  });
+  res.json({ googleConfigured });
 });
 
-/**
- * API routes
- */
+// Routes
 app.use("/api", routes);
 
-/**
- * Error handler
- */
+// Error handler
 app.use((err, req, res, next) => {
   console.error("Error:", err);
-  res.status(500).json({
-    error: "Internal server error",
-    message: err.message,
-  });
+  res.status(500).json({ error: "Internal server error", message: err.message });
 });
 
-/**
- * 404 handler
- */
+// 404
 app.use((req, res) => {
-  res.status(404).json({
-    error: "Not found",
-    path: req.path,
-  });
+  res.status(404).json({ error: "Not found", path: req.path });
 });
 
 /**
- * IMPORTANT FOR VERCEL:
- * Do NOT call app.listen()
- * Export the app instead.
+ * REQUIRED FOR CLOUD RUN:
+ * Must listen on PORT=8080
  */
-export default app;
-
-/**
- * Cloud Run compatibility: Export handler for serverless-http
- * This allows Cloud Run to use this file as entry point
- */
-export const handler = serverless(app);
-
-/**
- * Local development only
- */
-if (process.env.NODE_ENV !== "production") {
-  const PORT = process.env.PORT || 3000;
-  app.listen(PORT, () => {
-    console.log(`✅ Backend running on http://localhost:${PORT}`);
-    console.log(`✅ Health check: http://localhost:${PORT}/api/health`);
-    console.log("\n🔍 Environment Check:");
-    console.log(
-      `  GOOGLE_CLIENT_ID: ${process.env.GOOGLE_CLIENT_ID ? "✅ SET" : "❌ MISSING"}`
-    );
-    console.log(
-      `  GOOGLE_CLIENT_SECRET: ${process.env.GOOGLE_CLIENT_SECRET ? "✅ SET" : "❌ MISSING"}`
-    );
-    console.log(
-      `  googleConfigured: ${!!(
-        process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
-      )}`
-    );
-  });
-}
+const PORT = process.env.PORT || 8080;
+app.listen(PORT, () => {
+  console.log(`🚀 Cloud Run backend running on port ${PORT}`);
+});
