@@ -14,26 +14,6 @@ const app = express();
 // Trust proxy for Vercel
 app.set("trust proxy", 1);
 
-// CORS - Allow multiple origins
-app.use(
-  cors({
-    origin: [
-      "http://localhost:5173",
-      "https://rrw-frontend.vercel.app",
-      "https://rrnagarfinal-frontend.vercel.app",
-      "https://rrpn-frontend.vercel.app", // Current frontend URL
-      process.env.FRONTEND_URL,
-    ].filter(Boolean),
-    credentials: true,
-  })
-);
-
-// ============================================
-// CRITICAL: Health checks at the VERY TOP
-// These must work WITHOUT any middleware or heavy imports
-// Register BEFORE bodyParser, session, passport, routes
-// ============================================
-
 // ============================================
 // CRITICAL: Define ALL health/status endpoints FIRST
 // BEFORE any middleware (CORS, bodyParser, session, etc.)
