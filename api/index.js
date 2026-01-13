@@ -7,6 +7,9 @@ import session from "express-session";
 
 const app = express();
 
+// DO NOT import routes or passport here - they will be lazy loaded
+// This ensures health checks work immediately without any blocking
+
 // Trust proxy for Vercel
 app.set("trust proxy", 1);
 
@@ -23,12 +26,10 @@ app.use(
   })
 );
 
-app.use(bodyParser.json());
-
 // ============================================
 // CRITICAL: Health checks at the VERY TOP
-// These must work WITHOUT any database or heavy imports
-// Register BEFORE session/passport/routes middleware
+// These must work WITHOUT any middleware or heavy imports
+// Register BEFORE bodyParser, session, passport, routes
 // ============================================
 
 // Ping endpoint - absolute minimum, no dependencies
@@ -70,6 +71,9 @@ app.get("/api/auth/status", (req, res) => {
   res.json({ googleConfigured });
 });
 
+// Now add bodyParser and other middleware AFTER health checks
+app.use(bodyParser.json());
+
 // ============================================
 // Session, passport, and routes middleware
 // These are loaded but health checks above will work even if these fail
@@ -91,18 +95,63 @@ app.use(
   })
 );
 
-// Import passport and routes - but they won't block health checks
-import passport from "../passport.js";
-import routes from "../routes/index.js";
+// Lazy load passport and routes ONLY when needed (not on import)
+// This prevents blocking during serverless function cold start
+let passportLoaded = false;
+let routesLoaded = false;
 
-// Initialize passport
-const passportInstance = passport.default || passport;
-app.use(passportInstance.initialize());
-app.use(passportInstance.session());
+// Middleware to lazy-load passport on first non-health-check request
+app.use(async (req, res, next) => {
+  // Skip passport for health check endpoints
+  if (req.path === "/api/ping" || req.path === "/api/health" || req.path === "/health" || req.path === "/api/auth/status" || req.path === "/") {
+    return next();
+  }
+  
+  if (!passportLoaded) {
+    try {
+      const passport = await import("../passport.js");
+      const passportInstance = passport.default || passport;
+      // Only initialize once
+      if (!app._passportInitialized) {
+        app.use(passportInstance.initialize());
+        app.use(passportInstance.session());
+        app._passportInitialized = true;
+      }
+      passportLoaded = true;
+    } catch (err) {
+      console.error("Passport lazy load error:", err);
+    }
+  }
+  next();
+});
 
-// Mount routes - routes are imported but health checks above work first
-const routesHandler = routes.default || routes;
-app.use("/api", routesHandler);
+// Lazy load routes - only load when actually needed
+app.use("/api", async (req, res, next) => {
+  // Health check endpoints don't need routes
+  if (req.path === "/ping" || req.path === "/health" || req.path === "/auth/status") {
+    return next();
+  }
+  
+  if (!routesLoaded) {
+    try {
+      const routes = await import("../routes/index.js");
+      const routesHandler = routes.default || routes;
+      // Mount routes handler
+      if (!app._routesMounted) {
+        app.use("/api", routesHandler);
+        app._routesMounted = true;
+      }
+      routesLoaded = true;
+      // Now that routes are loaded, let them handle the request
+      return routesHandler(req, res, next);
+    } catch (err) {
+      console.error("Routes lazy load error:", err);
+      return res.status(503).json({ error: "Routes initialization failed", message: err.message });
+    }
+  }
+  // Routes already loaded, continue to next middleware (routes will handle it)
+  next();
+});
 
 // Error handler - MUST be after routes
 app.use((err, req, res, next) => {
