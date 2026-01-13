@@ -151,5 +151,8 @@ app.use((req, res) => {
   res.status(404).json({ error: "Not found", path: req.path });
 });
 
-// Export for Vercel
+// Export for Vercel (default export)
 export default serverless(app);
+
+// Export for Cloud Run (named export)
+export const handler = serverless(app);
