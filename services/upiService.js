@@ -26,55 +26,36 @@ export function generateUPIUrl(orderId, amount, payeeUpiId, payeeName, transacti
 }
 
 /**
- * Generate UPI QR Code (Base64 image)
- * Requires: npm install qrcode
+ * Generate UPI QR Code (Static image)
+ * Uses a static QR code image instead of generating dynamically
  */
 export async function generateUPIQRCode(orderId, amount, payeeUpiId, payeeName, transactionNote) {
   try {
     const upiUrl = generateUPIUrl(orderId, amount, payeeUpiId, payeeName, transactionNote);
     
-    // Dynamic import for QRCode (install with: npm install qrcode)
-    let QRCode;
-    try {
-      QRCode = (await import('qrcode')).default;
-    } catch (importError) {
-      console.warn('QRCode package not installed. Install with: npm install qrcode');
-      // Fallback: return UPI URL only
-      return {
-        qrCode: null,
-        upiUrl: upiUrl,
-        upiId: payeeUpiId || process.env.UPI_ID,
-        amount: amount,
-        orderId: orderId,
-        error: 'QRCode package not installed'
-      };
-    }
+    // Use static QR code image instead of generating dynamically
+    // The QR code image should be placed in frontend/public/upi-qr-code.png
+    // For production, use the full URL; for local, use relative path
+    const qrCodePath = process.env.QR_CODE_IMAGE_PATH || '/upi-qr-code.png';
     
-    // Generate QR code as data URL
-    const qrCodeDataUrl = await QRCode.toDataURL(upiUrl, {
-      errorCorrectionLevel: 'M',
-      type: 'image/png',
-      quality: 0.92,
-      margin: 1,
-      color: {
-        dark: '#000000',
-        light: '#FFFFFF'
-      },
-      width: 300
-    });
+    // If running on server, return full URL; otherwise return relative path
+    const baseUrl = process.env.FRONTEND_URL || process.env.VERCEL_URL 
+      ? `https://${process.env.VERCEL_URL || process.env.FRONTEND_URL}` 
+      : '';
+    const qrCodeUrl = baseUrl ? `${baseUrl}${qrCodePath}` : qrCodePath;
 
     return {
-      qrCode: qrCodeDataUrl,
+      qrCode: qrCodeUrl,
       upiUrl: upiUrl,
       upiId: payeeUpiId || process.env.UPI_ID,
       amount: amount,
       orderId: orderId
     };
   } catch (error) {
-    console.error('Error generating UPI QR code:', error);
+    console.error('Error getting UPI QR code:', error);
     // Fallback: return UPI URL only
     return {
-      qrCode: null,
+      qrCode: '/upi-qr-code.png', // Fallback to static image
       upiUrl: generateUPIUrl(orderId, amount, payeeUpiId, payeeName, transactionNote),
       upiId: payeeUpiId || process.env.UPI_ID,
       amount: amount,

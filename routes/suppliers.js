@@ -4,6 +4,7 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
 
 import { models } from "../config/database.js";
 const { Supplier, Product, Order } = models;
@@ -34,7 +35,7 @@ router.get(
     failureRedirect: "/supplier/login",
     session: true,
   }),
-  (req, res) => {
+  async (req, res) => {
     const frontendUrl = process.env.FRONTEND_URL;
     if (!frontendUrl) {
       return res.status(500).send("FRONTEND_URL not configured");
@@ -44,10 +45,42 @@ router.get(
       return res.status(500).send("Supplier not found after OAuth");
     }
 
-    if (req.user.status === "approved") {
-      return res.redirect(`${frontendUrl}/supplier/dashboard`);
+    const supplier = req.user;
+
+    // Refresh supplier data to get latest status (including kycSubmitted)
+    const freshSupplier = await Supplier.findByPk(supplier.id);
+    if (!freshSupplier) {
+      return res.status(500).send("Supplier not found");
     }
 
+    // If approved, go to dashboard
+    if (freshSupplier.status === "approved") {
+      // Set session for backend API calls
+      req.session.supplierId = freshSupplier.id;
+      
+      const token = jwt.sign(
+        {
+          id: freshSupplier.id,
+          email: freshSupplier.email,
+          role: "supplier",
+        },
+        process.env.JWT_SECRET || process.env.SESSION_SECRET || "fallback-secret",
+        { expiresIn: "7d" }
+      );
+      return res.redirect(`${frontendUrl}/oauth-success?token=${token}&role=supplier`);
+    }
+
+    // If KYC not submitted (check both kycSubmitted field and status)
+    if (!freshSupplier.kycSubmitted || freshSupplier.status === "pending") {
+      return res.redirect(`${frontendUrl}/supplier/kyc?email=${encodeURIComponent(freshSupplier.email)}`);
+    }
+
+    // If KYC submitted but not approved, show pending message
+    if (freshSupplier.status === "kyc_submitted") {
+      return res.redirect(`${frontendUrl}/supplier/login?kyc_pending=1`);
+    }
+
+    // Otherwise, pending approval
     return res.redirect(`${frontendUrl}/supplier/login?pending=1`);
   }
 );
@@ -71,10 +104,120 @@ const storage = multer.diskStorage({
   },
 });
 
-const upload = multer({ storage });
+const upload = multer({ 
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
+});
+
+/* ============================================================
+   SUPPLIER KYC SUBMISSION
+   POST /api/suppliers/kyc
+   Requires: Google OAuth login first
+============================================================ */
+router.post("/kyc", upload.fields([
+  { name: 'businessLicense', maxCount: 1 },
+  { name: 'gstCertificate', maxCount: 1 },
+  { name: 'idProof', maxCount: 1 }
+]), async (req, res) => {
+  try {
+    const { email } = req.body;
+    
+    if (!email) {
+      return res.status(400).json({ error: "Email is required" });
+    }
+
+    // Find supplier by email
+    const supplier = await Supplier.findOne({ where: { email } });
+    if (!supplier) {
+      return res.status(404).json({ error: "Supplier not found. Please login with Google first." });
+    }
+
+    // Check if already approved
+    if (supplier.status === "approved") {
+      return res.status(400).json({ error: "Supplier already approved" });
+    }
+
+    // Validate required fields
+    const { businessName, phone, address, gstNumber, panNumber, bankDetails, acceptedTnC } = req.body;
+    
+    if (!businessName || !phone || !address || !gstNumber || !panNumber) {
+      return res.status(400).json({ error: "All KYC fields are required" });
+    }
+
+    if (!acceptedTnC || acceptedTnC !== "true") {
+      return res.status(400).json({ error: "You must accept Terms & Conditions" });
+    }
+
+    // Validate bank details
+    let bankDetailsObj = null;
+    if (bankDetails) {
+      try {
+        bankDetailsObj = typeof bankDetails === 'string' ? JSON.parse(bankDetails) : bankDetails;
+        if (!bankDetailsObj.accountNumber || !bankDetailsObj.ifsc || !bankDetailsObj.bankName) {
+          return res.status(400).json({ error: "Bank details incomplete" });
+        }
+      } catch (e) {
+        return res.status(400).json({ error: "Invalid bank details format" });
+      }
+    }
+
+    // Update supplier with KYC data
+    const updateData = {
+      businessName,
+      phone,
+      address,
+      gstNumber,
+      panNumber,
+      bankDetails: bankDetailsObj,
+      acceptedTnC: true,
+      kycSubmitted: true,
+      kycSubmittedAt: new Date(),
+      status: 'kyc_submitted' // Changed from 'pending' to 'kyc_submitted'
+    };
+
+    // Add file paths if uploaded
+    if (req.files) {
+      if (req.files.businessLicense && req.files.businessLicense[0]) {
+        updateData.businessLicense = `/uploads/kyc/${req.files.businessLicense[0].filename}`;
+      }
+      if (req.files.gstCertificate && req.files.gstCertificate[0]) {
+        updateData.gstCertificate = `/uploads/kyc/${req.files.gstCertificate[0].filename}`;
+      }
+      if (req.files.idProof && req.files.idProof[0]) {
+        updateData.idProof = `/uploads/kyc/${req.files.idProof[0].filename}`;
+      }
+    }
+
+    await supplier.update(updateData);
+
+    // Notify admin about new KYC submission
+    try {
+      await adminNotify(
+        "New Supplier KYC Submission",
+        `Supplier: ${supplier.name} (${supplier.email})\nBusiness: ${businessName}\nPhone: ${phone}\nGST: ${gstNumber}\nPAN: ${panNumber}\n\nPlease review and approve in Admin Dashboard.`
+      );
+    } catch (notifyErr) {
+      console.error("Admin notification error:", notifyErr);
+    }
+
+    res.json({
+      success: true,
+      message: "KYC submitted successfully. Waiting for admin approval.",
+      supplier: {
+        id: supplier.id,
+        email: supplier.email,
+        status: supplier.status
+      }
+    });
+  } catch (err) {
+    console.error("KYC submission error:", err);
+    res.status(500).json({ error: "Failed to submit KYC" });
+  }
+});
 
 /* ============================================================
    SUPPLIER LOGIN — OTP / PASSWORD
+   Only works for approved suppliers
 ============================================================ */
 router.post("/login", async (req, res) => {
   try {
@@ -85,9 +228,18 @@ router.post("/login", async (req, res) => {
       return res.status(404).json({ error: "Supplier not found" });
     }
 
+    // Check approval status
     if (supplier.status !== "approved") {
+      let message = "Account not approved";
+      if (supplier.status === "pending") {
+        message = "Please complete KYC first";
+      } else if (supplier.status === "kyc_submitted") {
+        message = "KYC submitted. Waiting for admin approval.";
+      } else if (supplier.status === "rejected") {
+        message = `Account rejected. Reason: ${supplier.rejectionReason || "Not specified"}`;
+      }
       return res.status(403).json({
-        error: "Account not approved",
+        error: message,
         status: supplier.status,
       });
     }
@@ -108,12 +260,24 @@ router.post("/login", async (req, res) => {
 
     req.session.supplierId = supplier.id;
 
+    const token = jwt.sign(
+      {
+        id: supplier.id,
+        email: supplier.email,
+        role: "supplier",
+      },
+      process.env.JWT_SECRET || process.env.SESSION_SECRET || "fallback-secret",
+      { expiresIn: "7d" }
+    );
+
     return res.json({
       ok: true,
+      token,
       supplier: {
         id: supplier.id,
         name: supplier.name,
         phone: supplier.phone,
+        email: supplier.email,
       },
     });
   } catch (err) {
@@ -128,26 +292,11 @@ router.post("/login", async (req, res) => {
 router.get("/:id/products", async (req, res) => {
   try {
     const products = await Product.findAll({
-      where: { SupplierId: req.params.id },
+      where: { supplierId: req.params.id },
     });
     res.json(products);
   } catch (err) {
-    res.status(500).json({ error: "Server error" });
-  }
-});
-
-/* ============================================================
-   SUPPLIER ORDERS
-============================================================ */
-router.get("/:id/orders", async (req, res) => {
-  try {
-    const orders = await Order.findAll({
-      where: { SupplierId: req.params.id },
-      include: [Product],
-    });
-    res.json(orders);
-  } catch (err) {
-    res.status(500).json({ error: "Server error" });
+    res.status(500).json({ error: "Failed to fetch products" });
   }
 });
 

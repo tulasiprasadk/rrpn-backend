@@ -54,8 +54,9 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
       supplier = await SupplierModel.create({
         name: profile.displayName,
         email,
-        status: 'pending', // Admin must approve
-        acceptedTnC: false
+        status: 'pending', // After Google login, supplier needs to complete KYC
+        acceptedTnC: false,
+        kycSubmitted: false
       });
     }
     return done(null, supplier);

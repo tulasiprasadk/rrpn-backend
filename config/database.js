@@ -75,8 +75,27 @@ export async function initDatabase() {
     
     console.log("✅ Database connected");
 
-    await sequelize.sync();
-    console.log("✅ Database synced");
+    // Sync database: create tables if they don't exist
+    // For adding columns, we'll catch errors and continue
+    try {
+      await sequelize.sync({ alter: true });
+      console.log("✅ Database synced (altered to match models)");
+    } catch (syncErr) {
+      // If UNIQUE constraint error, it means constraint already exists - that's okay
+      if (syncErr.message && (syncErr.message.includes("UNIQUE") || syncErr.message.includes("duplicate"))) {
+        console.warn("⚠️  Constraint already exists (this is normal):", syncErr.message.split('\n')[0]);
+        // Try without alter as fallback
+        try {
+          await sequelize.sync({ alter: false });
+          console.log("✅ Database synced (tables verified)");
+        } catch (e) {
+          console.warn("⚠️  Database sync warning (continuing anyway):", e.message?.split('\n')[0] || e.message);
+        }
+      } else {
+        // For other errors, log but continue
+        console.warn("⚠️  Database sync warning (continuing anyway):", syncErr.message?.split('\n')[0] || syncErr.message);
+      }
+    }
   } catch (err) {
     console.error("❌ Database initialization error:", err.message || err);
     // ❌ DO NOT process.exit() on Cloud Run

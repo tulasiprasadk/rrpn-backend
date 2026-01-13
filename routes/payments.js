@@ -2,6 +2,7 @@ import express from "express";
 import { models } from "../config/database.js";
 import { generateUPIQRCode, generatePaymentReference, verifyUPIPayment } from "../services/upiService.js";
 import { calculateCommission } from "../utils/commissionCalculator.js";
+import { calculateDeliveryCharge } from "../utils/deliveryCalculator.js";
 
 const router = express.Router();
 const { Order, Payment, Customer } = models;
@@ -25,9 +26,17 @@ router.post("/create", async (req, res) => {
     }
 
     // Calculate fees
-    const commission = calculateCommission(amount);
+    const commission = await calculateCommission(amount);
     const platformFee = parseFloat(process.env.PLATFORM_FEE || 0);
-    const deliveryFee = parseFloat(process.env.DELIVERY_FEE || 0);
+    
+    // Calculate delivery charge (can be configured via admin panel)
+    const deliveryFee = await calculateDeliveryCharge({
+      distance: req.body.distance || order.distance || 0,
+      weight: req.body.weight || order.weight || 0,
+      zone: req.body.zone || order.zone || null,
+      orderValue: amount
+    });
+    
     const totalAmount = amount + platformFee + deliveryFee;
     const supplierAmount = amount - commission;
 

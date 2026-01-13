@@ -15,8 +15,16 @@ const Supplier = (sequelize, DataTypes) => {
     idProof: DataTypes.STRING,         // file path
     bankDetails: DataTypes.JSON,       // {accountNumber, ifsc, bankName}
     status: { 
-      type: DataTypes.ENUM('pending', 'approved', 'rejected'), 
+      type: DataTypes.ENUM('pending', 'kyc_pending', 'kyc_submitted', 'approved', 'rejected'), 
       defaultValue: 'pending' 
+    },
+    kycSubmitted: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false
+    },
+    kycSubmittedAt: {
+      type: DataTypes.DATE,
+      allowNull: true
     },
     rejectionReason: DataTypes.TEXT,
     approvedBy: DataTypes.INTEGER,     // admin ID

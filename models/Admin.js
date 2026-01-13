@@ -27,6 +27,18 @@ export default (sequelize, DataTypes) => {
       type: DataTypes.BOOLEAN,
       defaultValue: true
     },
+    isApproved: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false
+    },
+    approvedBy: {
+      type: DataTypes.INTEGER,
+      allowNull: true
+    },
+    approvedAt: {
+      type: DataTypes.DATE,
+      allowNull: true
+    },
     lastLogin: {
       type: DataTypes.DATE
     }
