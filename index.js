@@ -3,6 +3,7 @@ import express from "express";
 import cors from "cors";
 import bodyParser from "body-parser";
 import session from "express-session";
+import serverless from "serverless-http";
 import routes from "./routes/index.js";
 import passport from "./passport.js";
 import { initDatabase } from "./config/database.js";
@@ -136,8 +137,8 @@ export default app;
 
 /**
  * Cloud Run compatibility: Export handler for serverless-http
+ * This allows Cloud Run to use this file as entry point
  */
-import serverless from "serverless-http";
 export const handler = serverless(app);
 
 /**
