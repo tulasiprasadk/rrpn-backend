@@ -71,17 +71,6 @@ app.get("/api/auth/status", (req, res, next) => {
   }
 });
 
-// Error handler
-app.use((err, req, res, next) => {
-  console.error("Error:", err);
-  res.status(500).json({ error: "Internal server error", message: err.message });
-});
-
-// 404
-app.use((req, res) => {
-  res.status(404).json({ error: "Not found", path: req.path });
-});
-
 /**
  * REQUIRED FOR CLOUD RUN:
  * Must listen on PORT=8080
@@ -113,7 +102,18 @@ const PORT = process.env.PORT || 8080;
     // Health endpoints are already defined above, so they'll still work
   }
 
-  // Start server AFTER routes are loaded
+  // Error handler - must be after routes
+  app.use((err, req, res, next) => {
+    console.error("Error:", err);
+    res.status(500).json({ error: "Internal server error", message: err.message });
+  });
+
+  // 404 handler - must be LAST, after all routes
+  app.use((req, res) => {
+    res.status(404).json({ error: "Not found", path: req.path });
+  });
+
+  // Start server AFTER routes and error handlers are loaded
   app.listen(PORT, () => {
     console.log(`🚀 Cloud Run backend running on port ${PORT}`);
     console.log(`✓ Health endpoints available: /, /api/health, /api/auth/status`);
