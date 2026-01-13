@@ -125,7 +125,22 @@ app.use(async (req, res, next) => {
   next();
 });
 
-// Lazy load routes - only load when actually needed
+// Pre-load routes in background after app starts (non-blocking)
+let routesPromise = null;
+function preloadRoutes() {
+  if (!routesPromise) {
+    routesPromise = import("../routes/index.js").catch(err => {
+      console.error("Routes preload error:", err);
+      return null;
+    });
+  }
+  return routesPromise;
+}
+
+// Start preloading routes immediately (non-blocking)
+preloadRoutes();
+
+// Lazy load routes - use preloaded promise if available
 app.use("/api", async (req, res, next) => {
   // Health check endpoints don't need routes
   if (req.path === "/ping" || req.path === "/health" || req.path === "/auth/status") {
@@ -134,9 +149,14 @@ app.use("/api", async (req, res, next) => {
   
   if (!routesLoaded) {
     try {
-      const routes = await import("../routes/index.js");
-      const routesHandler = routes.default || routes;
-      // Mount routes handler
+      // Use preloaded promise or load now
+      const routesModule = await preloadRoutes();
+      if (!routesModule) {
+        return res.status(503).json({ error: "Routes not available", message: "Failed to load routes" });
+      }
+      
+      const routesHandler = routesModule.default || routesModule;
+      // Mount routes handler only once
       if (!app._routesMounted) {
         app.use("/api", routesHandler);
         app._routesMounted = true;
