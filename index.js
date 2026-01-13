@@ -3,8 +3,6 @@ import express from "express";
 import cors from "cors";
 import bodyParser from "body-parser";
 import session from "express-session";
-import routes from "./routes/index.js";
-import passport from "./passport.js";
 import { initDatabase } from "./config/database.js";
 
 const app = express();
@@ -44,11 +42,7 @@ app.use(
   })
 );
 
-// Passport
-app.use(passport.initialize());
-app.use(passport.session());
-
-// Root
+// Root - must respond immediately for Cloud Run health checks
 app.get("/", (req, res) => {
   res.json({
     message: "RR Nagar Backend API",
@@ -57,12 +51,12 @@ app.get("/", (req, res) => {
   });
 });
 
-// Health
+// Health - must respond immediately for Cloud Run health checks
 app.get("/api/health", (req, res) => {
   res.json({ ok: true });
 });
 
-// Auth status
+// Auth status - must respond immediately
 app.get("/api/auth/status", (req, res) => {
   const googleConfigured = !!(
     process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
@@ -70,8 +64,29 @@ app.get("/api/auth/status", (req, res) => {
   res.json({ googleConfigured });
 });
 
-// Routes
-app.use("/api", routes);
+// Load Passport and Routes asynchronously (non-blocking)
+// Health endpoints above will work even if these fail
+(async () => {
+  try {
+    const passport = (await import("./passport.js")).default;
+    app.use(passport.initialize());
+    app.use(passport.session());
+    console.log("✓ Passport loaded");
+  } catch (err) {
+    console.error("⚠ Passport load error:", err.message);
+    console.error("Stack:", err.stack);
+  }
+
+  try {
+    const routes = (await import("./routes/index.js")).default;
+    app.use("/api", routes);
+    console.log("✓ Routes loaded");
+  } catch (err) {
+    console.error("⚠ Routes load error:", err.message);
+    console.error("Stack:", err.stack);
+    // Health endpoints are already defined above, so they'll still work
+  }
+})();
 
 // Error handler
 app.use((err, req, res, next) => {
