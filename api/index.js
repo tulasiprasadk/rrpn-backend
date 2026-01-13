@@ -20,6 +20,7 @@ app.use(
       "http://localhost:5173",
       "https://rrw-frontend.vercel.app",
       "https://rrnagarfinal-frontend.vercel.app",
+      "https://rrpn-frontend.vercel.app", // Current frontend URL
       process.env.FRONTEND_URL,
     ].filter(Boolean),
     credentials: true,
