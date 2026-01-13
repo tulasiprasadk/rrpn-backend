@@ -3,7 +3,7 @@ FROM node:18-slim
 WORKDIR /usr/src/app
 
 # Cache busting - update this to force rebuild
-ARG CACHE_BUST=2026-01-14-00-00
+ARG CACHE_BUST=2026-01-14-00-15
 RUN echo "Build cache bust: $CACHE_BUST"
 
 COPY package*.json ./

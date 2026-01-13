@@ -64,30 +64,6 @@ app.get("/api/auth/status", (req, res) => {
   res.json({ googleConfigured });
 });
 
-// Load Passport and Routes asynchronously (non-blocking)
-// Health endpoints above will work even if these fail
-(async () => {
-  try {
-    const passport = (await import("./passport.js")).default;
-    app.use(passport.initialize());
-    app.use(passport.session());
-    console.log("✓ Passport loaded");
-  } catch (err) {
-    console.error("⚠ Passport load error:", err.message);
-    console.error("Stack:", err.stack);
-  }
-
-  try {
-    const routes = (await import("./routes/index.js")).default;
-    app.use("/api", routes);
-    console.log("✓ Routes loaded");
-  } catch (err) {
-    console.error("⚠ Routes load error:", err.message);
-    console.error("Stack:", err.stack);
-    // Health endpoints are already defined above, so they'll still work
-  }
-})();
-
 // Error handler
 app.use((err, req, res, next) => {
   console.error("Error:", err);
@@ -101,9 +77,35 @@ app.use((req, res) => {
 
 /**
  * REQUIRED FOR CLOUD RUN:
- * Must listen on PORT=8080
+ * Must listen on PORT=8080 IMMEDIATELY
+ * Start server first, then load routes in background
  */
 const PORT = process.env.PORT || 8080;
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`🚀 Cloud Run backend running on port ${PORT}`);
+  console.log(`✓ Health endpoints available: /, /api/health, /api/auth/status`);
+  
+  // Load Passport and Routes asynchronously AFTER server starts
+  // Health endpoints above will work even if these fail
+  (async () => {
+    try {
+      const passport = (await import("./passport.js")).default;
+      app.use(passport.initialize());
+      app.use(passport.session());
+      console.log("✓ Passport loaded");
+    } catch (err) {
+      console.error("⚠ Passport load error:", err.message);
+      console.error("Stack:", err.stack);
+    }
+
+    try {
+      const routes = (await import("./routes/index.js")).default;
+      app.use("/api", routes);
+      console.log("✓ Routes loaded");
+    } catch (err) {
+      console.error("⚠ Routes load error:", err.message);
+      console.error("Stack:", err.stack);
+      // Health endpoints are already defined above, so they'll still work
+    }
+  })();
 });
