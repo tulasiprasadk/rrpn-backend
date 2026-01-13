@@ -19,17 +19,8 @@ import adminBlogs from "./admin/blogs.js";
 
 const router = express.Router();
 
-// Health check endpoints
-router.get("/health", (req, res) => {
-  res.json({ ok: true, timestamp: new Date().toISOString() });
-});
-
-// General auth status endpoint (frontend compatibility)
-router.get("/auth/status", (req, res) => {
-  res.json({
-    googleConfigured: !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET),
-  });
-});
+// Note: /health and /auth/status are defined in index.js before routes load
+// to ensure they work immediately for Cloud Run health checks
 
 router.use("/products", products);
 router.use("/categories", categories);
