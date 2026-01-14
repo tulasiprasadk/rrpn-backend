@@ -146,52 +146,31 @@ router.post("/verify-email-otp", async (req, res) => {
    CHECK LOGIN STATUS
    GET /api/admin/auth/me
    ===================================================== */
-router.get("/me", async (req, res) => {
+router.get("/me", (req, res) => {
+  // Log for debugging
+  console.log('[ADMIN /auth/me] Route called, session:', {
+    hasSession: !!req.session,
+    adminId: req.session?.adminId || null,
+    sessionId: req.sessionID || null
+  });
+  
+  // Check session immediately - no async, no DB
   if (!req.session || !req.session.adminId) {
-    return res.status(401).json({ loggedIn: false });
-  }
-
-  try {
-    // Ensure connection is ready
-    await ensureConnection();
-    
-    // Add timeout protection for database query
-    const queryTimeout = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error("Database query timeout")), 10000)
-    );
-
-    const admin = await Promise.race([
-      Admin.findByPk(req.session.adminId),
-      queryTimeout
-    ]);
-    
-    if (!admin) {
-      return res.status(401).json({ loggedIn: false });
-    }
-
-    res.json({
-      loggedIn: true,
-      admin: {
-        id: admin.id,
-        name: admin.name,
-        email: admin.email,
-        role: admin.role
-      }
-    });
-  } catch (err) {
-    console.error("Admin Auth Check Error:", err);
-    // Check if it's a timeout or connection error
-    if (err.message && err.message.includes("timeout")) {
-      return res.status(504).json({ 
-        error: "Request timeout",
-        message: "Database query took too long. Please try again."
-      });
-    }
-    res.status(500).json({ 
-      error: "Server error",
-      message: err.message || "Internal server error"
+    console.log('[ADMIN /auth/me] Not logged in, returning 401');
+    return res.status(401).json({ 
+      loggedIn: false,
+      authenticated: false
     });
   }
+  
+  // Return immediately with session data - no DB query needed
+  // Frontend can fetch full admin details separately if needed
+  console.log('[ADMIN /auth/me] Logged in, returning success');
+  return res.status(200).json({
+    loggedIn: true,
+    authenticated: true,
+    adminId: req.session.adminId
+  });
 });
 
 /* =====================================================

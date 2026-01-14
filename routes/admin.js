@@ -153,11 +153,30 @@ router.post('/logout', (req, res) => {
   res.json({ success: true });
 });
 
-// Session check
+// Session check - MUST respond immediately, no DB queries
 router.get('/me', (req, res) => {
-  res.json({
-    loggedIn: !!req.session.adminId,
-    adminId: req.session.adminId || null
+  // Log for debugging
+  console.log('[ADMIN /me] Route called, session:', {
+    hasSession: !!req.session,
+    adminId: req.session?.adminId || null,
+    sessionId: req.sessionID || null
+  });
+  
+  // Check session immediately - no async, no DB
+  if (!req.session || !req.session.adminId) {
+    console.log('[ADMIN /me] Not logged in, returning 401');
+    return res.status(401).json({ 
+      loggedIn: false,
+      authenticated: false
+    });
+  }
+  
+  // Return immediately with session data - no DB query needed
+  console.log('[ADMIN /me] Logged in, returning success');
+  return res.status(200).json({
+    loggedIn: true,
+    authenticated: true,
+    adminId: req.session.adminId
   });
 });
 
