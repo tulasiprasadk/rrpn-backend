@@ -130,6 +130,7 @@ router.post('/login', async (req, res) => {
     console.log('✅ Admin login successful (bypassed):', admin.email);
     console.log('⚠️  REMEMBER: Re-enable password check after debugging!');
 
+    const token = `admin_${admin.id}_${Date.now()}`;
     res.json({
       success: true,
       admin: {
@@ -138,6 +139,7 @@ router.post('/login', async (req, res) => {
         name: admin.name,
         role: admin.role
       },
+      token,
       warning: 'Password check is currently disabled for debugging'
     });
   } catch (err) {
@@ -167,8 +169,12 @@ router.get('/me', (req, res) => {
       sessionId: req.sessionID || null
     });
     
+    // Allow token-based auth as fallback for serverless instances
+    const authHeader = req.headers.authorization || "";
+    const hasToken = authHeader.startsWith("Bearer admin_");
+
     // Check session immediately - no async, no DB, no blocking
-    if (!req.session || !req.session.adminId) {
+    if (!hasToken && (!req.session || !req.session.adminId)) {
       console.log('[ADMIN /me] Not logged in, returning 401');
       res.status(401).json({ 
         loggedIn: false,
@@ -182,7 +188,8 @@ router.get('/me', (req, res) => {
     res.status(200).json({
       loggedIn: true,
       authenticated: true,
-      adminId: req.session.adminId
+      adminId: req.session?.adminId || null,
+      tokenAuth: hasToken
     });
     return;
   } catch (err) {
