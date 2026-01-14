@@ -40,8 +40,7 @@ router.get("/", async (req, res) => {
       if (!Number.isNaN(catId)) {
         params.push(catId);
         const idx = params.length;
-        // Support both "CategoryId" and "categoryId" column names
-        whereSql += ` AND (p."CategoryId" = $${idx} OR p."categoryId" = $${idx})`;
+        whereSql += ` AND p."CategoryId" = $${idx}`;
       }
     }
 
@@ -61,7 +60,7 @@ router.get("/", async (req, res) => {
         c."kn" as "cat_kn",
         c."knDisplay" as "cat_knDisplay"
       FROM public."Products" p
-      LEFT JOIN public."Categories" c ON c.id = COALESCE(p."CategoryId", p."categoryId")
+      LEFT JOIN public."Categories" c ON c.id = p."CategoryId"
       ${whereSql}
       ORDER BY p.id DESC
       LIMIT 500

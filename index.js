@@ -195,17 +195,12 @@ app.get("/api/debug/products-counts", async (req, res) => {
       `SELECT COUNT(*)::int AS count FROM public."Products" WHERE "CategoryId" = $1`,
       [catId]
     );
-    const byCategoryLower = await pool.query(
-      `SELECT COUNT(*)::int AS count FROM public."Products" WHERE "categoryId" = $1`,
-      [catId]
-    );
 
     res.json({
       ok: true,
       total: total.rows[0]?.count || 0,
       categoryId: catId,
       countCategoryId: byCategory.rows[0]?.count || 0,
-      countcategoryId: byCategoryLower.rows[0]?.count || 0,
     });
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message });
