@@ -157,11 +157,17 @@ app.use("/api", async (req, res, next) => {
     }
   }
   
-  // Routes are now mounted, but we need to let Express continue processing
-  // Since routes are mounted, they'll handle the request automatically
-  // But we need to ensure next() is called if route doesn't match
-  // Actually, if routes are mounted, Express will handle it automatically
-  // So we can just call next() to continue the middleware chain
+  // Since routes are now mounted, we need to let the router handle the request
+  // But since we're in middleware, we need to manually invoke the router
+  // However, if routes are mounted with app.use(), they should handle automatically
+  // The issue is that mounting happens asynchronously, so we need to wait
+  // Actually, once mounted, the next request will use them, but current request needs handling
+  // So we manually call the router for this request
+  if (routesHandler) {
+    return routesHandler(req, res, next);
+  }
+  
+  // Fallback if routes not loaded
   next();
 });
 
