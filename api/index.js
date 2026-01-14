@@ -171,21 +171,47 @@ export default function handler(req, res) {
     return; // Don't wait for async
   }
   
-  // /api/admin/me - Session check (must respond immediately)
+  // /api/admin/me - Session check (try Express first, fallback to false)
   if ((path === "/api/admin/me" || path === "/admin/me") && req.method === "GET") {
-    console.log('[HANDLER] /api/admin/me called');
+    console.log('[HANDLER] /api/admin/me called - trying Express first');
     
-    // For now, return not logged in immediately
-    // Sessions require Express middleware, so we can't check them here
-    // This prevents timeout while Express loads
-    res.statusCode = 401;
-    res.setHeader('Content-Type', 'application/json');
-    res.end(JSON.stringify({ 
-      loggedIn: false, 
-      authenticated: false,
-      message: "Session check requires Express middleware"
-    }));
-    return;
+    // Try to load Express quickly (500ms timeout)
+    const expressTimeout = setTimeout(() => {
+      if (!res.headersSent) {
+        console.log('[HANDLER] Express timeout for /admin/me - returning false');
+        res.statusCode = 401;
+        res.setHeader('Content-Type', 'application/json');
+        res.end(JSON.stringify({ 
+          loggedIn: false, 
+          authenticated: false
+        }));
+      }
+    }, 500);
+    
+    // Try Express
+    import('./express-app.js')
+      .then(expressApp => {
+        clearTimeout(expressTimeout);
+        const expressHandler = expressApp.default;
+        if (typeof expressHandler === 'function' && !res.headersSent) {
+          expressHandler(req, res);
+        } else if (!res.headersSent) {
+          res.statusCode = 401;
+          res.setHeader('Content-Type', 'application/json');
+          res.end(JSON.stringify({ loggedIn: false, authenticated: false }));
+        }
+      })
+      .catch(err => {
+        clearTimeout(expressTimeout);
+        console.error('[HANDLER] Express load failed for /admin/me:', err);
+        if (!res.headersSent) {
+          res.statusCode = 401;
+          res.setHeader('Content-Type', 'application/json');
+          res.end(JSON.stringify({ loggedIn: false, authenticated: false }));
+        }
+      });
+    
+    return; // Don't continue to other handlers
   }
   
   // Favicon - return 204 (No Content) to prevent 404 errors
