@@ -45,9 +45,14 @@ export default function handler(req, res) {
     return;
   }
   
-  // /api/products - Step 2: Add database connection with timeout
+  // /api/products - Step 3: Add category filter and search
   if (path === "/api/products" || path === "/products") {
-    console.log('[HANDLER] /api/products called');
+    console.log('[HANDLER] /api/products called', req.query);
+    
+    // Parse query parameters
+    const urlParams = new URLSearchParams(req.url?.split('?')[1] || '');
+    const categoryId = urlParams.get('categoryId');
+    const searchQuery = urlParams.get('q');
     
     // Set timeout - always respond within 3 seconds
     const timeout = setTimeout(() => {
@@ -76,15 +81,41 @@ export default function handler(req, res) {
         // Get models
         const Product = db.models?.Product;
         const Category = db.models?.Category;
+        const { Op } = await import("sequelize");
         
         if (!Product || !Category) {
           throw new Error("Models not available");
         }
         
+        // Build where clause
+        const where = {
+          status: { [Op.in]: ['approved', 'active'] }
+        };
+        
+        // Add category filter if provided
+        if (categoryId) {
+          const catId = Number(categoryId);
+          if (!isNaN(catId)) {
+            where.CategoryId = catId;
+            console.log('[HANDLER] Filtering by category:', catId);
+          }
+        }
+        
+        // Add search filter if provided
+        if (searchQuery) {
+          where[Op.or] = [
+            { title: { [Op.iLike]: `%${searchQuery}%` } },
+            { variety: { [Op.iLike]: `%${searchQuery}%` } },
+            { subVariety: { [Op.iLike]: `%${searchQuery}%` } },
+            { description: { [Op.iLike]: `%${searchQuery}%` } },
+          ];
+          console.log('[HANDLER] Searching for:', searchQuery);
+        }
+        
         // Query products with 1.5 second timeout
         console.log('[HANDLER] Querying products...');
         const queryPromise = Product.findAll({
-          where: { status: ['approved', 'active'] },
+          where,
           include: [{
             model: Category,
             attributes: ["id", "name", "icon", "titleKannada", "kn", "knDisplay"],
