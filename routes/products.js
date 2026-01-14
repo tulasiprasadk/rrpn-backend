@@ -36,149 +36,105 @@ router.get("/", async (req, res) => {
   console.log('[PRODUCTS] Route called at', new Date().toISOString());
   console.log('[PRODUCTS] Query params:', req.query);
   
-  // CRITICAL: Set response timeout to ensure we always respond
-  // If we don't respond within 7 seconds, return empty array
-  const responseTimeout = setTimeout(() => {
-    if (!res.headersSent) {
-      console.warn('[PRODUCTS] Response timeout - returning empty array to prevent 504');
-      res.status(200).json([]);
-    }
-  }, 7000);
+  // CRITICAL: Return immediately if we can't respond quickly
+  // Use a single Promise.race for the entire operation
+  const fastResponse = Promise.race([
+    (async () => {
+      try {
+        // Load models with 2s timeout
+        const models = await Promise.race([
+          getModels(),
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error("Model load timeout")), 2000)
+          )
+        ]);
+        
+        if (!models.Product || !models.Category) {
+          return [];
+        }
+        
+        const { Product, Category } = models;
+        const { categoryId, q } = req.query;
+
+        const where = {
+          status: { [Op.in]: ["approved", "active"] },
+        };
+
+        if (categoryId) {
+          where.CategoryId = Number(categoryId);
+        }
+
+        if (q) {
+          where[Op.or] = [
+            { title: { [Op.iLike]: `%${q}%` } },
+            { variety: { [Op.iLike]: `%${q}%` } },
+            { subVariety: { [Op.iLike]: `%${q}%` } },
+            { description: { [Op.iLike]: `%${q}%` } },
+          ];
+        }
+        
+        // Query with 3s timeout
+        const products = await Promise.race([
+          models.Product.findAll({
+            where,
+            include: [
+              {
+                model: Category,
+                attributes: ["id", "name", "icon", "titleKannada", "kn", "knDisplay"],
+                required: false,
+              },
+            ],
+            order: [["id", "DESC"]],
+            limit: 100,
+            attributes: {
+              include: ['id', 'title', 'name', 'titleKannada', 'kn', 'knDisplay', 'description', 'descriptionKannada', 'price', 'variety', 'subVariety', 'image', 'imageUrl', 'image_url', 'CategoryId']
+            }
+          }),
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error("Query timeout")), 3000)
+          )
+        ]);
+        
+        // Transform products
+        return products.map((p) => {
+          const obj = p.toJSON();
+          obj.basePrice = obj.price;
+          if (!obj.knDisplay && obj.titleKannada) {
+            obj.knDisplay = obj.titleKannada;
+          }
+          if (!obj.kn && obj.titleKannada) {
+            obj.kn = obj.titleKannada;
+          }
+          return obj;
+        });
+      } catch (err) {
+        console.error('[PRODUCTS] Error in fast response:', err.message);
+        return []; // Return empty array on any error
+      }
+    })(),
+    // Fallback: return empty array after 5 seconds total
+    new Promise((resolve) => 
+      setTimeout(() => {
+        console.warn('[PRODUCTS] Total timeout - returning empty array');
+        resolve([]);
+      }, 5000)
+    )
+  ]);
   
   try {
-    // Lazy load models with timeout
-    console.log('[PRODUCTS] Loading models...');
-    const modelLoadTimeout = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error("Model load timeout")), 3000)
-    );
-    
-    const models = await Promise.race([
-      getModels(),
-      modelLoadTimeout
-    ]);
-    console.log('[PRODUCTS] Models loaded in', Date.now() - startTime, 'ms');
-    
-    if (!models.Product || !models.Category) {
-      console.error('[PRODUCTS] Models not available');
-      clearTimeout(responseTimeout);
-      return res.status(503).json({ 
-        error: "Database not available",
-        message: "Database connection is not ready. Please try again later."
-      });
-    }
-    
-    const { Product, Category } = models;
-    const { categoryId, q } = req.query;
-
-    const where = {
-      status: { [Op.in]: ["approved", "active"] },
-    };
-
-    if (categoryId) {
-      where.CategoryId = Number(categoryId);
-      console.log('[PRODUCTS] Filtering by categoryId:', categoryId);
-    }
-
-    if (q) {
-      where[Op.or] = [
-        { title: { [Op.iLike]: `%${q}%` } },
-        { variety: { [Op.iLike]: `%${q}%` } },
-        { subVariety: { [Op.iLike]: `%${q}%` } },
-        { description: { [Op.iLike]: `%${q}%` } },
-      ];
-      console.log('[PRODUCTS] Filtering by search query:', q);
-    }
-
-    console.log('[PRODUCTS] Executing query with where:', JSON.stringify(where));
-    
-    // Aggressive timeout - 5s max for query (Vercel has ~10s total)
-    const queryTimeout = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error("Database query timeout")), 5000)
-    );
-
-    const queryStart = Date.now();
-    console.log('[PRODUCTS] Starting database query...');
-    
-    const products = await Promise.race([
-      models.Product.findAll({
-        where,
-        include: [
-          {
-            model: Category,
-            attributes: ["id", "name", "icon", "titleKannada", "kn", "knDisplay"],
-            required: false, // LEFT JOIN - don't fail if category missing
-          },
-        ],
-        order: [["id", "DESC"]],
-        limit: 100, // Limit results to prevent huge queries
-        attributes: {
-          include: ['id', 'title', 'name', 'titleKannada', 'kn', 'knDisplay', 'description', 'descriptionKannada', 'price', 'variety', 'subVariety', 'image', 'imageUrl', 'image_url', 'CategoryId']
-        }
-      }),
-      queryTimeout
-    ]);
-    
-    console.log('[PRODUCTS] Query completed in', Date.now() - queryStart, 'ms');
-    console.log('[PRODUCTS] Found', products.length, 'products');
-
-    // Add basePrice property for frontend compatibility and ensure Kannada fields are included
-    const productsWithBasePrice = products.map((p) => {
-      const obj = p.toJSON();
-      obj.basePrice = obj.price;
-      // Ensure Kannada fields are available
-      if (!obj.knDisplay && obj.titleKannada) {
-        obj.knDisplay = obj.titleKannada;
-      }
-      if (!obj.kn && obj.titleKannada) {
-        obj.kn = obj.titleKannada;
-      }
-      return obj;
-    });
-
-    clearTimeout(responseTimeout);
-    console.log('[PRODUCTS] Total time:', Date.now() - startTime, 'ms');
+    const products = await fastResponse;
+    console.log('[PRODUCTS] Returning', products.length, 'products in', Date.now() - startTime, 'ms');
     
     // CRITICAL: Always send response
     if (!res.headersSent) {
-      res.json(productsWithBasePrice);
+      res.status(200).json(products);
     }
   } catch (err) {
-    clearTimeout(responseTimeout);
-    console.error('[PRODUCTS] Error fetching products:', err);
-    console.error('[PRODUCTS] Error name:', err.name);
-    console.error('[PRODUCTS] Error message:', err.message);
-    console.error('[PRODUCTS] Error code:', err.code);
-    console.error('[PRODUCTS] Total time before error:', Date.now() - startTime, 'ms');
-    
-    // Always respond - never leave request hanging
-    if (res.headersSent) {
-      console.error('[PRODUCTS] Headers already sent, cannot send error response');
-      return;
+    console.error('[PRODUCTS] Unexpected error:', err);
+    // Last resort: always respond
+    if (!res.headersSent) {
+      res.status(200).json([]);
     }
-    
-    // For timeout or connection errors, return empty array instead of error
-    // This allows frontend to show "No products" instead of error message
-    if (err.message && (err.message.includes("timeout") || err.message.includes("Model load timeout"))) {
-      console.warn('[PRODUCTS] Timeout - returning empty array');
-      return res.status(200).json([]);
-    }
-    
-    // Check if it's a database connection error
-    if (err.name === 'SequelizeHostNotFoundError' || 
-        err.name === 'SequelizeConnectionError' ||
-        err.name === 'SequelizeDatabaseError' ||
-        err.code === 'ENOTFOUND' ||
-        err.code === 'ECONNREFUSED' ||
-        err.code === 'ETIMEDOUT') {
-      console.warn('[PRODUCTS] Connection error - returning empty array');
-      return res.status(200).json([]);
-    }
-    
-    // For other errors, return error response
-    res.status(500).json({ 
-      error: "Failed to fetch products",
-      message: err.message || "Internal server error"
-    });
   }
 });
 
