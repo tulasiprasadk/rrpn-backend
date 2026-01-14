@@ -59,6 +59,23 @@ app.get("/api/health", (req, res) => {
   res.json({ ok: true });
 });
 
+// Minimal cart endpoints (prevent 404s)
+app.get("/api/cart", (req, res) => {
+  res.json({ items: [] });
+});
+
+app.post("/api/cart/add", (req, res) => {
+  res.json({ success: true });
+});
+
+app.post("/api/cart/remove", (req, res) => {
+  res.json({ success: true });
+});
+
+app.post("/api/cart/clear", (req, res) => {
+  res.json({ success: true });
+});
+
 // Auth status - must respond immediately (defined before session middleware to avoid issues)
 app.get("/api/auth/status", (req, res, next) => {
   try {
