@@ -132,6 +132,11 @@ export default function handler(req, res) {
         const products = await Promise.race([queryPromise, queryTimeoutPromise]);
         console.log('[HANDLER] Products fetched:', products.length);
         
+        // Log query details for debugging
+        if (products.length === 0) {
+          console.log('[HANDLER] No products found. Query params:', { categoryId, searchQuery, where });
+        }
+        
         // Transform products
         const productsData = products.map((p) => {
           const obj = p.toJSON();
