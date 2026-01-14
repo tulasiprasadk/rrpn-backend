@@ -18,32 +18,22 @@ router.get("/", async (req, res) => {
 
     const { categoryId, q } = req.query;
 
-    const statusFilter = {
-      [Op.or]: [
-        { status: { [Op.in]: ["approved", "active"] } },
-        { status: null },
-        { status: "" },
-      ],
-    };
-
-    const where = { [Op.and]: [statusFilter] };
+    const where = {};
 
     if (categoryId) {
       const catId = Number(categoryId);
       if (!Number.isNaN(catId)) {
-        where[Op.and].push({ CategoryId: catId });
+        where.CategoryId = catId;
       }
     }
 
     if (q) {
-      where[Op.and].push({
-        [Op.or]: [
-          { title: { [Op.iLike]: `%${q}%` } },
-          { variety: { [Op.iLike]: `%${q}%` } },
-          { subVariety: { [Op.iLike]: `%${q}%` } },
-          { description: { [Op.iLike]: `%${q}%` } },
-        ],
-      });
+      where[Op.or] = [
+        { title: { [Op.iLike]: `%${q}%` } },
+        { variety: { [Op.iLike]: `%${q}%` } },
+        { subVariety: { [Op.iLike]: `%${q}%` } },
+        { description: { [Op.iLike]: `%${q}%` } },
+      ];
     }
 
     let products = await Product.findAll({
@@ -59,37 +49,7 @@ router.get("/", async (req, res) => {
       limit: 100,
     });
 
-    // Fallback: if empty, retry without status filter (keep category/search)
-    if (!products || products.length === 0) {
-      const fallbackWhere = {};
-      if (categoryId) {
-        const catId = Number(categoryId);
-        if (!Number.isNaN(catId)) {
-          fallbackWhere.CategoryId = catId;
-        }
-      }
-      if (q) {
-        fallbackWhere[Op.or] = [
-          { title: { [Op.iLike]: `%${q}%` } },
-          { variety: { [Op.iLike]: `%${q}%` } },
-          { subVariety: { [Op.iLike]: `%${q}%` } },
-          { description: { [Op.iLike]: `%${q}%` } },
-        ];
-      }
-
-      products = await Product.findAll({
-        where: fallbackWhere,
-        include: [
-          {
-            model: Category,
-            attributes: ["id", "name", "icon", "titleKannada", "kn", "knDisplay"],
-            required: false,
-          },
-        ],
-        order: [["id", "DESC"]],
-        limit: 100,
-      });
-    }
+    // If empty, return [] (no secondary filtering needed)
 
     const productsWithBasePrice = (products || []).map((p) => {
       const obj = p.toJSON();
