@@ -108,11 +108,13 @@ async function initializePassport() {
 
 // Middleware to lazy-load passport and routes
 app.use("/api", async (req, res, next) => {
-  // Skip for endpoints already defined above
+  // Skip for endpoints already defined above - these must return immediately
   const skipPaths = ["/ping", "/health", "/auth/status"];
   const path = req.path.startsWith("/api") ? req.path.substring(4) : req.path;
   
-  if (skipPaths.includes(path)) {
+  // CRITICAL: These endpoints are defined above and should never reach here
+  // But if they do, skip immediately without any async operations
+  if (skipPaths.includes(path) || skipPaths.some(skip => path.startsWith(skip))) {
     return next();
   }
   
