@@ -145,6 +145,39 @@ app.get("/api/debug/category-counts", async (req, res) => {
   }
 });
 
+// Debug: sample products (with category)
+app.get("/api/debug/products-sample", async (req, res) => {
+  try {
+    const { models } = await import("./config/database.js");
+    const { Product, Category } = models || {};
+    if (!Product) {
+      return res.json({ ok: false, message: "Product model not available" });
+    }
+
+    const products = await Product.findAll({
+      include: Category
+        ? [
+            {
+              model: Category,
+              attributes: ["id", "name"],
+              required: false,
+            },
+          ]
+        : [],
+      order: [["id", "DESC"]],
+      limit: 5,
+    });
+
+    res.json({
+      ok: true,
+      count: products.length,
+      items: products.map((p) => p.toJSON()),
+    });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
 // Minimal cart endpoints (prevent 404s)
 app.get("/api/cart", (req, res) => {
   res.json({ items: [] });
