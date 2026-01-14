@@ -11,6 +11,47 @@ const app = express();
 // Trust proxy for Vercel
 app.set("trust proxy", 1);
 
+// ============================================
+// CRITICAL ENDPOINTS - Defined BEFORE middleware
+// These must work even if middleware fails or times out
+// ============================================
+
+app.get("/api/ping", (req, res) => {
+  // Immediate response - no async, no dependencies, no middleware
+  res.status(200).setHeader('Content-Type', 'text/plain').end("pong");
+});
+
+app.get("/api/health", (req, res) => {
+  // Immediate response - no async, no dependencies
+  res.status(200).json({ 
+    ok: true, 
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime()
+  });
+});
+
+app.get("/api/auth/status", (req, res) => {
+  // Immediate response - only checks env vars, no async
+  res.status(200).json({
+    googleConfigured: !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET)
+  });
+});
+
+// Root endpoint - MUST be minimal and fast (no dependencies)
+app.get("/", (req, res) => {
+  // Immediate response, no async operations
+  res.status(200).json({
+    message: "RR Nagar Backend API",
+    version: "1.0.0",
+    status: "running",
+    timestamp: new Date().toISOString()
+  });
+});
+
+// ============================================
+// MIDDLEWARE - Applied AFTER critical endpoints
+// ============================================
+
 // CORS - Simple and fast, supports multiple origins including custom domain
 const corsOrigins = [
   "http://localhost:5173",
@@ -46,39 +87,6 @@ app.use(
     },
   })
 );
-
-// ============================================
-// CRITICAL ENDPOINTS - Defined FIRST, no dependencies
-// ============================================
-
-app.get("/api/ping", (req, res) => {
-  res.status(200).send("pong");
-});
-
-app.get("/api/health", (req, res) => {
-  res.json({ 
-    ok: true, 
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime()
-  });
-});
-
-app.get("/api/auth/status", (req, res) => {
-  res.json({
-    googleConfigured: !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET)
-  });
-});
-
-// Root endpoint - MUST be minimal and fast (no dependencies)
-app.get("/", (req, res) => {
-  // Immediate response, no async operations
-  res.status(200).json({
-    message: "RR Nagar Backend API",
-    version: "1.0.0",
-    status: "running",
-    timestamp: new Date().toISOString()
-  });
-});
 
 // ============================================
 // LAZY LOAD PASSPORT & ROUTES - Only when needed
