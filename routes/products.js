@@ -12,23 +12,10 @@ async function getModels() {
       Product = models.Product;
       Category = models.Category;
       
-      // Ensure database connection is ready before returning models
-      if (!connectionChecked && sequelize) {
-        try {
-          // Quick connection check with timeout
-          await Promise.race([
-            sequelize.authenticate(),
-            new Promise((_, reject) => 
-              setTimeout(() => reject(new Error("Connection check timeout")), 5000)
-            )
-          ]);
-          connectionChecked = true;
-          console.log("✅ Database connection verified");
-        } catch (connErr) {
-          console.warn("⚠️ Database connection check failed (will retry on query):", connErr.message);
-          // Don't throw - let the query attempt to connect
-        }
-      }
+      // Skip connection check - let queries connect on demand
+      // Connection check was blocking and causing timeouts
+      // Sequelize will connect automatically on first query
+      console.log("✅ Models loaded (connection will happen on first query)");
     } catch (err) {
       console.error("Error loading models:", err);
       throw err;
@@ -87,12 +74,15 @@ router.get("/", async (req, res) => {
 
     console.log('[PRODUCTS] Executing query with where:', JSON.stringify(where));
     
-    // Add timeout protection for database query - reduced to 10s for faster failure
+    // Add aggressive timeout protection - 8s max for query
+    // Vercel has ~10s timeout, so we need to fail fast
     const queryTimeout = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error("Database query timeout")), 10000)
+      setTimeout(() => reject(new Error("Database query timeout")), 8000)
     );
 
     const queryStart = Date.now();
+    console.log('[PRODUCTS] Starting database query...');
+    
     const products = await Promise.race([
       models.Product.findAll({
         where,
@@ -100,9 +90,11 @@ router.get("/", async (req, res) => {
           {
             model: Category,
             attributes: ["id", "name", "icon", "titleKannada", "kn", "knDisplay"],
+            required: false, // LEFT JOIN - don't fail if category missing
           },
         ],
         order: [["id", "DESC"]],
+        limit: 100, // Limit results to prevent huge queries
         attributes: {
           include: ['id', 'title', 'name', 'titleKannada', 'kn', 'knDisplay', 'description', 'descriptionKannada', 'price', 'variety', 'subVariety', 'image', 'imageUrl', 'image_url', 'CategoryId']
         }
