@@ -178,6 +178,38 @@ export default function handler(req, res) {
     
     return; // Don't wait for async
   }
+
+  // /api/cart - return empty cart for now (prevents 404/timeout)
+  if ((path === "/api/cart" || path === "/cart") && req.method === "GET") {
+    res.statusCode = 200;
+    res.setHeader("Content-Type", "application/json");
+    res.end(JSON.stringify({ items: [] }));
+    return;
+  }
+
+  // /api/cart/add - accept and return success (no-op)
+  if ((path === "/api/cart/add" || path === "/cart/add") && req.method === "POST") {
+    res.statusCode = 200;
+    res.setHeader("Content-Type", "application/json");
+    res.end(JSON.stringify({ success: true }));
+    return;
+  }
+
+  // /api/cart/remove - accept and return success (no-op)
+  if ((path === "/api/cart/remove" || path === "/cart/remove") && req.method === "POST") {
+    res.statusCode = 200;
+    res.setHeader("Content-Type", "application/json");
+    res.end(JSON.stringify({ success: true }));
+    return;
+  }
+
+  // /api/cart/clear - accept and return success (no-op)
+  if ((path === "/api/cart/clear" || path === "/cart/clear") && req.method === "POST") {
+    res.statusCode = 200;
+    res.setHeader("Content-Type", "application/json");
+    res.end(JSON.stringify({ success: true }));
+    return;
+  }
   
   // /api/admin/login - Admin login (direct handler with simple body parser)
   if ((path === "/api/admin/login" || path === "/admin/login") && req.method === "POST") {
