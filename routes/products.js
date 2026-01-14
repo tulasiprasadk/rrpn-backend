@@ -86,14 +86,14 @@ router.get("/", async (req, res) => {
       ];
     }
 
-    // Try to load models with 500ms timeout
+    // Try to load models with 300ms timeout (very aggressive)
     console.log("📚 Loading models...");
     let models;
     try {
       models = await Promise.race([
         getModels(),
         new Promise((_, reject) => 
-          setTimeout(() => reject(new Error("Model load timeout")), 500)
+          setTimeout(() => reject(new Error("Model load timeout")), 300)
         )
       ]);
     } catch (modelErr) {
@@ -108,7 +108,7 @@ router.get("/", async (req, res) => {
       return;
     }
 
-    // Execute query with 2s timeout
+    // Execute query with 1.5s timeout (very aggressive)
     console.log("🔍 Executing query...");
     let products;
     try {
@@ -129,7 +129,7 @@ router.get("/", async (req, res) => {
           }
         }),
         new Promise((_, reject) => 
-          setTimeout(() => reject(new Error("Query timeout")), 2000)
+          setTimeout(() => reject(new Error("Query timeout")), 1500)
         )
       ]);
     } catch (queryErr) {

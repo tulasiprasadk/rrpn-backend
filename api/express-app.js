@@ -129,7 +129,7 @@ app.use("/api", async (req, res, next) => {
       url: req.url
     });
     
-    // Invoke router with timeout protection
+    // Invoke router with aggressive timeout protection
     const routeTimeout = setTimeout(() => {
       if (!res.headersSent) {
         console.error("⚠️ Route handler timeout for:", originalPath);
@@ -138,7 +138,7 @@ app.use("/api", async (req, res, next) => {
           message: "The request took too long to process"
         });
       }
-    }, 25000); // 25 second timeout for route execution
+    }, 8000); // 8 second timeout - must be less than Vercel's 10s limit
     
     routesHandler(req, res, (err) => {
       clearTimeout(routeTimeout);
