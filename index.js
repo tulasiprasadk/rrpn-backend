@@ -59,6 +59,47 @@ app.get("/api/health", (req, res) => {
   res.json({ ok: true });
 });
 
+// DB status (quick check with timeout)
+app.get("/api/db/status", async (req, res) => {
+  const start = Date.now();
+  const hasDbUrl = !!process.env.DATABASE_URL;
+
+  try {
+    const { sequelize, models } = await import("./config/database.js");
+
+    // Authenticate with timeout (2s)
+    await Promise.race([
+      sequelize.authenticate(),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("DB auth timeout")), 2000)
+      ),
+    ]);
+
+    const Product = models?.Product;
+    const Category = models?.Category;
+
+    const [productCount, categoryCount] = await Promise.all([
+      Product ? Product.count() : Promise.resolve(null),
+      Category ? Category.count() : Promise.resolve(null),
+    ]);
+
+    res.json({
+      ok: true,
+      hasDbUrl,
+      productCount,
+      categoryCount,
+      elapsedMs: Date.now() - start,
+    });
+  } catch (err) {
+    res.status(503).json({
+      ok: false,
+      hasDbUrl,
+      error: err.message,
+      elapsedMs: Date.now() - start,
+    });
+  }
+});
+
 // Minimal cart endpoints (prevent 404s)
 app.get("/api/cart", (req, res) => {
   res.json({ items: [] });
