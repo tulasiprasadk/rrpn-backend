@@ -108,6 +108,13 @@ app.use("/api", async (req, res, next) => {
     const originalPath = req.path;
     const originalUrl = req.url;
     
+    // Log for debugging
+    console.log('[ROUTE HANDLER] Processing:', {
+      originalPath,
+      originalUrl,
+      method: req.method
+    });
+    
     // Remove /api prefix for router
     const pathWithoutApi = req.path.startsWith("/api") ? req.path.substring(4) : req.path;
     req.path = pathWithoutApi || "/";
@@ -116,6 +123,11 @@ app.use("/api", async (req, res, next) => {
     if (req.url && req.url.startsWith("/api")) {
       req.url = req.url.substring(4) || "/";
     }
+    
+    console.log('[ROUTE HANDLER] Adjusted path:', {
+      path: req.path,
+      url: req.url
+    });
     
     // Invoke router with timeout protection
     const routeTimeout = setTimeout(() => {
@@ -139,7 +151,10 @@ app.use("/api", async (req, res, next) => {
         return next(err);
       }
       if (!res.headersSent) {
+        console.log('[ROUTE HANDLER] No response sent, calling next()');
         next();
+      } else {
+        console.log('[ROUTE HANDLER] Response already sent');
       }
     });
     return;

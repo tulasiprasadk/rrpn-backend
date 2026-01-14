@@ -154,30 +154,47 @@ router.post('/logout', (req, res) => {
 });
 
 // Session check - MUST respond immediately, no DB queries
+// This route MUST always respond - no hanging, no timeouts
 router.get('/me', (req, res) => {
-  // Log for debugging
-  console.log('[ADMIN /me] Route called, session:', {
-    hasSession: !!req.session,
-    adminId: req.session?.adminId || null,
-    sessionId: req.sessionID || null
-  });
-  
-  // Check session immediately - no async, no DB
-  if (!req.session || !req.session.adminId) {
-    console.log('[ADMIN /me] Not logged in, returning 401');
-    return res.status(401).json({ 
-      loggedIn: false,
-      authenticated: false
+  try {
+    // Log for debugging
+    console.log('[ADMIN /me] Route called at', new Date().toISOString());
+    console.log('[ADMIN /me] Request path:', req.path);
+    console.log('[ADMIN /me] Request url:', req.url);
+    console.log('[ADMIN /me] Session:', {
+      hasSession: !!req.session,
+      adminId: req.session?.adminId || null,
+      sessionId: req.sessionID || null
     });
+    
+    // Check session immediately - no async, no DB, no blocking
+    if (!req.session || !req.session.adminId) {
+      console.log('[ADMIN /me] Not logged in, returning 401');
+      res.status(401).json({ 
+        loggedIn: false,
+        authenticated: false
+      });
+      return;
+    }
+    
+    // Return immediately with session data - no DB query needed
+    console.log('[ADMIN /me] Logged in, returning success');
+    res.status(200).json({
+      loggedIn: true,
+      authenticated: true,
+      adminId: req.session.adminId
+    });
+    return;
+  } catch (err) {
+    console.error('[ADMIN /me] Error:', err);
+    // Always respond, even on error
+    if (!res.headersSent) {
+      res.status(500).json({ 
+        error: 'Internal error',
+        loggedIn: false
+      });
+    }
   }
-  
-  // Return immediately with session data - no DB query needed
-  console.log('[ADMIN /me] Logged in, returning success');
-  return res.status(200).json({
-    loggedIn: true,
-    authenticated: true,
-    adminId: req.session.adminId
-  });
 });
 
 // Change password - TEMPORARY: Old password check disabled for debugging
