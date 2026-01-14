@@ -165,15 +165,20 @@ app.use("/api", async (req, res, next) => {
   next();
 });
 
-// Error handler
+// Error handler - must be after routes
 app.use((err, req, res, next) => {
   console.error("Error:", err);
-  res.status(500).json({ error: "Internal server error" });
+  if (!res.headersSent) {
+    res.status(500).json({ error: "Internal server error", message: err.message });
+  }
 });
 
-// 404 handler
+// 404 handler - must be last, after all routes
 app.use((req, res) => {
-  res.status(404).json({ error: "Not found", path: req.path });
+  // Only return 404 if not already responded
+  if (!res.headersSent) {
+    res.status(404).json({ error: "Not found", path: req.path });
+  }
 });
 
 // Export for Vercel (default export)
