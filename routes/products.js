@@ -1,5 +1,4 @@
 import express from "express";
-import { Op } from "sequelize";
 
 const router = express.Router();
 
@@ -7,6 +6,16 @@ const router = express.Router();
 let Product, Category;
 let modelsLoaded = false;
 let modelsLoading = false;
+let Op = null;
+
+// Lazy load Sequelize Op - don't import at top level
+async function getOp() {
+  if (!Op) {
+    const sequelize = await import("sequelize");
+    Op = sequelize.Op;
+  }
+  return Op;
+}
 
 // Simple function to get models - no blocking
 async function getModels() {
@@ -42,32 +51,48 @@ async function getModels() {
    - Test endpoint to verify route is being hit
 ===================================================== */
 router.get("/test", (req, res) => {
-  console.log("✅ /api/products/test called - route is working!");
-  res.json({ ok: true, message: "Products route is accessible" });
+  console.log("[PRODUCTS] ✅ /api/products/test called - route is working!");
+  res.json({ ok: true, message: "Products route is accessible", timestamp: new Date().toISOString() });
+});
+
+/* =====================================================
+   GET /api/products/instant
+   - Returns empty array immediately - NO database, NO async
+   - Use this to test if route handler is being invoked
+===================================================== */
+router.get("/instant", (req, res) => {
+  console.log("[PRODUCTS] ✅ /api/products/instant called - instant response");
+  res.json([]);
 });
 
 /* =====================================================
    GET /api/products
-   - SERVERLESS-SAFE: Always responds within 2 seconds
-   - Returns empty array if DB is slow
+   - SERVERLESS-SAFE: Always responds within 1 second
+   - Returns empty array if DB is slow or unavailable
 ===================================================== */
 router.get("/", async (req, res) => {
   const startTime = Date.now();
-  console.log("➡ /api/products called", req.query);
+  console.log("[PRODUCTS] ➡ /api/products called", req.query);
+  console.log("[PRODUCTS] Request details:", {
+    method: req.method,
+    path: req.path,
+    url: req.url,
+    query: req.query
+  });
   
-  // CRITICAL: Set timeout that ALWAYS responds after 2 seconds
+  // CRITICAL: Set timeout that ALWAYS responds after 1 second
   let responded = false;
   const forceResponse = setTimeout(() => {
     if (!responded && !res.headersSent) {
       responded = true;
-      console.warn("⚠️ Force timeout (2s) - returning empty array");
+      console.warn("[PRODUCTS] ⚠️ Force timeout (1s) - returning empty array");
       try {
         res.status(200).json([]);
       } catch (e) {
-        console.error("Failed to send timeout response:", e);
+        console.error("[PRODUCTS] Failed to send timeout response:", e);
       }
     }
-  }, 2000);
+  }, 1000); // 1 second - ultra aggressive
   
   const sendResponse = (data) => {
     if (!responded && !res.headersSent) {
@@ -80,49 +105,52 @@ router.get("/", async (req, res) => {
   try {
     const { categoryId, q } = req.query;
     
+    // Lazy load Op
+    const OpInstance = await getOp();
+    
     // Build where clause
     const where = {
-      status: { [Op.in]: ["approved", "active"] },
+      status: { [OpInstance.in]: ["approved", "active"] },
     };
 
     if (categoryId) {
       where.CategoryId = Number(categoryId);
-      console.log("📦 Category:", categoryId);
+      console.log("[PRODUCTS] 📦 Category:", categoryId);
     }
 
     if (q) {
-      where[Op.or] = [
-        { title: { [Op.iLike]: `%${q}%` } },
-        { variety: { [Op.iLike]: `%${q}%` } },
-        { subVariety: { [Op.iLike]: `%${q}%` } },
-        { description: { [Op.iLike]: `%${q}%` } },
+      where[OpInstance.or] = [
+        { title: { [OpInstance.iLike]: `%${q}%` } },
+        { variety: { [OpInstance.iLike]: `%${q}%` } },
+        { subVariety: { [OpInstance.iLike]: `%${q}%` } },
+        { description: { [OpInstance.iLike]: `%${q}%` } },
       ];
     }
 
-    // Try to load models with 300ms timeout (very aggressive)
-    console.log("📚 Loading models...");
+    // Try to load models with 200ms timeout (ultra aggressive)
+    console.log("[PRODUCTS] 📚 Loading models...");
     let models;
     try {
       models = await Promise.race([
         getModels(),
         new Promise((_, reject) => 
-          setTimeout(() => reject(new Error("Model load timeout")), 300)
+          setTimeout(() => reject(new Error("Model load timeout")), 200)
         )
       ]);
     } catch (modelErr) {
-      console.error("❌ Model load failed:", modelErr.message);
+      console.error("[PRODUCTS] ❌ Model load failed:", modelErr.message);
       sendResponse([]);
       return;
     }
     
     if (!models.Product || !models.Category) {
-      console.error("❌ Models not available");
+      console.error("[PRODUCTS] ❌ Models not available");
       sendResponse([]);
       return;
     }
 
-    // Execute query with 1.5s timeout (very aggressive)
-    console.log("🔍 Executing query...");
+    // Execute query with 500ms timeout (ultra aggressive)
+    console.log("[PRODUCTS] 🔍 Executing query...");
     let products;
     try {
       products = await Promise.race([
@@ -142,11 +170,11 @@ router.get("/", async (req, res) => {
           }
         }),
         new Promise((_, reject) => 
-          setTimeout(() => reject(new Error("Query timeout")), 1500)
+          setTimeout(() => reject(new Error("Query timeout")), 500)
         )
       ]);
     } catch (queryErr) {
-      console.error("❌ Query failed:", queryErr.message);
+      console.error("[PRODUCTS] ❌ Query failed:", queryErr.message);
       sendResponse([]);
       return;
     }
@@ -164,11 +192,11 @@ router.get("/", async (req, res) => {
       return obj;
     });
 
-    console.log("✅ Products:", productsWithBasePrice.length, "in", Date.now() - startTime, "ms");
+    console.log("[PRODUCTS] ✅ Products:", productsWithBasePrice.length, "in", Date.now() - startTime, "ms");
     sendResponse(productsWithBasePrice);
     
   } catch (err) {
-    console.error("❌ /api/products error:", err.message);
+    console.error("[PRODUCTS] ❌ /api/products error:", err.message);
     sendResponse([]);
   }
 });
