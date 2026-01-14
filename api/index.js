@@ -188,16 +188,23 @@ export default function handler(req, res) {
     // Parse body and handle login
     (async () => {
       try {
-        // Read request body (Vercel serverless format)
-        let body = '';
-        return new Promise((resolve) => {
-          req.on('data', chunk => {
-            body += chunk.toString();
-          });
-          req.on('end', async () => {
-            try {
-              const parsedBody = body ? JSON.parse(body) : {};
-              const { email, password } = parsedBody;
+        // In Vercel, body might be in req.body or need to be read
+        let bodyData = null;
+        
+        // Try req.body first (if Vercel pre-parsed it)
+        if (req.body) {
+          bodyData = req.body;
+        } else {
+          // Read from stream
+          const chunks = [];
+          for await (const chunk of req) {
+            chunks.push(chunk);
+          }
+          const body = Buffer.concat(chunks).toString();
+          bodyData = body ? JSON.parse(body) : {};
+        }
+        
+        const { email, password } = bodyData || {};
         
         if (!email) {
           clearTimeout(timeout);
@@ -265,35 +272,13 @@ export default function handler(req, res) {
             // Include a simple token for frontend to use
             token: `admin_${admin.id}_${Date.now()}`
           }));
-            } catch (err) {
-              console.error('[HANDLER] Admin login error:', err.message);
-              clearTimeout(timeout);
-              if (!res.headersSent) {
-                res.statusCode = 500;
-                res.setHeader('Content-Type', 'application/json');
-                res.end(JSON.stringify({ error: "Login failed", message: err.message }));
-              }
-            }
-            resolve();
-          });
-          req.on('error', (err) => {
-            console.error('[HANDLER] Request error:', err);
-            clearTimeout(timeout);
-            if (!res.headersSent) {
-              res.statusCode = 500;
-              res.setHeader('Content-Type', 'application/json');
-              res.end(JSON.stringify({ error: "Request error" }));
-            }
-            resolve();
-          });
-        });
       } catch (err) {
-        console.error('[HANDLER] Admin login setup error:', err.message);
+        console.error('[HANDLER] Admin login error:', err.message);
         clearTimeout(timeout);
         if (!res.headersSent) {
           res.statusCode = 500;
           res.setHeader('Content-Type', 'application/json');
-          res.end(JSON.stringify({ error: "Login failed" }));
+          res.end(JSON.stringify({ error: "Login failed", message: err.message }));
         }
       }
     })();
