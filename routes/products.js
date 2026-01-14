@@ -34,6 +34,15 @@ router.get("/", async (req, res) => {
   const startTime = Date.now();
   console.log("➡ /api/products called", req.query);
   
+  // CRITICAL: Set a global timeout that ALWAYS responds
+  // If we don't respond within 4 seconds, return empty array
+  const globalTimeout = setTimeout(() => {
+    if (!res.headersSent) {
+      console.warn("⚠️ Global timeout - returning empty array");
+      res.status(200).json([]);
+    }
+  }, 4000);
+  
   try {
     const { categoryId, q } = req.query;
     
@@ -57,42 +66,57 @@ router.get("/", async (req, res) => {
       console.log("🔍 Searching for:", q);
     }
 
-    // Load models (non-blocking, cached after first load)
+    // Load models with aggressive 1s timeout
     console.log("📚 Loading models...");
-    const models = await Promise.race([
-      getModels(),
-      new Promise((_, reject) => 
-        setTimeout(() => reject(new Error("Model load timeout")), 2000)
-      )
-    ]);
+    let models;
+    try {
+      models = await Promise.race([
+        getModels(),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error("Model load timeout")), 1000)
+        )
+      ]);
+    } catch (modelErr) {
+      console.error("❌ Model load failed:", modelErr.message);
+      clearTimeout(globalTimeout);
+      return res.status(200).json([]);
+    }
     
     if (!models.Product || !models.Category) {
       console.error("❌ Models not available");
-      return res.status(200).json([]); // Return empty array, not error
+      clearTimeout(globalTimeout);
+      return res.status(200).json([]);
     }
 
-    // Execute query with timeout
+    // Execute query with aggressive 2s timeout
     console.log("🔍 Executing query...");
-    const products = await Promise.race([
-      models.Product.findAll({
-        where,
-        include: [
-          {
-            model: models.Category,
-            attributes: ["id", "name", "icon", "titleKannada", "kn", "knDisplay"],
-            required: false,
-          },
-        ],
-        order: [["id", "DESC"]],
-        limit: 100,
-        attributes: {
-          include: ['id', 'title', 'name', 'titleKannada', 'kn', 'knDisplay', 'description', 'descriptionKannada', 'price', 'variety', 'subVariety', 'image', 'imageUrl', 'image_url', 'CategoryId']
-        }
-      }),
-      new Promise((_, reject) => 
-        setTimeout(() => reject(new Error("Query timeout")), 3000)
-      )
-    ]);
+    let products;
+    try {
+      products = await Promise.race([
+        models.Product.findAll({
+          where,
+          include: [
+            {
+              model: models.Category,
+              attributes: ["id", "name", "icon", "titleKannada", "kn", "knDisplay"],
+              required: false,
+            },
+          ],
+          order: [["id", "DESC"]],
+          limit: 100,
+          attributes: {
+            include: ['id', 'title', 'name', 'titleKannada', 'kn', 'knDisplay', 'description', 'descriptionKannada', 'price', 'variety', 'subVariety', 'image', 'imageUrl', 'image_url', 'CategoryId']
+          }
+        }),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error("Query timeout")), 2000)
+        )
+      ]);
+    } catch (queryErr) {
+      console.error("❌ Query failed:", queryErr.message);
+      clearTimeout(globalTimeout);
+      return res.status(200).json([]);
+    }
 
     // Transform products
     const productsWithBasePrice = products.map((p) => {
@@ -107,12 +131,16 @@ router.get("/", async (req, res) => {
       return obj;
     });
 
+    clearTimeout(globalTimeout);
     console.log("✅ Products fetched:", productsWithBasePrice.length, "in", Date.now() - startTime, "ms");
     
     // CRITICAL: Always return response
-    return res.json(productsWithBasePrice);
+    if (!res.headersSent) {
+      return res.json(productsWithBasePrice);
+    }
     
   } catch (err) {
+    clearTimeout(globalTimeout);
     console.error("❌ /api/products error:", err.message);
     console.error("❌ Error details:", {
       name: err.name,
@@ -121,7 +149,6 @@ router.get("/", async (req, res) => {
     });
     
     // CRITICAL: Always return response, even on error
-    // Return empty array instead of error to allow frontend to show "No products"
     if (!res.headersSent) {
       return res.status(200).json([]);
     }
