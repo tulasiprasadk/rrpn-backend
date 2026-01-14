@@ -60,7 +60,7 @@ router.get("/", async (req, res) => {
       include: [
         {
           model: Category,
-          attributes: ["id", "name"],
+          attributes: ["id", "name", "icon"],
         },
       ],
       order: [["id", "DESC"]],
