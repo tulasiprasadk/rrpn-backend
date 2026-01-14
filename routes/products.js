@@ -127,9 +127,20 @@ router.get("/", async (req, res) => {
       return obj;
     });
 
+    console.log('[PRODUCTS] Total time:', Date.now() - startTime, 'ms');
     res.json(productsWithBasePrice);
   } catch (err) {
-    console.error("Error fetching products:", err);
+    console.error('[PRODUCTS] Error fetching products:', err);
+    console.error('[PRODUCTS] Error name:', err.name);
+    console.error('[PRODUCTS] Error message:', err.message);
+    console.error('[PRODUCTS] Error code:', err.code);
+    console.error('[PRODUCTS] Total time before error:', Date.now() - startTime, 'ms');
+    
+    // Always respond - never leave request hanging
+    if (res.headersSent) {
+      console.error('[PRODUCTS] Headers already sent, cannot send error response');
+      return;
+    }
     
     // Check if it's a timeout error
     if (err.message && err.message.includes("timeout")) {
@@ -142,8 +153,10 @@ router.get("/", async (req, res) => {
     // Check if it's a database connection error
     if (err.name === 'SequelizeHostNotFoundError' || 
         err.name === 'SequelizeConnectionError' ||
+        err.name === 'SequelizeDatabaseError' ||
         err.code === 'ENOTFOUND' ||
-        err.code === 'ECONNREFUSED') {
+        err.code === 'ECONNREFUSED' ||
+        err.code === 'ETIMEDOUT') {
       return res.status(503).json({ 
         error: "Database connection failed",
         message: "Cannot connect to database. Please try again later.",
