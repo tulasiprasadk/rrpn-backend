@@ -207,6 +207,27 @@ app.get("/api/debug/products-counts", async (req, res) => {
   }
 });
 
+// Debug: show sample products with CategoryId and title
+app.get("/api/debug/products-sample-raw", async (req, res) => {
+  try {
+    const { Pool } = await import("pg");
+    const pool = new Pool({
+      connectionString: process.env.DATABASE_URL,
+      connectionTimeoutMillis: 10000,
+      idleTimeoutMillis: 10000,
+      max: 5,
+    });
+
+    const result = await pool.query(
+      `SELECT id, title, "CategoryId" FROM public."Products" ORDER BY id DESC LIMIT 10`
+    );
+
+    res.json({ ok: true, items: result.rows || [] });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
 // Minimal cart endpoints (prevent 404s)
 app.get("/api/cart", (req, res) => {
   res.json({ items: [] });
