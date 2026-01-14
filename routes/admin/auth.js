@@ -5,7 +5,27 @@
 
 
 import express from "express";
-import { models } from "../../config/database.js";
+import { models, sequelize } from "../../config/database.js";
+
+// Ensure database connection is ready
+let connectionChecked = false;
+async function ensureConnection() {
+  if (!connectionChecked && sequelize) {
+    try {
+      await Promise.race([
+        sequelize.authenticate(),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error("Connection check timeout")), 5000)
+        )
+      ]);
+      connectionChecked = true;
+      console.log("✅ Admin auth: Database connection verified");
+    } catch (connErr) {
+      console.warn("⚠️ Admin auth: Database connection check failed (will retry on query):", connErr.message);
+      // Don't throw - let the query attempt to connect
+    }
+  }
+}
 const { Admin } = models;
 import { sendOTP } from "../../services/emailService.js";
 const router = express.Router();
