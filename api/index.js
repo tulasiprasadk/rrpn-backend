@@ -171,6 +171,23 @@ export default function handler(req, res) {
     return; // Don't wait for async
   }
   
+  // /api/admin/me - Session check (must respond immediately)
+  if ((path === "/api/admin/me" || path === "/admin/me") && req.method === "GET") {
+    console.log('[HANDLER] /api/admin/me called');
+    
+    // For now, return not logged in immediately
+    // Sessions require Express middleware, so we can't check them here
+    // This prevents timeout while Express loads
+    res.statusCode = 401;
+    res.setHeader('Content-Type', 'application/json');
+    res.end(JSON.stringify({ 
+      loggedIn: false, 
+      authenticated: false,
+      message: "Session check requires Express middleware"
+    }));
+    return;
+  }
+  
   // Favicon - return 204 (No Content) to prevent 404 errors
   if (path === "/favicon.ico") {
     res.statusCode = 204;
@@ -178,8 +195,8 @@ export default function handler(req, res) {
     return;
   }
   
-  // All other routes (including admin) - load Express app
-  // Express handles: admin login, admin/me, categories, orders, etc.
+  // All other routes (including admin login) - load Express app
+  // Express handles: admin login, categories, orders, etc.
   import('./express-app.js')
     .then(expressApp => {
       const expressHandler = expressApp.default;
