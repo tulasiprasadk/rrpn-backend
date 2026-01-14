@@ -6,17 +6,30 @@ const router = express.Router();
 // Cache models to avoid re-importing
 let Product, Category;
 let modelsLoaded = false;
+let modelsLoading = false;
 
 // Simple function to get models - no blocking
 async function getModels() {
+  if (modelsLoading) {
+    // If already loading, wait a bit then return cached or fail
+    await new Promise(resolve => setTimeout(resolve, 100));
+    if (modelsLoaded && Product && Category) {
+      return { Product, Category };
+    }
+    throw new Error("Models still loading");
+  }
+  
   if (!modelsLoaded) {
+    modelsLoading = true;
     try {
       const db = await import("../config/database.js");
       Product = db.models.Product;
       Category = db.models.Category;
       modelsLoaded = true;
+      modelsLoading = false;
       console.log("✅ Models loaded");
     } catch (err) {
+      modelsLoading = false;
       console.error("❌ Failed to load models:", err);
       throw err;
     }
@@ -26,22 +39,30 @@ async function getModels() {
 
 /* =====================================================
    GET /api/products
-   - Public: approved products only
-   - Supports categoryId + global search (q)
-   - SERVERLESS-SAFE: Always responds within 5 seconds
+   - SERVERLESS-SAFE: Always responds within 3 seconds
+   - Returns empty array if DB is slow
 ===================================================== */
 router.get("/", async (req, res) => {
   const startTime = Date.now();
   console.log("➡ /api/products called", req.query);
   
-  // CRITICAL: Set a global timeout that ALWAYS responds
-  // If we don't respond within 4 seconds, return empty array
-  const globalTimeout = setTimeout(() => {
-    if (!res.headersSent) {
-      console.warn("⚠️ Global timeout - returning empty array");
+  // CRITICAL: Set timeout that ALWAYS responds after 3 seconds
+  let responded = false;
+  const forceResponse = setTimeout(() => {
+    if (!responded && !res.headersSent) {
+      responded = true;
+      console.warn("⚠️ Force timeout - returning empty array");
       res.status(200).json([]);
     }
-  }, 4000);
+  }, 3000);
+  
+  const sendResponse = (data) => {
+    if (!responded && !res.headersSent) {
+      responded = true;
+      clearTimeout(forceResponse);
+      res.status(200).json(data);
+    }
+  };
   
   try {
     const { categoryId, q } = req.query;
@@ -53,7 +74,7 @@ router.get("/", async (req, res) => {
 
     if (categoryId) {
       where.CategoryId = Number(categoryId);
-      console.log("📦 Fetching products for category:", categoryId);
+      console.log("📦 Category:", categoryId);
     }
 
     if (q) {
@@ -63,32 +84,31 @@ router.get("/", async (req, res) => {
         { subVariety: { [Op.iLike]: `%${q}%` } },
         { description: { [Op.iLike]: `%${q}%` } },
       ];
-      console.log("🔍 Searching for:", q);
     }
 
-    // Load models with aggressive 1s timeout
+    // Try to load models with 500ms timeout
     console.log("📚 Loading models...");
     let models;
     try {
       models = await Promise.race([
         getModels(),
         new Promise((_, reject) => 
-          setTimeout(() => reject(new Error("Model load timeout")), 1000)
+          setTimeout(() => reject(new Error("Model load timeout")), 500)
         )
       ]);
     } catch (modelErr) {
       console.error("❌ Model load failed:", modelErr.message);
-      clearTimeout(globalTimeout);
-      return res.status(200).json([]);
+      sendResponse([]);
+      return;
     }
     
     if (!models.Product || !models.Category) {
       console.error("❌ Models not available");
-      clearTimeout(globalTimeout);
-      return res.status(200).json([]);
+      sendResponse([]);
+      return;
     }
 
-    // Execute query with aggressive 2s timeout
+    // Execute query with 2s timeout
     console.log("🔍 Executing query...");
     let products;
     try {
@@ -114,8 +134,8 @@ router.get("/", async (req, res) => {
       ]);
     } catch (queryErr) {
       console.error("❌ Query failed:", queryErr.message);
-      clearTimeout(globalTimeout);
-      return res.status(200).json([]);
+      sendResponse([]);
+      return;
     }
 
     // Transform products
@@ -131,27 +151,12 @@ router.get("/", async (req, res) => {
       return obj;
     });
 
-    clearTimeout(globalTimeout);
-    console.log("✅ Products fetched:", productsWithBasePrice.length, "in", Date.now() - startTime, "ms");
-    
-    // CRITICAL: Always return response
-    if (!res.headersSent) {
-      return res.json(productsWithBasePrice);
-    }
+    console.log("✅ Products:", productsWithBasePrice.length, "in", Date.now() - startTime, "ms");
+    sendResponse(productsWithBasePrice);
     
   } catch (err) {
-    clearTimeout(globalTimeout);
     console.error("❌ /api/products error:", err.message);
-    console.error("❌ Error details:", {
-      name: err.name,
-      code: err.code,
-      time: Date.now() - startTime
-    });
-    
-    // CRITICAL: Always return response, even on error
-    if (!res.headersSent) {
-      return res.status(200).json([]);
-    }
+    sendResponse([]);
   }
 });
 
