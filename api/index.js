@@ -1,15 +1,21 @@
 // ============================================
 // CRITICAL: Health endpoints respond BEFORE any imports
-// This is the ONLY way to guarantee instant response
+// NO top-level imports - handler loads instantly
 // ============================================
 
-// Export handler that checks health endpoints FIRST
-export default async (req, res) => {
-  // Extract path from request
-  const url = req.url || req.path || '/';
-  const path = url.split('?')[0];
+// Handler function - NO imports at top level
+async function handler(req, res) {
+  // Extract path - handle both Vercel and standard formats
+  let path = '/';
+  if (req.url) {
+    path = req.url.split('?')[0];
+  } else if (req.path) {
+    path = req.path;
+  } else if (req.rawPath) {
+    path = req.rawPath;
+  }
   
-  // Health endpoints - respond IMMEDIATELY, no imports, no Express
+  // Health endpoints - respond IMMEDIATELY, no async imports
   if (path === "/api/ping" || path === "/ping") {
     res.statusCode = 200;
     res.setHeader('Content-Type', 'text/plain');
@@ -49,12 +55,11 @@ export default async (req, res) => {
     return;
   }
   
-  // Not a health endpoint - lazy load Express and handle normally
-  // This ensures health endpoints never wait for Express to load
-  const { default: expressHandler } = await import('./express-app.js');
-  return expressHandler(req, res);
-};
+  // Not a health endpoint - lazy load Express (only for non-health routes)
+  const expressApp = await import('./express-app.js');
+  return expressApp.default(req, res);
+}
 
-export const handler = async (req, res) => {
-  return (await import('./index.js')).default(req, res);
-};
+// Export for Vercel
+export default handler;
+export { handler };
