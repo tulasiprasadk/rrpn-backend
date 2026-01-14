@@ -132,7 +132,15 @@ router.get("/me", async (req, res) => {
   }
 
   try {
-    const admin = await Admin.findByPk(req.session.adminId);
+    // Add timeout protection for database query
+    const queryTimeout = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error("Database query timeout")), 10000)
+    );
+
+    const admin = await Promise.race([
+      Admin.findByPk(req.session.adminId),
+      queryTimeout
+    ]);
     
     if (!admin) {
       return res.status(401).json({ loggedIn: false });
@@ -149,7 +157,17 @@ router.get("/me", async (req, res) => {
     });
   } catch (err) {
     console.error("Admin Auth Check Error:", err);
-    res.status(500).json({ error: "Server error" });
+    // Check if it's a timeout or connection error
+    if (err.message && err.message.includes("timeout")) {
+      return res.status(504).json({ 
+        error: "Request timeout",
+        message: "Database query took too long. Please try again."
+      });
+    }
+    res.status(500).json({ 
+      error: "Server error",
+      message: err.message || "Internal server error"
+    });
   }
 });
 

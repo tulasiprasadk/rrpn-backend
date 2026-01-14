@@ -55,19 +55,27 @@ router.get("/", async (req, res) => {
       ];
     }
 
-    const products = await models.Product.findAll({
-      where,
-      include: [
-        {
-          model: Category,
-          attributes: ["id", "name", "icon"],
-        },
-      ],
-      order: [["id", "DESC"]],
-      attributes: {
-        include: ['id', 'title', 'name', 'titleKannada', 'kn', 'knDisplay', 'description', 'descriptionKannada', 'price', 'variety', 'subVariety', 'image', 'imageUrl', 'image_url', 'CategoryId']
-      }
-    });
+    // Add timeout protection for database query
+    const queryTimeout = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error("Database query timeout")), 15000)
+    );
+
+    const products = await Promise.race([
+      models.Product.findAll({
+        where,
+        include: [
+          {
+            model: Category,
+            attributes: ["id", "name", "icon", "titleKannada", "kn", "knDisplay"],
+          },
+        ],
+        order: [["id", "DESC"]],
+        attributes: {
+          include: ['id', 'title', 'name', 'titleKannada', 'kn', 'knDisplay', 'description', 'descriptionKannada', 'price', 'variety', 'subVariety', 'image', 'imageUrl', 'image_url', 'CategoryId']
+        }
+      }),
+      queryTimeout
+    ]);
 
     // Add basePrice property for frontend compatibility and ensure Kannada fields are included
     const productsWithBasePrice = products.map((p) => {
