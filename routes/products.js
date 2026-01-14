@@ -45,10 +45,18 @@ const router = express.Router();
    - Supports categoryId + global search (q)
 ===================================================== */
 router.get("/", async (req, res) => {
+  const startTime = Date.now();
+  console.log('[PRODUCTS] Route called at', new Date().toISOString());
+  console.log('[PRODUCTS] Query params:', req.query);
+  
   try {
     // Lazy load models
+    console.log('[PRODUCTS] Loading models...');
     const models = await getModels();
+    console.log('[PRODUCTS] Models loaded in', Date.now() - startTime, 'ms');
+    
     if (!models.Product || !models.Category) {
+      console.error('[PRODUCTS] Models not available');
       return res.status(503).json({ 
         error: "Database not available",
         message: "Database connection is not ready. Please try again later."
@@ -59,12 +67,12 @@ router.get("/", async (req, res) => {
     const { categoryId, q } = req.query;
 
     const where = {
-  status: { [Op.in]: ["approved", "active"] },
-};
-
+      status: { [Op.in]: ["approved", "active"] },
+    };
 
     if (categoryId) {
       where.CategoryId = Number(categoryId);
+      console.log('[PRODUCTS] Filtering by categoryId:', categoryId);
     }
 
     if (q) {
@@ -74,13 +82,17 @@ router.get("/", async (req, res) => {
         { subVariety: { [Op.iLike]: `%${q}%` } },
         { description: { [Op.iLike]: `%${q}%` } },
       ];
+      console.log('[PRODUCTS] Filtering by search query:', q);
     }
 
-    // Add timeout protection for database query
+    console.log('[PRODUCTS] Executing query with where:', JSON.stringify(where));
+    
+    // Add timeout protection for database query - reduced to 10s for faster failure
     const queryTimeout = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error("Database query timeout")), 15000)
+      setTimeout(() => reject(new Error("Database query timeout")), 10000)
     );
 
+    const queryStart = Date.now();
     const products = await Promise.race([
       models.Product.findAll({
         where,
@@ -97,6 +109,9 @@ router.get("/", async (req, res) => {
       }),
       queryTimeout
     ]);
+    
+    console.log('[PRODUCTS] Query completed in', Date.now() - queryStart, 'ms');
+    console.log('[PRODUCTS] Found', products.length, 'products');
 
     // Add basePrice property for frontend compatibility and ensure Kannada fields are included
     const productsWithBasePrice = products.map((p) => {
