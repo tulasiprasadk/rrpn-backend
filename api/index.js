@@ -133,22 +133,35 @@ app.use("/api", async (req, res, next) => {
     }
   }
   
-  // Lazy load routes on first request
+  // Lazy load routes on first request - with timeout protection
   if (!routesLoaded) {
     try {
-      const routes = await import("../routes/index.js");
+      const loadRoutes = Promise.race([
+        import("../routes/index.js"),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error("Routes load timeout")), 10000)
+        )
+      ]);
+      const routes = await loadRoutes;
       routesHandler = routes.default || routes;
+      // Mount routes directly to app - this is critical for Express routing
+      app.use("/api", routesHandler);
       routesLoaded = true;
+      console.log("✅ Routes loaded and mounted successfully");
     } catch (err) {
       console.error("Failed to load routes:", err);
-      return res.status(503).json({ error: "Routes not available" });
+      return res.status(503).json({ 
+        error: "Routes not available", 
+        message: err.message 
+      });
     }
   }
   
-  if (routesHandler) {
-    return routesHandler(req, res, next);
-  }
-  
+  // Routes are now mounted, but we need to let Express continue processing
+  // Since routes are mounted, they'll handle the request automatically
+  // But we need to ensure next() is called if route doesn't match
+  // Actually, if routes are mounted, Express will handle it automatically
+  // So we can just call next() to continue the middleware chain
   next();
 });
 
