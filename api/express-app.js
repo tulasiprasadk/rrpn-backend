@@ -11,6 +11,16 @@ const app = express();
 app.set("trust proxy", 1);
 
 // ============================================
+// CRITICAL: Define /api/products route FIRST
+// Before any middleware that might block
+// ============================================
+
+app.get("/api/products", (req, res) => {
+  console.log("[DIRECT PRODUCTS] Route invoked:", req.query);
+  res.json([]);
+});
+
+// ============================================
 // MIDDLEWARE
 // ============================================
 
@@ -40,15 +50,6 @@ app.use(session({
     maxAge: 24 * 60 * 60 * 1000,
   },
 }));
-
-// ============================================
-// DIRECT ROUTE: /api/products (bypass route loading)
-// ============================================
-
-app.get("/api/products", (req, res) => {
-  console.log("[DIRECT PRODUCTS] Route invoked:", req.query);
-  res.json([]);
-});
 
 // ============================================
 // LAZY LOAD ROUTES
