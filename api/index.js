@@ -45,12 +45,100 @@ export default function handler(req, res) {
     return;
   }
   
-  // /api/products - return empty array immediately
+  // /api/products - Step 2: Add database connection with timeout
   if (path === "/api/products" || path === "/products") {
     console.log('[HANDLER] /api/products called');
-    res.statusCode = 200;
-    res.setHeader('Content-Type', 'application/json');
-    res.end(JSON.stringify([]));
+    
+    // Set timeout - always respond within 3 seconds
+    const timeout = setTimeout(() => {
+      if (!res.headersSent) {
+        console.log('[HANDLER] Timeout - returning empty array');
+        res.statusCode = 200;
+        res.setHeader('Content-Type', 'application/json');
+        res.end(JSON.stringify([]));
+      }
+    }, 3000);
+    
+    // Try to load database and query
+    (async () => {
+      try {
+        console.log('[HANDLER] Loading database...');
+        
+        // Load database with 1 second timeout
+        const dbPromise = import("../config/database.js");
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error("Database load timeout")), 1000)
+        );
+        
+        const db = await Promise.race([dbPromise, timeoutPromise]);
+        console.log('[HANDLER] Database loaded');
+        
+        // Get models
+        const Product = db.models?.Product;
+        const Category = db.models?.Category;
+        
+        if (!Product || !Category) {
+          throw new Error("Models not available");
+        }
+        
+        // Query products with 1.5 second timeout
+        console.log('[HANDLER] Querying products...');
+        const queryPromise = Product.findAll({
+          where: { status: ['approved', 'active'] },
+          include: [{
+            model: Category,
+            attributes: ["id", "name", "icon", "titleKannada", "kn", "knDisplay"],
+            required: false,
+          }],
+          order: [["id", "DESC"]],
+          limit: 100,
+        });
+        
+        const queryTimeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error("Query timeout")), 1500)
+        );
+        
+        const products = await Promise.race([queryPromise, queryTimeoutPromise]);
+        console.log('[HANDLER] Products fetched:', products.length);
+        
+        // Transform products
+        const productsData = products.map((p) => {
+          const obj = p.toJSON();
+          obj.basePrice = obj.price;
+          if (!obj.knDisplay && obj.titleKannada) {
+            obj.knDisplay = obj.titleKannada;
+          }
+          if (!obj.kn && obj.titleKannada) {
+            obj.kn = obj.titleKannada;
+          }
+          return obj;
+        });
+        
+        clearTimeout(timeout);
+        if (!res.headersSent) {
+          res.statusCode = 200;
+          res.setHeader('Content-Type', 'application/json');
+          res.end(JSON.stringify(productsData));
+        }
+        
+      } catch (err) {
+        console.error('[HANDLER] Error:', err.message);
+        clearTimeout(timeout);
+        if (!res.headersSent) {
+          res.statusCode = 200;
+          res.setHeader('Content-Type', 'application/json');
+          res.end(JSON.stringify([])); // Return empty array on error
+        }
+      }
+    })();
+    
+    return; // Don't wait for async
+  }
+  
+  // Favicon - return 204 (No Content) to prevent 404 errors
+  if (path === "/favicon.ico") {
+    res.statusCode = 204;
+    res.end();
     return;
   }
   
