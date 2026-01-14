@@ -171,124 +171,6 @@ export default function handler(req, res) {
     return; // Don't wait for async
   }
   
-  // /api/admin/login - Admin login endpoint
-  if ((path === "/api/admin/login" || path === "/admin/login") && req.method === "POST") {
-    console.log('[HANDLER] /api/admin/login called');
-    
-    // Set timeout - always respond within 3 seconds
-    const timeout = setTimeout(() => {
-      if (!res.headersSent) {
-        console.log('[HANDLER] Admin login timeout');
-        res.statusCode = 500;
-        res.setHeader('Content-Type', 'application/json');
-        res.end(JSON.stringify({ error: "Login timeout" }));
-      }
-    }, 3000);
-    
-    // Handle login asynchronously
-    (async () => {
-      try {
-        // Parse request body
-        let body = '';
-        req.on('data', chunk => { body += chunk.toString(); });
-        req.on('end', async () => {
-          try {
-            const { email, password } = JSON.parse(body || '{}');
-            
-            if (!email) {
-              clearTimeout(timeout);
-              res.statusCode = 400;
-              res.setHeader('Content-Type', 'application/json');
-              res.end(JSON.stringify({ error: "Email required" }));
-              return;
-            }
-            
-            console.log('[HANDLER] Admin login attempt:', email);
-            
-            // Load database
-            const db = await import("../config/database.js");
-            const { Admin } = db.models;
-            const bcrypt = await import("bcrypt");
-            
-            // Find or create admin
-            let admin = await Admin.findOne({ where: { email } });
-            if (!admin) {
-              console.log('[HANDLER] Creating admin account:', email);
-              const hashedPassword = await bcrypt.default.hash('temp123', 10);
-              admin = await Admin.create({
-                name: 'Super Admin',
-                email: email,
-                password: hashedPassword,
-                role: 'super_admin',
-                isActive: true,
-                isApproved: true,
-                approvedAt: new Date()
-              });
-            }
-            
-            // Auto-activate and approve if needed
-            if (!admin.isActive) {
-              await admin.update({ isActive: true });
-            }
-            if (!admin.isApproved) {
-              await admin.update({ isApproved: true, approvedAt: new Date() });
-            }
-            
-            // Skip password check for now (debugging)
-            await admin.update({ lastLogin: new Date() });
-            
-            // Set session (need Express for this, so return success for now)
-            // Session will be handled by Express middleware when routes are loaded
-            clearTimeout(timeout);
-            if (!res.headersSent) {
-              res.statusCode = 200;
-              res.setHeader('Content-Type', 'application/json');
-              res.end(JSON.stringify({
-                success: true,
-                admin: {
-                  id: admin.id,
-                  email: admin.email,
-                  name: admin.name,
-                  role: admin.role
-                }
-              }));
-            }
-          } catch (err) {
-            console.error('[HANDLER] Admin login error:', err.message);
-            clearTimeout(timeout);
-            if (!res.headersSent) {
-              res.statusCode = 500;
-              res.setHeader('Content-Type', 'application/json');
-              res.end(JSON.stringify({ error: "Login failed", message: err.message }));
-            }
-          }
-        });
-      } catch (err) {
-        console.error('[HANDLER] Admin login setup error:', err.message);
-        clearTimeout(timeout);
-        if (!res.headersSent) {
-          res.statusCode = 500;
-          res.setHeader('Content-Type', 'application/json');
-          res.end(JSON.stringify({ error: "Login failed" }));
-        }
-      }
-    })();
-    
-    return; // Don't wait for async
-  }
-  
-  // /api/admin/me - Check admin session
-  if ((path === "/api/admin/me" || path === "/admin/me") && req.method === "GET") {
-    console.log('[HANDLER] /api/admin/me called');
-    
-    // For now, return not logged in (session requires Express)
-    // This will be handled by Express routes when loaded
-    res.statusCode = 401;
-    res.setHeader('Content-Type', 'application/json');
-    res.end(JSON.stringify({ loggedIn: false, authenticated: false }));
-    return;
-  }
-  
   // Favicon - return 204 (No Content) to prevent 404 errors
   if (path === "/favicon.ico") {
     res.statusCode = 204;
@@ -296,8 +178,8 @@ export default function handler(req, res) {
     return;
   }
   
-  // Not found - try Express routes
-  // Load Express app for other routes (admin, categories, etc.)
+  // All other routes (including admin) - load Express app
+  // Express handles: admin login, admin/me, categories, orders, etc.
   import('./express-app.js')
     .then(expressApp => {
       const expressHandler = expressApp.default;
@@ -314,9 +196,13 @@ export default function handler(req, res) {
     .catch(err => {
       console.error('Failed to load Express app:', err);
       if (!res.headersSent) {
-        res.statusCode = 404;
+        res.statusCode = 503;
         res.setHeader('Content-Type', 'application/json');
-        res.end(JSON.stringify({ error: "Not found", path }));
+        res.end(JSON.stringify({ 
+          error: "Service unavailable", 
+          message: err.message,
+          path 
+        }));
       }
     });
 }
