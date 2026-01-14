@@ -88,27 +88,35 @@ export default function handler(req, res) {
         }
         
         // Build where clause
-        const where = {
-          status: { [Op.in]: ['approved', 'active'] }
+        // Allow products with approved/active OR missing status (NULL/empty)
+        const statusFilter = {
+          [Op.or]: [
+            { status: { [Op.in]: ['approved', 'active'] } },
+            { status: null },
+            { status: '' }
+          ]
         };
+        const where = { [Op.and]: [statusFilter] };
         
         // Add category filter if provided
         if (categoryId) {
           const catId = Number(categoryId);
           if (!isNaN(catId)) {
-            where.CategoryId = catId;
+            where[Op.and].push({ CategoryId: catId });
             console.log('[HANDLER] Filtering by category:', catId);
           }
         }
         
         // Add search filter if provided
         if (searchQuery) {
-          where[Op.or] = [
+          where[Op.and].push({
+            [Op.or]: [
             { title: { [Op.iLike]: `%${searchQuery}%` } },
             { variety: { [Op.iLike]: `%${searchQuery}%` } },
             { subVariety: { [Op.iLike]: `%${searchQuery}%` } },
             { description: { [Op.iLike]: `%${searchQuery}%` } },
-          ];
+            ]
+          });
           console.log('[HANDLER] Searching for:', searchQuery);
         }
         
