@@ -1,10 +1,11 @@
 import "dotenv/config";
 import express from "express";
 import serverless from "serverless-http";
-import cors from "cors";
-import session from "express-session";
 
-// Cloud Run compatibility: ensure handler is available
+// ============================================
+// CRITICAL: Minimal Express app for Vercel
+// NO blocking operations, NO database init on startup
+// ============================================
 
 const app = express();
 
@@ -12,8 +13,8 @@ const app = express();
 app.set("trust proxy", 1);
 
 // ============================================
-// CRITICAL ENDPOINTS - Defined BEFORE middleware
-// These must work even if middleware fails or times out
+// CRITICAL ENDPOINTS - Defined FIRST, before ANY middleware
+// These must respond instantly without any processing
 // ============================================
 
 app.get("/api/ping", (req, res) => {
@@ -51,6 +52,9 @@ app.get("/", (req, res) => {
 // ============================================
 // MIDDLEWARE - Applied AFTER critical endpoints
 // ============================================
+
+import cors from "cors";
+import session from "express-session";
 
 // CORS - Simple and fast, supports multiple origins including custom domain
 const corsOrigins = [
@@ -90,6 +94,7 @@ app.use(
 
 // ============================================
 // LAZY LOAD PASSPORT & ROUTES - Only when needed
+// All heavy imports happen on first request, not at startup
 // ============================================
 
 let passportLoaded = false;
@@ -211,8 +216,12 @@ app.use((req, res) => {
   }
 });
 
-// Export for Vercel (default export)
+// ============================================
+// VERCEL EXPORT - serverless-http wrapper
+// NO app.listen() - Vercel handles that
+// ============================================
+
 export default serverless(app);
 
-// Export for Cloud Run (named export)
+// Named export for compatibility
 export const handler = serverless(app);
