@@ -186,24 +186,40 @@ export default function handler(req, res) {
     }, 3000);
     
     // Parse body and handle login
-    (async () => {
-      try {
-        // In Vercel, body might be in req.body or need to be read
-        let bodyData = null;
-        
-        // Try req.body first (if Vercel pre-parsed it)
-        if (req.body) {
-          bodyData = req.body;
+    // Note: In Vercel serverless, body parsing is complex without Express
+    // For now, route admin login through Express to avoid body parsing issues
+    // This endpoint will be handled by Express routes
+    import('./express-app.js')
+      .then(expressApp => {
+        const expressHandler = expressApp.default;
+        if (typeof expressHandler === 'function') {
+          expressHandler(req, res);
         } else {
-          // Read from stream
-          const chunks = [];
-          for await (const chunk of req) {
-            chunks.push(chunk);
+          if (!res.headersSent) {
+            clearTimeout(timeout);
+            res.statusCode = 500;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ error: "Service unavailable" }));
           }
-          const body = Buffer.concat(chunks).toString();
-          bodyData = body ? JSON.parse(body) : {};
         }
-        
+      })
+      .catch(err => {
+        console.error('[HANDLER] Express load failed for admin login:', err);
+        clearTimeout(timeout);
+        if (!res.headersSent) {
+          res.statusCode = 500;
+          res.setHeader('Content-Type', 'application/json');
+          res.end(JSON.stringify({ error: "Login service unavailable" }));
+        }
+      });
+    
+    return; // Don't continue
+  }
+  
+  // OLD CODE - REMOVED (body parsing issues in serverless)
+  /*
+  (async () => {
+      try {
         const { email, password } = bodyData || {};
         
         if (!email) {
@@ -282,9 +298,7 @@ export default function handler(req, res) {
         }
       }
     })();
-    
-    return; // Don't wait for async
-  }
+    */
   
   // /api/admin/me - Session check (try Express first, fallback to false)
   if ((path === "/api/admin/me" || path === "/admin/me") && req.method === "GET") {
