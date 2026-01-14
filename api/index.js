@@ -1,66 +1,87 @@
 // ============================================
-// CRITICAL: Health endpoints - ZERO imports, instant response
-// This handler responds BEFORE any module loading
+// CRITICAL: Health endpoints - ZERO top-level code execution
+// Handler responds BEFORE any module initialization
 // ============================================
 
-export default function handler(req, res) {
-  // Extract path - handle Vercel request format
+// Synchronous handler - NO async, NO imports, NO top-level code
+function handler(req, res) {
+  // Extract path from request
   let path = '/';
-  if (req.url) {
-    path = req.url.split('?')[0];
-  } else if (req.path) {
-    path = req.path;
-  } else if (req.rawPath) {
-    path = req.rawPath;
+  try {
+    if (req.url) {
+      path = String(req.url).split('?')[0];
+    } else if (req.path) {
+      path = String(req.path);
+    } else if (req.rawPath) {
+      path = String(req.rawPath);
+    }
+  } catch (e) {
+    path = '/';
   }
   
-  // Health endpoints - respond IMMEDIATELY with NO imports
+  // Health endpoints - respond IMMEDIATELY, no async, no imports
   if (path === "/api/ping" || path === "/ping") {
-    res.statusCode = 200;
-    res.setHeader('Content-Type', 'text/plain');
-    res.end("pong");
+    try {
+      res.statusCode = 200;
+      res.setHeader('Content-Type', 'text/plain');
+      res.end("pong");
+    } catch (e) {
+      // Fallback if headers already sent
+    }
     return;
   }
   
   if (path === "/api/health" || path === "/health") {
-    res.statusCode = 200;
-    res.setHeader('Content-Type', 'application/json');
-    res.end(JSON.stringify({
-      ok: true,
-      timestamp: new Date().toISOString(),
-      uptime: process.uptime()
-    }));
+    try {
+      res.statusCode = 200;
+      res.setHeader('Content-Type', 'application/json');
+      res.end(JSON.stringify({
+        ok: true,
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime()
+      }));
+    } catch (e) {
+      // Fallback
+    }
     return;
   }
   
   if (path === "/api/auth/status" || path === "/auth/status") {
-    res.statusCode = 200;
-    res.setHeader('Content-Type', 'application/json');
-    res.end(JSON.stringify({
-      googleConfigured: !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET)
-    }));
+    try {
+      res.statusCode = 200;
+      res.setHeader('Content-Type', 'application/json');
+      res.end(JSON.stringify({
+        googleConfigured: !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET)
+      }));
+    } catch (e) {
+      // Fallback
+    }
     return;
   }
   
   if (path === "/" || path === "") {
-    res.statusCode = 200;
-    res.setHeader('Content-Type', 'application/json');
-    res.end(JSON.stringify({
-      message: "RR Nagar Backend API",
-      version: "1.0.0",
-      status: "running",
-      timestamp: new Date().toISOString()
-    }));
+    try {
+      res.statusCode = 200;
+      res.setHeader('Content-Type', 'application/json');
+      res.end(JSON.stringify({
+        message: "RR Nagar Backend API",
+        version: "1.0.0",
+        status: "running",
+        timestamp: new Date().toISOString()
+      }));
+    } catch (e) {
+      // Fallback
+    }
     return;
   }
   
-  // Not a health endpoint - lazy load Express (async, non-blocking)
+  // Not a health endpoint - lazy load Express (non-blocking)
   // This import only happens for non-health routes
   import('./express-app.js')
     .then(expressApp => {
-      const handler = expressApp.default;
-      if (typeof handler === 'function') {
-        handler(req, res);
+      const expressHandler = expressApp.default;
+      if (typeof expressHandler === 'function') {
+        expressHandler(req, res);
       } else {
         throw new Error('Express handler not found');
       }
@@ -68,14 +89,22 @@ export default function handler(req, res) {
     .catch(err => {
       console.error('Failed to load Express app:', err);
       if (!res.headersSent) {
-        res.statusCode = 503;
-        res.setHeader('Content-Type', 'application/json');
-        res.end(JSON.stringify({ 
-          error: 'Service temporarily unavailable',
-          message: err.message 
-        }));
+        try {
+          res.statusCode = 503;
+          res.setHeader('Content-Type', 'application/json');
+          res.end(JSON.stringify({ 
+            error: 'Service temporarily unavailable',
+            message: err.message 
+          }));
+        } catch (e) {
+          // Headers already sent
+        }
       }
     });
 }
 
+// Export for Vercel - default export
+export default handler;
+
+// Named export for compatibility
 export { handler };
