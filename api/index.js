@@ -4,18 +4,27 @@ import serverless from "serverless-http";
 import cors from "cors";
 import session from "express-session";
 
+// Cloud Run compatibility: ensure handler is available
+
 const app = express();
 
 // Trust proxy for Vercel
 app.set("trust proxy", 1);
 
-// CORS - Simple and fast
+// CORS - Simple and fast, supports multiple origins including custom domain
+const corsOrigins = [
+  "http://localhost:5173",
+  "https://rrpn-frontend.vercel.app",
+  process.env.FRONTEND_URL,
+  // Support custom domain
+  "https://rrnagar.com",
+  "https://www.rrnagar.com",
+  // Support CORS_ORIGINS env var (comma-separated)
+  ...(process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',').map(o => o.trim()) : [])
+].filter(Boolean);
+
 app.use(cors({
-  origin: [
-    "http://localhost:5173",
-    "https://rrpn-frontend.vercel.app",
-    process.env.FRONTEND_URL,
-  ].filter(Boolean),
+  origin: corsOrigins,
   credentials: true,
 }));
 
@@ -60,11 +69,14 @@ app.get("/api/auth/status", (req, res) => {
   });
 });
 
+// Root endpoint - MUST be minimal and fast (no dependencies)
 app.get("/", (req, res) => {
-  res.json({
+  // Immediate response, no async operations
+  res.status(200).json({
     message: "RR Nagar Backend API",
     version: "1.0.0",
-    status: "running"
+    status: "running",
+    timestamp: new Date().toISOString()
   });
 });
 
