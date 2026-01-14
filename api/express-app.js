@@ -81,32 +81,66 @@ app.use("/api", async (req, res, next) => {
   
   if (!routesLoaded) {
     try {
+      console.log("🔄 Loading routes...");
       const loadRoutes = Promise.race([
         import("../routes/index.js"),
         new Promise((_, reject) => 
-          setTimeout(() => reject(new Error("Routes load timeout")), 10000)
+          setTimeout(() => reject(new Error("Routes load timeout")), 15000)
         )
       ]);
       const routes = await loadRoutes;
       routesHandler = routes.default || routes;
       app.use("/api", routesHandler);
       routesLoaded = true;
-      console.log("✅ Routes loaded");
+      console.log("✅ Routes loaded successfully");
     } catch (err) {
-      console.error("Failed to load routes:", err);
-      return res.status(503).json({ error: "Routes not available" });
+      console.error("❌ Failed to load routes:", err);
+      return res.status(503).json({ 
+        error: "Routes not available",
+        message: err.message 
+      });
     }
   }
   
   if (routesHandler) {
+    // For serverless, manually invoke the router
+    // Express app.use() doesn't affect current request in serverless context
     const originalPath = req.path;
+    const originalUrl = req.url;
+    
+    // Remove /api prefix for router
     const pathWithoutApi = req.path.startsWith("/api") ? req.path.substring(4) : req.path;
     req.path = pathWithoutApi || "/";
     
+    // Also update url if present
+    if (req.url && req.url.startsWith("/api")) {
+      req.url = req.url.substring(4) || "/";
+    }
+    
+    // Invoke router with timeout protection
+    const routeTimeout = setTimeout(() => {
+      if (!res.headersSent) {
+        console.error("⚠️ Route handler timeout for:", originalPath);
+        res.status(504).json({ 
+          error: "Request timeout",
+          message: "The request took too long to process"
+        });
+      }
+    }, 25000); // 25 second timeout for route execution
+    
     routesHandler(req, res, (err) => {
+      clearTimeout(routeTimeout);
+      // Restore original path
       req.path = originalPath;
-      if (err) return next(err);
-      if (!res.headersSent) next();
+      req.url = originalUrl;
+      
+      if (err) {
+        console.error("Route handler error:", err);
+        return next(err);
+      }
+      if (!res.headersSent) {
+        next();
+      }
     });
     return;
   }
