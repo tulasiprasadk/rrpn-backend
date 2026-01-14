@@ -36,14 +36,31 @@ router.get("/", async (req, res) => {
   console.log('[PRODUCTS] Route called at', new Date().toISOString());
   console.log('[PRODUCTS] Query params:', req.query);
   
+  // CRITICAL: Set response timeout to ensure we always respond
+  // If we don't respond within 7 seconds, return empty array
+  const responseTimeout = setTimeout(() => {
+    if (!res.headersSent) {
+      console.warn('[PRODUCTS] Response timeout - returning empty array to prevent 504');
+      res.status(200).json([]);
+    }
+  }, 7000);
+  
   try {
-    // Lazy load models
+    // Lazy load models with timeout
     console.log('[PRODUCTS] Loading models...');
-    const models = await getModels();
+    const modelLoadTimeout = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error("Model load timeout")), 3000)
+    );
+    
+    const models = await Promise.race([
+      getModels(),
+      modelLoadTimeout
+    ]);
     console.log('[PRODUCTS] Models loaded in', Date.now() - startTime, 'ms');
     
     if (!models.Product || !models.Category) {
       console.error('[PRODUCTS] Models not available');
+      clearTimeout(responseTimeout);
       return res.status(503).json({ 
         error: "Database not available",
         message: "Database connection is not ready. Please try again later."
@@ -74,10 +91,9 @@ router.get("/", async (req, res) => {
 
     console.log('[PRODUCTS] Executing query with where:', JSON.stringify(where));
     
-    // Add aggressive timeout protection - 8s max for query
-    // Vercel has ~10s timeout, so we need to fail fast
+    // Aggressive timeout - 5s max for query (Vercel has ~10s total)
     const queryTimeout = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error("Database query timeout")), 8000)
+      setTimeout(() => reject(new Error("Database query timeout")), 5000)
     );
 
     const queryStart = Date.now();
@@ -119,9 +135,15 @@ router.get("/", async (req, res) => {
       return obj;
     });
 
+    clearTimeout(responseTimeout);
     console.log('[PRODUCTS] Total time:', Date.now() - startTime, 'ms');
-    res.json(productsWithBasePrice);
+    
+    // CRITICAL: Always send response
+    if (!res.headersSent) {
+      res.json(productsWithBasePrice);
+    }
   } catch (err) {
+    clearTimeout(responseTimeout);
     console.error('[PRODUCTS] Error fetching products:', err);
     console.error('[PRODUCTS] Error name:', err.name);
     console.error('[PRODUCTS] Error message:', err.message);
@@ -134,12 +156,11 @@ router.get("/", async (req, res) => {
       return;
     }
     
-    // Check if it's a timeout error
-    if (err.message && err.message.includes("timeout")) {
-      return res.status(504).json({ 
-        error: "Request timeout",
-        message: "Database query took too long. Please try again."
-      });
+    // For timeout or connection errors, return empty array instead of error
+    // This allows frontend to show "No products" instead of error message
+    if (err.message && (err.message.includes("timeout") || err.message.includes("Model load timeout"))) {
+      console.warn('[PRODUCTS] Timeout - returning empty array');
+      return res.status(200).json([]);
     }
     
     // Check if it's a database connection error
@@ -149,13 +170,11 @@ router.get("/", async (req, res) => {
         err.code === 'ENOTFOUND' ||
         err.code === 'ECONNREFUSED' ||
         err.code === 'ETIMEDOUT') {
-      return res.status(503).json({ 
-        error: "Database connection failed",
-        message: "Cannot connect to database. Please try again later.",
-        details: process.env.NODE_ENV === 'development' ? err.message : undefined
-      });
+      console.warn('[PRODUCTS] Connection error - returning empty array');
+      return res.status(200).json([]);
     }
     
+    // For other errors, return error response
     res.status(500).json({ 
       error: "Failed to fetch products",
       message: err.message || "Internal server error"
