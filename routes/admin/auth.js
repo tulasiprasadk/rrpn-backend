@@ -132,6 +132,9 @@ router.get("/me", async (req, res) => {
   }
 
   try {
+    // Ensure connection is ready
+    await ensureConnection();
+    
     // Add timeout protection for database query
     const queryTimeout = new Promise((_, reject) => 
       setTimeout(() => reject(new Error("Database query timeout")), 10000)

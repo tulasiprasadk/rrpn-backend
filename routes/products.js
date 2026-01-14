@@ -3,14 +3,35 @@ import { Op } from "sequelize";
 
 // Lazy load models to prevent blocking
 let Product, Category;
+let connectionChecked = false;
+
 async function getModels() {
   if (!Product || !Category) {
     try {
-      const { models } = await import("../config/database.js");
+      const { models, sequelize } = await import("../config/database.js");
       Product = models.Product;
       Category = models.Category;
+      
+      // Ensure database connection is ready before returning models
+      if (!connectionChecked && sequelize) {
+        try {
+          // Quick connection check with timeout
+          await Promise.race([
+            sequelize.authenticate(),
+            new Promise((_, reject) => 
+              setTimeout(() => reject(new Error("Connection check timeout")), 5000)
+            )
+          ]);
+          connectionChecked = true;
+          console.log("✅ Database connection verified");
+        } catch (connErr) {
+          console.warn("⚠️ Database connection check failed (will retry on query):", connErr.message);
+          // Don't throw - let the query attempt to connect
+        }
+      }
     } catch (err) {
       console.error("Error loading models:", err);
+      throw err;
     }
   }
   return { Product, Category };
