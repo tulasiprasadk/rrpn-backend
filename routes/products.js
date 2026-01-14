@@ -99,9 +99,36 @@ router.get("/", async (req, res) => {
       return product;
     });
 
+    // Debug payload when requested
+    if (req.query.debug === "1") {
+      let debugCounts = null;
+      if (categoryId) {
+        const catId = Number(categoryId);
+        if (!Number.isNaN(catId)) {
+          const countRes = await dbPool.query(
+            `SELECT COUNT(*)::int AS count FROM public."Products" WHERE "CategoryId" = $1`,
+            [catId]
+          );
+          debugCounts = countRes.rows[0]?.count || 0;
+        }
+      }
+      return res.json({
+        ok: true,
+        debug: true,
+        categoryId,
+        q,
+        matchedCount: products.length,
+        categoryCount: debugCounts,
+        sample: products.slice(0, 3),
+      });
+    }
+
     res.json(products);
   } catch (err) {
     console.error("Error fetching products:", err);
+    if (req.query.debug === "1") {
+      return res.status(500).json({ ok: false, error: err.message });
+    }
     res.json([]);
   }
 });
