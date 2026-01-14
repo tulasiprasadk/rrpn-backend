@@ -100,6 +100,51 @@ app.get("/api/db/status", async (req, res) => {
   }
 });
 
+// Debug: category counts and category names
+app.get("/api/debug/category-counts", async (req, res) => {
+  try {
+    const { sequelize, models } = await import("./config/database.js");
+    const { fn, col } = await import("sequelize");
+
+    const Category = models?.Category;
+    const Product = models?.Product;
+
+    if (!Category || !Product) {
+      return res.json({ ok: false, message: "Models not available" });
+    }
+
+    const categories = await Category.findAll({
+      attributes: ["id", "name"],
+      order: [["id", "ASC"]],
+    });
+
+    const counts = await Product.findAll({
+      attributes: [
+        "CategoryId",
+        [fn("COUNT", col("id")), "count"],
+      ],
+      group: ["CategoryId"],
+    });
+
+    const countsMap = {};
+    counts.forEach((row) => {
+      const data = row.toJSON();
+      countsMap[data.CategoryId] = Number(data.count || 0);
+    });
+
+    res.json({
+      ok: true,
+      categories: categories.map((c) => ({
+        id: c.id,
+        name: c.name,
+        productCount: countsMap[c.id] || 0,
+      })),
+    });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
 // Minimal cart endpoints (prevent 404s)
 app.get("/api/cart", (req, res) => {
   res.json({ items: [] });
