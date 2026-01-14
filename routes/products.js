@@ -95,11 +95,22 @@ router.get("/", async (req, res) => {
   } catch (err) {
     console.error("Error fetching products:", err);
     
+    // Check if it's a timeout error
+    if (err.message && err.message.includes("timeout")) {
+      return res.status(504).json({ 
+        error: "Request timeout",
+        message: "Database query took too long. Please try again."
+      });
+    }
+    
     // Check if it's a database connection error
-    if (err.name === 'SequelizeHostNotFoundError' || err.code === 'ENOTFOUND') {
+    if (err.name === 'SequelizeHostNotFoundError' || 
+        err.name === 'SequelizeConnectionError' ||
+        err.code === 'ENOTFOUND' ||
+        err.code === 'ECONNREFUSED') {
       return res.status(503).json({ 
         error: "Database connection failed",
-        message: "Cannot connect to database. Please check DATABASE_URL configuration.",
+        message: "Cannot connect to database. Please try again later.",
         details: process.env.NODE_ENV === 'development' ? err.message : undefined
       });
     }
