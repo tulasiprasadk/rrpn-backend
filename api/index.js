@@ -137,12 +137,44 @@ export default function handler(req, res) {
           setTimeout(() => reject(new Error("Query timeout")), 1500)
         );
         
-        const products = await Promise.race([queryPromise, queryTimeoutPromise]);
+        let products = await Promise.race([queryPromise, queryTimeoutPromise]);
         console.log('[HANDLER] Products fetched:', products.length);
-        
-        // Log query details for debugging
+
+        // Fallback: if no results, retry without status filter (keep category/search)
         if (products.length === 0) {
-          console.log('[HANDLER] No products found. Query params:', { categoryId, searchQuery, where });
+          console.log('[HANDLER] No products found. Retrying without status filter...');
+          const fallbackWhere = {};
+          if (categoryId) {
+            const catId = Number(categoryId);
+            if (!isNaN(catId)) {
+              fallbackWhere.CategoryId = catId;
+            }
+          }
+          if (searchQuery) {
+            fallbackWhere[Op.or] = [
+              { title: { [Op.iLike]: `%${searchQuery}%` } },
+              { variety: { [Op.iLike]: `%${searchQuery}%` } },
+              { subVariety: { [Op.iLike]: `%${searchQuery}%` } },
+              { description: { [Op.iLike]: `%${searchQuery}%` } },
+            ];
+          }
+
+          const fallbackQuery = Product.findAll({
+            where: fallbackWhere,
+            include: [{
+              model: Category,
+              attributes: ["id", "name", "icon", "titleKannada", "kn", "knDisplay"],
+              required: false,
+            }],
+            order: [["id", "DESC"]],
+            limit: 100,
+          });
+
+          products = await Promise.race([
+            fallbackQuery,
+            new Promise((_, reject) => setTimeout(() => reject(new Error("Fallback query timeout")), 1500))
+          ]);
+          console.log('[HANDLER] Fallback products fetched:', products.length);
         }
         
         // Transform products
