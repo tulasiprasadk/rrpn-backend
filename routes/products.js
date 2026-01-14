@@ -60,8 +60,8 @@ router.get("/", async (req, res) => {
         c."titleKannada" as "cat_titleKannada",
         c."kn" as "cat_kn",
         c."knDisplay" as "cat_knDisplay"
-      FROM "Products" p
-      LEFT JOIN "Categories" c ON c.id = COALESCE(p."CategoryId", p."categoryId")
+      FROM public."Products" p
+      LEFT JOIN public."Categories" c ON c.id = COALESCE(p."CategoryId", p."categoryId")
       ${whereSql}
       ORDER BY p.id DESC
       LIMIT 500
