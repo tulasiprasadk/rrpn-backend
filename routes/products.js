@@ -38,23 +38,36 @@ async function getModels() {
 }
 
 /* =====================================================
+   GET /api/products/test
+   - Test endpoint to verify route is being hit
+===================================================== */
+router.get("/test", (req, res) => {
+  console.log("✅ /api/products/test called - route is working!");
+  res.json({ ok: true, message: "Products route is accessible" });
+});
+
+/* =====================================================
    GET /api/products
-   - SERVERLESS-SAFE: Always responds within 3 seconds
+   - SERVERLESS-SAFE: Always responds within 2 seconds
    - Returns empty array if DB is slow
 ===================================================== */
 router.get("/", async (req, res) => {
   const startTime = Date.now();
   console.log("➡ /api/products called", req.query);
   
-  // CRITICAL: Set timeout that ALWAYS responds after 3 seconds
+  // CRITICAL: Set timeout that ALWAYS responds after 2 seconds
   let responded = false;
   const forceResponse = setTimeout(() => {
     if (!responded && !res.headersSent) {
       responded = true;
-      console.warn("⚠️ Force timeout - returning empty array");
-      res.status(200).json([]);
+      console.warn("⚠️ Force timeout (2s) - returning empty array");
+      try {
+        res.status(200).json([]);
+      } catch (e) {
+        console.error("Failed to send timeout response:", e);
+      }
     }
-  }, 3000);
+  }, 2000);
   
   const sendResponse = (data) => {
     if (!responded && !res.headersSent) {
