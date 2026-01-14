@@ -74,9 +74,9 @@ async function initializePassport() {
 }
 
 app.use("/api", async (req, res, next) => {
-  // Skip if already handled by direct route
-  if (req.path === "/api/products" || req.path === "/products") {
-    return next();
+  // Skip /api/products - already handled by direct route above
+  if (req.path === "/api/products" || req.path === "/products" || req.url?.includes("/products")) {
+    return next(); // Let the direct route handle it
   }
   const path = req.path.startsWith("/api") ? req.path.substring(4) : req.path;
   
