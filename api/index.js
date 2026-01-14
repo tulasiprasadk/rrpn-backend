@@ -157,14 +157,28 @@ app.use("/api", async (req, res, next) => {
     }
   }
   
-  // Since routes are now mounted, we need to let the router handle the request
-  // But since we're in middleware, we need to manually invoke the router
-  // However, if routes are mounted with app.use(), they should handle automatically
-  // The issue is that mounting happens asynchronously, so we need to wait
-  // Actually, once mounted, the next request will use them, but current request needs handling
-  // So we manually call the router for this request
+  // CRITICAL: For serverless, we need to manually invoke the router
+  // Mounting with app.use() doesn't affect the current request in serverless context
+  // So we must call the router directly for this request
   if (routesHandler) {
-    return routesHandler(req, res, next);
+    // Remove /api prefix since router expects paths without it
+    const originalPath = req.path;
+    const pathWithoutApi = req.path.startsWith("/api") ? req.path.substring(4) : req.path;
+    req.path = pathWithoutApi || "/";
+    
+    // Call the router
+    routesHandler(req, res, (err) => {
+      // Restore original path
+      req.path = originalPath;
+      if (err) {
+        return next(err);
+      }
+      // If router didn't handle (no response sent), continue to next middleware
+      if (!res.headersSent) {
+        next();
+      }
+    });
+    return; // Don't call next() here, router will handle it
   }
   
   // Fallback if routes not loaded
