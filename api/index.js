@@ -14,16 +14,15 @@ app.set("trust proxy", 1);
 
 // ============================================
 // CRITICAL ENDPOINTS - Defined FIRST, before ANY middleware
-// These must respond instantly without any processing
+// These MUST respond instantly - they bypass ALL middleware
 // ============================================
 
+// Health check - responds immediately, no middleware
 app.get("/api/ping", (req, res) => {
-  // Immediate response - no async, no dependencies, no middleware
   res.status(200).setHeader('Content-Type', 'text/plain').end("pong");
 });
 
 app.get("/api/health", (req, res) => {
-  // Immediate response - no async, no dependencies
   res.status(200).json({ 
     ok: true, 
     timestamp: new Date().toISOString(),
@@ -32,15 +31,13 @@ app.get("/api/health", (req, res) => {
 });
 
 app.get("/api/auth/status", (req, res) => {
-  // Immediate response - only checks env vars, no async
   res.status(200).json({
     googleConfigured: !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET)
   });
 });
 
-// Root endpoint - MUST be minimal and fast (no dependencies)
+// Root endpoint - MUST be minimal and fast
 app.get("/", (req, res) => {
-  // Immediate response, no async operations
   res.status(200).json({
     message: "RR Nagar Backend API",
     version: "1.0.0",
@@ -51,50 +48,69 @@ app.get("/", (req, res) => {
 
 // ============================================
 // MIDDLEWARE - Applied AFTER critical endpoints
+// Health endpoints above will NOT go through this middleware
 // ============================================
 
+// Import middleware (these are fast, non-blocking imports)
 import cors from "cors";
 import session from "express-session";
 
-// CORS - Simple and fast, supports multiple origins including custom domain
+// CORS configuration
 const corsOrigins = [
   "http://localhost:5173",
   "https://rrpn-frontend.vercel.app",
   process.env.FRONTEND_URL,
-  // Support custom domain
   "https://rrnagar.com",
   "https://www.rrnagar.com",
-  // Support CORS_ORIGINS env var (comma-separated)
   ...(process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',').map(o => o.trim()) : [])
 ].filter(Boolean);
 
-app.use(cors({
-  origin: corsOrigins,
-  credentials: true,
-}));
+// Apply middleware only for non-health endpoints
+app.use((req, res, next) => {
+  // CRITICAL: Skip ALL middleware for health endpoints
+  const healthPaths = ["/api/ping", "/api/health", "/api/auth/status", "/"];
+  if (healthPaths.includes(req.path)) {
+    return next(); // Skip middleware, go directly to route handler
+  }
+  
+  // Apply CORS for other routes
+  cors({
+    origin: corsOrigins,
+    credentials: true,
+  })(req, res, next);
+});
 
-// Body parser
-app.use(express.json());
+// Body parser - only for non-health endpoints
+app.use((req, res, next) => {
+  const healthPaths = ["/api/ping", "/api/health", "/api/auth/status", "/"];
+  if (healthPaths.includes(req.path)) {
+    return next();
+  }
+  express.json()(req, res, next);
+});
 
-// Session middleware - Required for OAuth
-app.use(
+// Session middleware - only for non-health endpoints
+app.use((req, res, next) => {
+  const healthPaths = ["/api/ping", "/api/health", "/api/auth/status", "/"];
+  if (healthPaths.includes(req.path)) {
+    return next();
+  }
   session({
     name: "rrnagar.sid",
     secret: process.env.SESSION_SECRET || "fallback-secret",
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: process.env.NODE_ENV === 'production', // true for HTTPS in production
+      secure: process.env.NODE_ENV === 'production',
       httpOnly: true,
-      sameSite: process.env.NODE_ENV === 'production' ? "none" : "lax", // "none" for cross-site in production
-      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      sameSite: process.env.NODE_ENV === 'production' ? "none" : "lax",
+      maxAge: 24 * 60 * 60 * 1000,
     },
-  })
-);
+  })(req, res, next);
+});
 
 // ============================================
 // LAZY LOAD PASSPORT & ROUTES - Only when needed
-// All heavy imports happen on first request, not at startup
 // ============================================
 
 let passportLoaded = false;
@@ -102,7 +118,6 @@ let passportInstance = null;
 let routesLoaded = false;
 let routesHandler = null;
 
-// Initialize passport middleware (lazy load)
 async function initializePassport() {
   if (!passportLoaded) {
     try {
@@ -119,16 +134,14 @@ async function initializePassport() {
   return passportInstance;
 }
 
-// Middleware to lazy-load passport and routes
+// Middleware to lazy-load routes - SKIPS health endpoints
 app.use("/api", async (req, res, next) => {
-  // Skip for endpoints already defined above - these must return immediately
-  const skipPaths = ["/ping", "/health", "/auth/status"];
+  // CRITICAL: Health endpoints are already handled above, skip immediately
+  const healthPaths = ["/ping", "/health", "/auth/status"];
   const path = req.path.startsWith("/api") ? req.path.substring(4) : req.path;
   
-  // CRITICAL: These endpoints are defined above and should never reach here
-  // But if they do, skip immediately without any async operations
-  if (skipPaths.includes(path) || skipPaths.some(skip => path.startsWith(skip))) {
-    return next();
+  if (healthPaths.includes(path)) {
+    return next(); // Already handled, skip
   }
   
   // Load passport if needed (for OAuth routes)
@@ -159,7 +172,6 @@ app.use("/api", async (req, res, next) => {
       ]);
       const routes = await loadRoutes;
       routesHandler = routes.default || routes;
-      // Mount routes directly to app - this is critical for Express routing
       app.use("/api", routesHandler);
       routesLoaded = true;
       console.log("✅ Routes loaded and mounted successfully");
@@ -172,35 +184,28 @@ app.use("/api", async (req, res, next) => {
     }
   }
   
-  // CRITICAL: For serverless, we need to manually invoke the router
-  // Mounting with app.use() doesn't affect the current request in serverless context
-  // So we must call the router directly for this request
+  // Manually invoke router for current request
   if (routesHandler) {
-    // Remove /api prefix since router expects paths without it
     const originalPath = req.path;
     const pathWithoutApi = req.path.startsWith("/api") ? req.path.substring(4) : req.path;
     req.path = pathWithoutApi || "/";
     
-    // Call the router
     routesHandler(req, res, (err) => {
-      // Restore original path
       req.path = originalPath;
       if (err) {
         return next(err);
       }
-      // If router didn't handle (no response sent), continue to next middleware
       if (!res.headersSent) {
         next();
       }
     });
-    return; // Don't call next() here, router will handle it
+    return;
   }
   
-  // Fallback if routes not loaded
   next();
 });
 
-// Error handler - must be after routes
+// Error handler
 app.use((err, req, res, next) => {
   console.error("Error:", err);
   if (!res.headersSent) {
@@ -208,9 +213,8 @@ app.use((err, req, res, next) => {
   }
 });
 
-// 404 handler - must be last, after all routes
+// 404 handler - must be last
 app.use((req, res) => {
-  // Only return 404 if not already responded
   if (!res.headersSent) {
     res.status(404).json({ error: "Not found", path: req.path });
   }
@@ -222,6 +226,4 @@ app.use((req, res) => {
 // ============================================
 
 export default serverless(app);
-
-// Named export for compatibility
 export const handler = serverless(app);
