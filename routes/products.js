@@ -64,12 +64,22 @@ router.get("/", async (req, res) => {
         },
       ],
       order: [["id", "DESC"]],
+      attributes: {
+        include: ['id', 'title', 'name', 'titleKannada', 'kn', 'knDisplay', 'description', 'descriptionKannada', 'price', 'variety', 'subVariety', 'image', 'imageUrl', 'image_url', 'CategoryId']
+      }
     });
 
-    // Add basePrice property for frontend compatibility
+    // Add basePrice property for frontend compatibility and ensure Kannada fields are included
     const productsWithBasePrice = products.map((p) => {
       const obj = p.toJSON();
       obj.basePrice = obj.price;
+      // Ensure Kannada fields are available
+      if (!obj.knDisplay && obj.titleKannada) {
+        obj.knDisplay = obj.titleKannada;
+      }
+      if (!obj.kn && obj.titleKannada) {
+        obj.kn = obj.titleKannada;
+      }
       return obj;
     });
 
