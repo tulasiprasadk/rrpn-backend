@@ -1,11 +1,10 @@
 // ============================================
-// CRITICAL: Health endpoints respond BEFORE any imports
-// NO top-level imports - handler loads instantly
+// CRITICAL: Health endpoints - ZERO imports, instant response
+// This handler responds BEFORE any module loading
 // ============================================
 
-// Handler function - NO imports at top level
-async function handler(req, res) {
-  // Extract path - handle both Vercel and standard formats
+export default function handler(req, res) {
+  // Extract path - handle Vercel request format
   let path = '/';
   if (req.url) {
     path = req.url.split('?')[0];
@@ -15,7 +14,7 @@ async function handler(req, res) {
     path = req.rawPath;
   }
   
-  // Health endpoints - respond IMMEDIATELY, no async imports
+  // Health endpoints - respond IMMEDIATELY with NO imports
   if (path === "/api/ping" || path === "/ping") {
     res.statusCode = 200;
     res.setHeader('Content-Type', 'text/plain');
@@ -55,11 +54,28 @@ async function handler(req, res) {
     return;
   }
   
-  // Not a health endpoint - lazy load Express (only for non-health routes)
-  const expressApp = await import('./express-app.js');
-  return expressApp.default(req, res);
+  // Not a health endpoint - lazy load Express (async, non-blocking)
+  // This import only happens for non-health routes
+  import('./express-app.js')
+    .then(expressApp => {
+      const handler = expressApp.default;
+      if (typeof handler === 'function') {
+        handler(req, res);
+      } else {
+        throw new Error('Express handler not found');
+      }
+    })
+    .catch(err => {
+      console.error('Failed to load Express app:', err);
+      if (!res.headersSent) {
+        res.statusCode = 503;
+        res.setHeader('Content-Type', 'application/json');
+        res.end(JSON.stringify({ 
+          error: 'Service temporarily unavailable',
+          message: err.message 
+        }));
+      }
+    });
 }
 
-// Export for Vercel
-export default handler;
 export { handler };
