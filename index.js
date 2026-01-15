@@ -105,9 +105,9 @@ app.get("/api/products", async (req, res) => {
         c.id as "cat_id",
         c.name as "cat_name",
         c.icon as "cat_icon",
-        c."titleKannada" as "cat_titleKannada",
-        c."kn" as "cat_kn",
-        c."knDisplay" as "cat_knDisplay"
+        NULL as "cat_titleKannada",
+        NULL as "cat_kn",
+        NULL as "cat_knDisplay"
       FROM public."Products" p
       LEFT JOIN public."Categories" c ON c.id = p."CategoryId"
       ${whereSql}
