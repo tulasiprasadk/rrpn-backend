@@ -76,7 +76,23 @@ async function main() {
   }
 
   try {
-    await Product.bulkCreate(products, { validate: false, hooks: false });
+    await Product.bulkCreate(products, {
+      validate: false,
+      hooks: false,
+      updateOnDuplicate: [
+        "price",
+        "variety",
+        "subVariety",
+        "unit",
+        "description",
+        "CategoryId",
+        "status",
+        "isService",
+        "deliveryAvailable",
+        "isTemplate",
+        "updatedAt",
+      ],
+    });
     console.log(`Imported ${products.length} products into category ${category.name} (${category.id}).`);
     if (skipped.length > 0) {
       console.warn(`Skipped ${skipped.length} rows due to invalid title/price.`);
