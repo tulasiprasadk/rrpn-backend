@@ -2,6 +2,7 @@ import "dotenv/config";
 import fs from "fs";
 import path from "path";
 import { models } from "../config/database.js";
+import { Pool } from "pg";
 
 function parseTsv(raw) {
   const lines = raw.split(/\r?\n/).filter((l) => l.trim().length > 0);
@@ -75,37 +76,72 @@ async function main() {
     process.exit(1);
   }
 
+  // Use raw SQL upsert to avoid unique constraint failures on title
+  const pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    connectionTimeoutMillis: 10000,
+    idleTimeoutMillis: 10000,
+    max: 5,
+  });
+
   try {
-    await Product.bulkCreate(products, {
-      validate: false,
-      hooks: false,
-      updateOnDuplicate: [
-        "price",
-        "variety",
-        "subVariety",
-        "unit",
-        "description",
-        "CategoryId",
-        "status",
-        "isService",
-        "deliveryAvailable",
-        "isTemplate",
-        "updatedAt",
-      ],
-    });
-    console.log(`Imported ${products.length} products into category ${category.name} (${category.id}).`);
-    if (skipped.length > 0) {
-      console.warn(`Skipped ${skipped.length} rows due to invalid title/price.`);
-      console.warn(skipped.slice(0, 5));
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
+
+      const upsertSql = `
+        INSERT INTO public."Products"
+          ("title", "price", "variety", "subVariety", "unit", "description",
+           "CategoryId", "status", "isService", "deliveryAvailable", "isTemplate", "createdAt", "updatedAt")
+        VALUES
+          ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW(), NOW())
+        ON CONFLICT ("title")
+        DO UPDATE SET
+          "price" = EXCLUDED."price",
+          "variety" = EXCLUDED."variety",
+          "subVariety" = EXCLUDED."subVariety",
+          "unit" = EXCLUDED."unit",
+          "description" = EXCLUDED."description",
+          "CategoryId" = EXCLUDED."CategoryId",
+          "status" = EXCLUDED."status",
+          "isService" = EXCLUDED."isService",
+          "deliveryAvailable" = EXCLUDED."deliveryAvailable",
+          "isTemplate" = EXCLUDED."isTemplate",
+          "updatedAt" = NOW()
+      `;
+
+      for (const p of products) {
+        await client.query(upsertSql, [
+          p.title,
+          p.price,
+          p.variety,
+          p.subVariety,
+          p.unit,
+          p.description,
+          p.CategoryId,
+          p.status,
+          p.isService,
+          p.deliveryAvailable,
+          p.isTemplate,
+        ]);
+      }
+
+      await client.query("COMMIT");
+      console.log(`Imported ${products.length} products into category ${category.name} (${category.id}).`);
+      if (skipped.length > 0) {
+        console.warn(`Skipped ${skipped.length} rows due to invalid title/price.`);
+        console.warn(skipped.slice(0, 5));
+      }
+    } catch (err) {
+      await client.query("ROLLBACK");
+      console.error("Bulk import failed:", err?.message || err);
+      console.log("Sample rows:", products.slice(0, 3));
+      process.exit(1);
+    } finally {
+      client.release();
     }
-  } catch (err) {
-    console.error("Bulk import failed:", err?.message || err);
-    if (err?.errors) {
-      console.error("Sample error:", err.errors[0]);
-    }
-    // Print a small sample to help diagnose bad rows
-    console.log("Sample rows:", products.slice(0, 3));
-    process.exit(1);
+  } finally {
+    await pool.end();
   }
 }
 
