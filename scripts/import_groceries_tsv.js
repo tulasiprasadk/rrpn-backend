@@ -89,29 +89,33 @@ async function main() {
     try {
       await client.query("BEGIN");
 
-      const upsertSql = `
+      const updateSql = `
+        UPDATE public."Products"
+        SET
+          "price" = $2,
+          "variety" = $3,
+          "subVariety" = $4,
+          "unit" = $5,
+          "description" = $6,
+          "CategoryId" = $7,
+          "status" = $8,
+          "isService" = $9,
+          "deliveryAvailable" = $10,
+          "isTemplate" = $11,
+          "updatedAt" = NOW()
+        WHERE "title" = $1
+      `;
+
+      const insertSql = `
         INSERT INTO public."Products"
           ("title", "price", "variety", "subVariety", "unit", "description",
            "CategoryId", "status", "isService", "deliveryAvailable", "isTemplate", "createdAt", "updatedAt")
         VALUES
           ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW(), NOW())
-        ON CONFLICT ("title")
-        DO UPDATE SET
-          "price" = EXCLUDED."price",
-          "variety" = EXCLUDED."variety",
-          "subVariety" = EXCLUDED."subVariety",
-          "unit" = EXCLUDED."unit",
-          "description" = EXCLUDED."description",
-          "CategoryId" = EXCLUDED."CategoryId",
-          "status" = EXCLUDED."status",
-          "isService" = EXCLUDED."isService",
-          "deliveryAvailable" = EXCLUDED."deliveryAvailable",
-          "isTemplate" = EXCLUDED."isTemplate",
-          "updatedAt" = NOW()
       `;
 
       for (const p of products) {
-        await client.query(upsertSql, [
+        const params = [
           p.title,
           p.price,
           p.variety,
@@ -123,7 +127,12 @@ async function main() {
           p.isService,
           p.deliveryAvailable,
           p.isTemplate,
-        ]);
+        ];
+
+        const updateRes = await client.query(updateSql, params);
+        if (updateRes.rowCount === 0) {
+          await client.query(insertSql, params);
+        }
       }
 
       await client.query("COMMIT");
