@@ -38,8 +38,22 @@ router.post("/", requireLogin, async (req, res) => {
     console.log("Creating address for customer:", req.session.customerId);
     console.log("Address data:", data);
 
+    const existingCount = await Address.count({
+      where: { CustomerId: req.session.customerId }
+    });
+
+    const shouldSetDefault = data.isDefault || existingCount === 0;
+
+    if (shouldSetDefault) {
+      await Address.update(
+        { isDefault: false },
+        { where: { CustomerId: req.session.customerId } }
+      );
+    }
+
     const address = await Address.create({
       ...data,
+      isDefault: shouldSetDefault,
       CustomerId: req.session.customerId  // ← Capital C and D for Sequelize FK
     });
 
