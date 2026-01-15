@@ -1,11 +1,27 @@
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
+import pkg from "pg";
 import bodyParser from "body-parser";
 import session from "express-session";
 import { initDatabase } from "./config/database.js";
 
 const app = express();
+const { Pool } = pkg;
+
+// Lazy pool for direct SQL (Cloud Run)
+let pool;
+function getPool() {
+  if (!pool && process.env.DATABASE_URL) {
+    pool = new Pool({
+      connectionString: process.env.DATABASE_URL,
+      connectionTimeoutMillis: 10000,
+      idleTimeoutMillis: 10000,
+      max: 5,
+    });
+  }
+  return pool;
+}
 
 // Initialize database (non-blocking)
 initDatabase().catch(err => {
@@ -57,6 +73,86 @@ app.get("/", (req, res) => {
 // Health - must respond immediately for Cloud Run health checks
 app.get("/api/health", (req, res) => {
   res.json({ ok: true });
+});
+
+// Products - direct SQL (bypass routes)
+app.get("/api/products", async (req, res) => {
+  try {
+    const dbPool = getPool();
+    if (!dbPool) return res.json([]);
+
+    const { categoryId, q } = req.query;
+    const params = [];
+    let whereSql = "WHERE 1=1";
+
+    if (categoryId) {
+      const catId = Number(categoryId);
+      if (!Number.isNaN(catId)) {
+        params.push(catId);
+        whereSql += ` AND p."CategoryId" = $${params.length}`;
+      }
+    }
+
+    if (q) {
+      params.push(`%${q}%`);
+      const idx = params.length;
+      whereSql += ` AND (p.title ILIKE $${idx} OR p.variety ILIKE $${idx} OR p."subVariety" ILIKE $${idx} OR p.description ILIKE $${idx})`;
+    }
+
+    const query = `
+      SELECT 
+        p.*,
+        c.id as "cat_id",
+        c.name as "cat_name",
+        c.icon as "cat_icon",
+        c."titleKannada" as "cat_titleKannada",
+        c."kn" as "cat_kn",
+        c."knDisplay" as "cat_knDisplay"
+      FROM public."Products" p
+      LEFT JOIN public."Categories" c ON c.id = p."CategoryId"
+      ${whereSql}
+      ORDER BY p.id DESC
+      LIMIT 500
+    `;
+
+    const result = await dbPool.query(query, params);
+    const rows = result.rows || [];
+
+    const products = rows.map((row) => {
+      const product = { ...row };
+      product.Category = row.cat_id
+        ? {
+            id: row.cat_id,
+            name: row.cat_name,
+            icon: row.cat_icon,
+            titleKannada: row.cat_titleKannada,
+            kn: row.cat_kn,
+            knDisplay: row.cat_knDisplay,
+          }
+        : null;
+
+      delete product.cat_id;
+      delete product.cat_name;
+      delete product.cat_icon;
+      delete product.cat_titleKannada;
+      delete product.cat_kn;
+      delete product.cat_knDisplay;
+
+      product.basePrice = product.price;
+      if (!product.knDisplay && product.titleKannada) {
+        product.knDisplay = product.titleKannada;
+      }
+      if (!product.kn && product.titleKannada) {
+        product.kn = product.titleKannada;
+      }
+      return product;
+    });
+
+    res.json(products);
+  } catch (err) {
+    console.error("Direct /api/products error:", err.message || err);
+    res.json([]);
+  }
 });
 
 // DB status (quick check with timeout)
