@@ -44,22 +44,43 @@ async function main() {
     category = await Category.create({ name: categoryName, icon: "🛒" });
   }
 
-  const products = rows.map((r) => ({
-    title: r.title || r.name || "Product",
-    price: Number(r.price || 0),
-    variety: r.variety || null,
-    subVariety: r.subVariety || null,
-    unit: r.unit || null,
-    description: r.description || null,
-    CategoryId: category.id,
-    status: "active",
-    isService: false,
-    deliveryAvailable: true,
-    isTemplate: true,
-  }));
+  const products = [];
+  const skipped = [];
 
-  await Product.bulkCreate(products, { validate: true });
+  rows.forEach((r, idx) => {
+    const title = (r.title || r.name || "").trim();
+    const price = Number(r.price);
+    if (!title || Number.isNaN(price)) {
+      skipped.push({ row: idx + 2, title, price: r.price });
+      return;
+    }
+
+    products.push({
+      title,
+      price,
+      variety: r.variety || null,
+      subVariety: r.subVariety || null,
+      unit: r.unit || null,
+      description: r.description || null,
+      CategoryId: category.id,
+      status: "active",
+      isService: false,
+      deliveryAvailable: true,
+      isTemplate: true,
+    });
+  });
+
+  if (products.length === 0) {
+    console.error("No valid rows to import.");
+    process.exit(1);
+  }
+
+  await Product.bulkCreate(products, { validate: false });
   console.log(`Imported ${products.length} products into category ${category.name} (${category.id}).`);
+  if (skipped.length > 0) {
+    console.warn(`Skipped ${skipped.length} rows due to invalid title/price.`);
+    console.warn(skipped.slice(0, 5));
+  }
 }
 
 main().catch((err) => {
