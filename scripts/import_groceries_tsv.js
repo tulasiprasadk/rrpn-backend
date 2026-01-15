@@ -75,11 +75,21 @@ async function main() {
     process.exit(1);
   }
 
-  await Product.bulkCreate(products, { validate: false });
-  console.log(`Imported ${products.length} products into category ${category.name} (${category.id}).`);
-  if (skipped.length > 0) {
-    console.warn(`Skipped ${skipped.length} rows due to invalid title/price.`);
-    console.warn(skipped.slice(0, 5));
+  try {
+    await Product.bulkCreate(products, { validate: false, hooks: false });
+    console.log(`Imported ${products.length} products into category ${category.name} (${category.id}).`);
+    if (skipped.length > 0) {
+      console.warn(`Skipped ${skipped.length} rows due to invalid title/price.`);
+      console.warn(skipped.slice(0, 5));
+    }
+  } catch (err) {
+    console.error("Bulk import failed:", err?.message || err);
+    if (err?.errors) {
+      console.error("Sample error:", err.errors[0]);
+    }
+    // Print a small sample to help diagnose bad rows
+    console.log("Sample rows:", products.slice(0, 3));
+    process.exit(1);
   }
 }
 
