@@ -118,6 +118,21 @@ app.get("/api/products", async (req, res) => {
     const result = await dbPool.query(query, params);
     const rows = result.rows || [];
 
+    if (req.query.debug === "1") {
+      const totalRes = await dbPool.query(
+        `SELECT COUNT(*)::int AS count FROM public."Products"`
+      );
+      const total = totalRes.rows[0]?.count || 0;
+      return res.json({
+        ok: true,
+        debug: true,
+        total,
+        categoryId: categoryId || null,
+        matched: rows.length,
+        sample: rows.slice(0, 3),
+      });
+    }
+
     const products = rows.map((row) => {
       const product = { ...row };
       product.Category = row.cat_id
@@ -151,6 +166,9 @@ app.get("/api/products", async (req, res) => {
     res.json(products);
   } catch (err) {
     console.error("Direct /api/products error:", err.message || err);
+    if (req.query.debug === "1") {
+      return res.status(500).json({ ok: false, error: err.message });
+    }
     res.json([]);
   }
 });
