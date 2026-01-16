@@ -8,9 +8,11 @@ const { Order, Product, Supplier, Address, Notification } = models;
 const router = express.Router();
 
 // Configure multer for payment screenshots
+const paymentUploadDir = path.join(path.resolve(), "uploads", "payment");
+fs.mkdirSync(paymentUploadDir, { recursive: true });
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, "uploads/payment/");
+    cb(null, paymentUploadDir);
   },
   filename: (req, file, cb) => {
     const uniqueName = Date.now() + "-" + Math.round(Math.random() * 1e9) + path.extname(file.originalname);
