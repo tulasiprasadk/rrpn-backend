@@ -1,7 +1,7 @@
 import express from "express";
 import { models } from "../config/database.js";
 import { generateUPIQRCode, generatePaymentReference, verifyUPIPayment } from "../services/upiService.js";
-import { calculateCommission } from "../utils/commissionCalculator.js";
+import { calculateCommission, getPlatformConfig } from "../utils/commissionCalculator.js";
 import { calculateDeliveryCharge } from "../utils/deliveryCalculator.js";
 
 const router = express.Router();
@@ -27,7 +27,9 @@ router.post("/create", async (req, res) => {
 
     // Calculate fees
     const commission = await calculateCommission(amount);
-    const platformFee = parseFloat(process.env.PLATFORM_FEE || 0);
+    const config = await getPlatformConfig();
+    const platformFee = config.platform_fee || parseFloat(process.env.PLATFORM_FEE || 0);
+    const transportFee = config.transport_fee || parseFloat(process.env.TRANSPORT_FEE || 0);
     
     // Calculate delivery charge (can be configured via admin panel)
     const deliveryFee = await calculateDeliveryCharge({
@@ -37,7 +39,7 @@ router.post("/create", async (req, res) => {
       orderValue: amount
     });
     
-    const totalAmount = amount + platformFee + deliveryFee;
+    const totalAmount = amount + platformFee + deliveryFee + transportFee;
     const supplierAmount = amount - commission;
 
     // Generate payment reference
@@ -66,7 +68,8 @@ router.post("/create", async (req, res) => {
       metadata: {
         upiUrl: upiData.upiUrl,
         upiId: upiData.upiId,
-        paymentRef: paymentRef
+        paymentRef: paymentRef,
+        transportFee: transportFee
       }
     });
 

@@ -9,7 +9,7 @@ let configCache = null;
 let configCacheTime = 0;
 const CACHE_DURATION = 60000; // 1 minute
 
-async function getPlatformConfig() {
+export async function getPlatformConfig() {
   const now = Date.now();
   if (configCache && (now - configCacheTime) < CACHE_DURATION) {
     return configCache;
