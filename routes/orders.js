@@ -3,6 +3,7 @@ import express from "express";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
+import jwt from "jsonwebtoken";
 import { models } from "../config/database.js";
 const { Order, Product, Supplier, Address, Notification } = models;
 const router = express.Router();
@@ -23,12 +24,29 @@ const upload = multer({ storage });
 
 // MIDDLEWARE – Require Login
 function requireLogin(req, res, next) {
-  if (!req.session.customerId) {
-    console.log("❌ Order creation blocked: No customerId in session");
-    console.log("Session data:", req.session);
-    return res.status(401).json({ error: "Not logged in", message: "Please log in to create an order" });
+  if (req.session.customerId) return next();
+
+  // Fallback to JWT for token-based auth
+  try {
+    const authHeader = req.headers.authorization || "";
+    if (authHeader.startsWith("Bearer ")) {
+      const token = authHeader.substring(7);
+      const payload = jwt.verify(
+        token,
+        process.env.JWT_SECRET || process.env.SESSION_SECRET || "fallback-secret"
+      );
+      if (payload?.id) {
+        req.session.customerId = payload.id;
+        return next();
+      }
+    }
+  } catch (err) {
+    console.warn("JWT auth failed:", err?.message || err);
   }
-  next();
+
+  console.log("❌ Order creation blocked: No customerId in session");
+  console.log("Session data:", req.session);
+  return res.status(401).json({ error: "Not logged in", message: "Please log in to create an order" });
 }
 
 // CREATE ORDER (Supports Address + Payment Fields)
