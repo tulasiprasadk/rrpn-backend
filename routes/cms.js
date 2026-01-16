@@ -79,4 +79,52 @@ router.get('/scrolling-ads', async (req, res) => {
   }
 });
 
+// Get checkout offers (public)
+router.get('/checkout-offers', async (req, res) => {
+  try {
+    const config = await PlatformConfig.findByPk('checkout_offers');
+    if (!config) {
+      return res.json([]);
+    }
+
+    let value = config.value;
+    if (config.type === 'json') {
+      try {
+        value = JSON.parse(value);
+      } catch {
+        value = [];
+      }
+    }
+
+    res.json(Array.isArray(value) ? value : []);
+  } catch (err) {
+    console.error('Get checkout offers error:', err);
+    res.json([]);
+  }
+});
+
+// Get checkout ads (public)
+router.get('/checkout-ads', async (req, res) => {
+  try {
+    const config = await PlatformConfig.findByPk('checkout_ads');
+    if (!config) {
+      return res.json([]);
+    }
+
+    let value = config.value;
+    if (config.type === 'json') {
+      try {
+        value = JSON.parse(value);
+      } catch {
+        value = [];
+      }
+    }
+
+    res.json(Array.isArray(value) ? value : []);
+  } catch (err) {
+    console.error('Get checkout ads error:', err);
+    res.json([]);
+  }
+});
+
 export default router;
