@@ -6,6 +6,106 @@ import { translateToKannada } from '../../services/translator.js';
 const { Product, Supplier, ProductSupplier, Category } = models;
 const router = express.Router();
 
+// POST /api/admin/products/translate - Translate selected products to Kannada
+router.post('/translate', requireAdmin, async (req, res) => {
+  try {
+    const { productIds } = req.body;
+    if (!Array.isArray(productIds) || productIds.length === 0) {
+      return res.status(400).json({ message: 'productIds required' });
+    }
+
+    const products = await Product.findAll({
+      where: { id: productIds }
+    });
+
+    const translations = [];
+    for (const product of products) {
+      let titleKannada = product.titleKannada || '';
+      let descriptionKannada = product.descriptionKannada || '';
+
+      try {
+        titleKannada = product.title ? await translateToKannada(product.title) : '';
+        descriptionKannada = product.description
+          ? await translateToKannada(product.description)
+          : '';
+      } catch (err) {
+        console.warn('Translation skipped for product', product.id, err?.message || err);
+      }
+
+      translations.push({
+        id: product.id,
+        titleOriginal: product.title || '',
+        descriptionOriginal: product.description || '',
+        titleKannada,
+        descriptionKannada
+      });
+    }
+
+    res.json({ translations });
+  } catch (error) {
+    console.error('Translation error:', error);
+    res.status(500).json({ message: 'Translation failed' });
+  }
+});
+
+// PUT /api/admin/products/save-translation - Save Kannada translations
+router.put('/save-translation', requireAdmin, async (req, res) => {
+  try {
+    const { updates } = req.body;
+    if (!Array.isArray(updates) || updates.length === 0) {
+      return res.status(400).json({ message: 'updates required' });
+    }
+
+    const results = [];
+    for (const update of updates) {
+      const product = await Product.findByPk(update.id);
+      if (!product) {
+        results.push({ id: update.id, success: false, error: 'Not found' });
+        continue;
+      }
+      await product.update({
+        titleKannada: update.titleKannada || '',
+        descriptionKannada: update.descriptionKannada || ''
+      });
+      results.push({ id: update.id, success: true });
+    }
+
+    res.json({ results });
+  } catch (error) {
+    console.error('Save translation error:', error);
+    res.status(500).json({ message: 'Save failed' });
+  }
+});
+
+// PUT /api/admin/products/save-english - Save English edits
+router.put('/save-english', requireAdmin, async (req, res) => {
+  try {
+    const { updates } = req.body;
+    if (!Array.isArray(updates) || updates.length === 0) {
+      return res.status(400).json({ message: 'updates required' });
+    }
+
+    const results = [];
+    for (const update of updates) {
+      const product = await Product.findByPk(update.id);
+      if (!product) {
+        results.push({ id: update.id, success: false, error: 'Not found' });
+        continue;
+      }
+      await product.update({
+        title: update.title || product.title,
+        description: update.description || product.description
+      });
+      results.push({ id: update.id, success: true });
+    }
+
+    res.json({ results });
+  } catch (error) {
+    console.error('Save English error:', error);
+    res.status(500).json({ message: 'Save failed' });
+  }
+});
+
 // GET /api/admin/products/:id - Get single product for editing
 router.get('/:id', requireAdmin, async (req, res) => {
   try {
