@@ -4,7 +4,8 @@ import cors from "cors";
 import pkg from "pg";
 import bodyParser from "body-parser";
 import session from "express-session";
-import { initDatabase } from "./config/database.js";
+import { Op } from "sequelize";
+import { initDatabase, models, sequelize } from "./config/database.js";
 
 const app = express();
 const { Pool } = pkg;
@@ -79,9 +80,68 @@ app.get("/api/health", (req, res) => {
 app.get("/api/products", async (req, res) => {
   try {
     const dbPool = getPool();
-    if (!dbPool) return res.json([]);
 
     const { categoryId, q } = req.query;
+    const rawLimit = Number.parseInt(req.query.limit, 10);
+    const limit = Number.isFinite(rawLimit)
+      ? Math.min(Math.max(rawLimit, 1), 50000)
+      : 50000;
+
+    if (!dbPool) {
+      const { Product, Category } = models || {};
+      if (!Product) return res.json([]);
+
+      const where = {};
+      if (categoryId) {
+        const catId = Number(categoryId);
+        if (!Number.isNaN(catId)) where.CategoryId = catId;
+      }
+      if (q) {
+        const likeOp =
+          sequelize?.getDialect?.() === "postgres" ? Op.iLike : Op.like;
+        const term = `%${q}%`;
+        where[Op.or] = [
+          { title: { [likeOp]: term } },
+          { variety: { [likeOp]: term } },
+          { subVariety: { [likeOp]: term } },
+          { description: { [likeOp]: term } },
+        ];
+      }
+
+      const results = await Product.findAll({
+        where,
+        include: Category ? [{ model: Category }] : [],
+        order: [["id", "DESC"]],
+        limit,
+      });
+
+      const normalized = results.map((row) => {
+        const product = row.toJSON ? row.toJSON() : { ...row };
+        if (product.Category) {
+          product.Category = {
+            id: product.Category.id,
+            name: product.Category.name,
+            icon: product.Category.icon,
+            titleKannada: product.Category.titleKannada,
+            kn: product.Category.kn,
+            knDisplay: product.Category.knDisplay,
+          };
+        } else {
+          product.Category = null;
+        }
+        product.basePrice = product.price;
+        if (!product.knDisplay && product.titleKannada) {
+          product.knDisplay = product.titleKannada;
+        }
+        if (!product.kn && product.titleKannada) {
+          product.kn = product.titleKannada;
+        }
+        return product;
+      });
+
+      return res.json(normalized);
+    }
+
     const params = [];
     let whereSql = "WHERE 1=1";
 
@@ -99,6 +159,9 @@ app.get("/api/products", async (req, res) => {
       whereSql += ` AND (p.title ILIKE $${idx} OR p.variety ILIKE $${idx} OR p."subVariety" ILIKE $${idx} OR p.description ILIKE $${idx})`;
     }
 
+    params.push(limit);
+    const limitIdx = params.length;
+
     const query = `
       SELECT 
         p.*,
@@ -112,7 +175,7 @@ app.get("/api/products", async (req, res) => {
       LEFT JOIN public."Categories" c ON c.id = p."CategoryId"
       ${whereSql}
       ORDER BY p.id DESC
-      LIMIT 500
+      LIMIT $${limitIdx}
     `;
 
     const result = await dbPool.query(query, params);

@@ -1,5 +1,6 @@
 import express from 'express';
 import pkg from 'pg';
+import { models } from '../config/database.js';
 const { Pool } = pkg;
 
 const router = express.Router();
@@ -23,12 +24,19 @@ router.get('/', async (req, res) => {
   try {
     const dbPool = getPool();
     if (!dbPool) {
-      return res.status(503).json({ 
-        error: "Database not configured",
-        message: "DATABASE_URL is not set"
+      const { Category } = models || {};
+      if (!Category) {
+        return res.status(503).json({ 
+          error: "Database not configured",
+          message: "DATABASE_URL is not set"
+        });
+      }
+      const rows = await Category.findAll({
+        order: [['id', 'ASC']]
       });
+      return res.json(rows.map((row) => (row.toJSON ? row.toJSON() : row)));
     }
-    
+
     const result = await dbPool.query(
       `
       SELECT id, name, icon
