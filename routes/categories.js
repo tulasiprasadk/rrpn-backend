@@ -74,10 +74,22 @@ router.get('/', async (req, res) => {
       }
     }
 
-    res.json(result.rows);
+    return res.json(result.rows);
   } catch (err) {
     console.error('Categories API error:', err.message || err);
-    
+
+    const { Category } = models || {};
+    if (Category) {
+      try {
+        const rows = await Category.findAll({
+          order: [['id', 'ASC']]
+        });
+        return res.json(rows.map((row) => (row.toJSON ? row.toJSON() : row)));
+      } catch (fallbackErr) {
+        console.error('Categories Sequelize fallback error:', fallbackErr.message || fallbackErr);
+      }
+    }
+
     // Check if it's a database connection error
     if (err.code === 'ENOTFOUND' || err.message?.includes('ENOTFOUND')) {
       return res.status(503).json({ 
@@ -87,7 +99,7 @@ router.get('/', async (req, res) => {
       });
     }
     
-    res.status(500).json({ 
+    return res.status(500).json({ 
       error: "Failed to load categories",
       message: err.message || "Internal server error"
     });

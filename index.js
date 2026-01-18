@@ -272,6 +272,29 @@ app.get("/api/auth/status", (req, res, next) => {
   }
 });
 
+// Customer auth status (compatibility alias for /api/auth/me)
+app.get("/api/auth/me", async (req, res) => {
+  try {
+    if (!req.session?.customerId) {
+      return res.status(401).json({ loggedIn: false });
+    }
+    const { Customer } = models || {};
+    if (!Customer) {
+      return res.status(200).json({ loggedIn: true, user: { id: req.session.customerId } });
+    }
+    const customer = await Customer.findByPk(req.session.customerId, {
+      attributes: { exclude: ["otpCode", "otpExpiresAt", "password"] },
+    });
+    if (!customer) {
+      return res.status(401).json({ loggedIn: false });
+    }
+    return res.json({ loggedIn: true, user: customer });
+  } catch (err) {
+    console.error("Auth /api/auth/me error:", err.message || err);
+    return res.status(500).json({ loggedIn: false });
+  }
+});
+
 /**
  * REQUIRED FOR CLOUD RUN:
  * Must listen on PORT=8080
