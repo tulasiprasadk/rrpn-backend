@@ -50,6 +50,11 @@ router.get("/", async (req, res) => {
       whereSql += ` AND (p.title ILIKE $${idx} OR p.variety ILIKE $${idx} OR p."subVariety" ILIKE $${idx} OR p.description ILIKE $${idx})`;
     }
 
+    const rawLimit = Number.parseInt(req.query.limit, 10);
+    const limit = Number.isFinite(rawLimit) ? Math.min(Math.max(rawLimit, 1), 50000) : 50000;
+    params.push(limit);
+    const limitIdx = params.length;
+
     const query = `
       SELECT 
         p.*,
@@ -63,7 +68,7 @@ router.get("/", async (req, res) => {
       LEFT JOIN public."Categories" c ON c.id = p."CategoryId"
       ${whereSql}
       ORDER BY p.id DESC
-      LIMIT 500
+      LIMIT $${limitIdx}
     `;
 
     const result = await dbPool.query(query, params);
