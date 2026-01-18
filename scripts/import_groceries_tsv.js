@@ -17,6 +17,10 @@ const CHUNK_SIZE = 500;
 
 const normalizeHeader = (value) => String(value || "").trim().toLowerCase();
 const normalizeText = (value) => String(value || "").trim();
+const truncateText = (value, max = 255) => {
+  const text = normalizeText(value);
+  return text.length > max ? text.slice(0, max) : text;
+};
 const parsePrice = (value) => {
   if (value == null) return 0;
   const cleaned = String(value).replace(/,/g, "").trim();
@@ -73,19 +77,19 @@ const categoryCache = new Map();
 async function flushChunk(records) {
   if (records.length === 0) return { inserted: 0, skipped: 0 };
 
-  const categoryNames = records.map((r) => r.categoryName || DEFAULT_CATEGORY);
+  const categoryNames = records.map((r) => truncateText(r.categoryName || DEFAULT_CATEGORY));
   await ensureCategories(categoryNames);
 
   const prepared = records.map((r) => {
-    const categoryName = normalizeText(r.categoryName || DEFAULT_CATEGORY) || DEFAULT_CATEGORY;
+    const categoryName = truncateText(r.categoryName || DEFAULT_CATEGORY) || DEFAULT_CATEGORY;
     const CategoryId = categoryCache.get(categoryName);
     return {
-      title: normalizeText(r.title),
-      variety: normalizeText(r.variety) || null,
-      subVariety: normalizeText(r.subVariety) || null,
+      title: truncateText(r.title),
+      variety: truncateText(r.variety) || null,
+      subVariety: truncateText(r.subVariety) || null,
       price: parsePrice(r.price),
       CategoryId,
-      status: "approved",
+      status: "active",
       isService: false,
       deliveryAvailable: true,
     };
