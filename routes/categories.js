@@ -47,13 +47,31 @@ router.get('/', async (req, res) => {
       result = await dbPool.query(primaryQuery);
     } catch (err) {
       const isMissingTable = err?.code === '42P01' || /relation .* does not exist/i.test(err?.message || '');
-      if (!isMissingTable) throw err;
-      const fallbackQuery = `
-        SELECT id, name, icon
-        FROM categories
-        ORDER BY id ASC
-      `;
-      result = await dbPool.query(fallbackQuery);
+      const isMissingColumn = err?.code === '42703' || /column .* does not exist/i.test(err?.message || '');
+      if (!isMissingTable && !isMissingColumn) throw err;
+      const fallbackQuery = isMissingTable
+        ? `
+          SELECT id, name, icon
+          FROM categories
+          ORDER BY id ASC
+        `
+        : `
+          SELECT id, name, NULL::text as icon
+          FROM "Categories"
+          ORDER BY id ASC
+        `;
+      try {
+        result = await dbPool.query(fallbackQuery);
+      } catch (fallbackErr) {
+        const fallbackMissingTable = fallbackErr?.code === '42P01' || /relation .* does not exist/i.test(fallbackErr?.message || '');
+        if (!fallbackMissingTable) throw fallbackErr;
+        const finalQuery = `
+          SELECT id, name, NULL::text as icon
+          FROM categories
+          ORDER BY id ASC
+        `;
+        result = await dbPool.query(finalQuery);
+      }
     }
 
     res.json(result.rows);

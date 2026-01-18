@@ -182,18 +182,19 @@ app.get("/api/products", async (req, res) => {
       result = await dbPool.query(query, params);
     } catch (err) {
       const isMissingTable = err?.code === "42P01" || /relation .* does not exist/i.test(err?.message || "");
-      if (!isMissingTable) throw err;
+      const isMissingColumn = err?.code === "42703" || /column .* does not exist/i.test(err?.message || "");
+      if (!isMissingTable && !isMissingColumn) throw err;
       const fallbackQuery = `
         SELECT 
           p.*,
           c.id as "cat_id",
           c.name as "cat_name",
-          c.icon as "cat_icon",
+          ${isMissingColumn ? "NULL as \"cat_icon\"" : "c.icon as \"cat_icon\""},
           NULL as "cat_titleKannada",
           NULL as "cat_kn",
           NULL as "cat_knDisplay"
-        FROM public.products p
-        LEFT JOIN public.categories c ON c.id = p."CategoryId"
+        FROM public.${isMissingTable ? "products" : "\"Products\""} p
+        LEFT JOIN public.${isMissingTable ? "categories" : "\"Categories\""} c ON c.id = p."CategoryId"
         ${whereSql}
         ORDER BY p.id DESC
         LIMIT $${limitIdx}
