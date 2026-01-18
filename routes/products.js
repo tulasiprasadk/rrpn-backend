@@ -29,6 +29,12 @@ router.get("/", async (req, res) => {
     const { categoryId, q } = req.query;
     const dbPool = getPool();
     if (!dbPool) {
+      if (req.query.debug === "1") {
+        return res.status(500).json({
+          ok: false,
+          error: "DATABASE_URL not configured on server",
+        });
+      }
       return res.json([]);
     }
 
