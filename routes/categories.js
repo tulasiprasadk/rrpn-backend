@@ -37,44 +37,46 @@ router.get('/', async (req, res) => {
       return res.json(rows.map((row) => (row.toJSON ? row.toJSON() : row)));
     }
 
-    const primaryQuery = `
-      SELECT id, name, icon
-      FROM "Categories"
-      ORDER BY id ASC
-    `;
-    let result;
-    try {
-      result = await dbPool.query(primaryQuery);
-    } catch (err) {
-      const isMissingTable = err?.code === '42P01' || /relation .* does not exist/i.test(err?.message || '');
-      const isMissingColumn = err?.code === '42703' || /column .* does not exist/i.test(err?.message || '');
-      if (!isMissingTable && !isMissingColumn) throw err;
-      const fallbackQuery = isMissingTable
-        ? `
-          SELECT id, name, icon
-          FROM categories
-          ORDER BY id ASC
-        `
-        : `
-          SELECT id, name, NULL::text as icon
-          FROM "Categories"
-          ORDER BY id ASC
-        `;
+    const tableNames = ['"Categories"', 'categories', '"Category"', 'category'];
+    let result = null;
+
+    for (const tableName of tableNames) {
       try {
-        result = await dbPool.query(fallbackQuery);
-      } catch (fallbackErr) {
-        const fallbackMissingTable = fallbackErr?.code === '42P01' || /relation .* does not exist/i.test(fallbackErr?.message || '');
-        if (!fallbackMissingTable) throw fallbackErr;
-        const finalQuery = `
-          SELECT id, name, NULL::text as icon
-          FROM categories
+        result = await dbPool.query(
+          `
+          SELECT id, name, icon
+          FROM ${tableName}
           ORDER BY id ASC
-        `;
-        result = await dbPool.query(finalQuery);
+          `
+        );
+        break;
+      } catch (err) {
+        const isMissingTable = err?.code === '42P01' || /relation .* does not exist/i.test(err?.message || '');
+        const isMissingColumn = err?.code === '42703' || /column .* does not exist/i.test(err?.message || '');
+        if (!isMissingTable && !isMissingColumn) throw err;
+        if (isMissingColumn) {
+          try {
+            result = await dbPool.query(
+              `
+              SELECT id, name, NULL::text as icon
+              FROM ${tableName}
+              ORDER BY id ASC
+              `
+            );
+            break;
+          } catch (columnErr) {
+            const columnMissingTable = columnErr?.code === '42P01' || /relation .* does not exist/i.test(columnErr?.message || '');
+            if (!columnMissingTable) throw columnErr;
+          }
+        }
       }
     }
 
-    return res.json(result.rows);
+    if (result) {
+      return res.json(result.rows);
+    }
+
+    throw new Error("No matching categories table found");
   } catch (err) {
     console.error('Categories API error:', err.message || err);
 
