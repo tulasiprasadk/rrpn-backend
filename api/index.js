@@ -1,7 +1,22 @@
 // ============================================
 // STEP 1: Minimal serverless handler
-// Returns response immediately - NO imports, NO async
 // ============================================
+
+import pkg from "pg";
+
+const { Pool } = pkg;
+let pool;
+function getPool() {
+  if (!pool && process.env.DATABASE_URL) {
+    pool = new Pool({
+      connectionString: process.env.DATABASE_URL,
+      connectionTimeoutMillis: 10000,
+      idleTimeoutMillis: 10000,
+      max: 5,
+    });
+  }
+  return pool;
+}
 
 export default function handler(req, res) {
   // Extract path
@@ -45,7 +60,7 @@ export default function handler(req, res) {
     return;
   }
   
-  // /api/products - Step 3: Add category filter and search
+  // /api/products - lightweight SQL (no ORM load)
   if (path === "/api/products" || path === "/products") {
     console.log('[HANDLER] /api/products called', req.query);
     
@@ -53,157 +68,93 @@ export default function handler(req, res) {
     const urlParams = new URLSearchParams(req.url?.split('?')[1] || '');
     const categoryId = urlParams.get('categoryId');
     const searchQuery = urlParams.get('q');
-    
-    // Set timeout - always respond within 3 seconds
-    const timeout = setTimeout(() => {
-      if (!res.headersSent) {
-        console.log('[HANDLER] Timeout - returning empty array');
-        res.statusCode = 200;
+    const debug = urlParams.get('debug') === '1';
+    const rawLimit = Number.parseInt(urlParams.get('limit'), 10);
+    const limit = Number.isFinite(rawLimit) ? Math.min(Math.max(rawLimit, 1), 50000) : 50000;
+
+    const dbPool = getPool();
+    if (!dbPool) {
+      if (debug) {
+        res.statusCode = 500;
         res.setHeader('Content-Type', 'application/json');
-        res.end(JSON.stringify([]));
+        res.end(JSON.stringify({ ok: false, error: "DATABASE_URL not configured on server" }));
+        return;
       }
-    }, 3000);
+      res.statusCode = 200;
+      res.setHeader('Content-Type', 'application/json');
+      res.end(JSON.stringify([]));
+      return;
+    }
     
-    // Try to load database and query
     (async () => {
       try {
-        console.log('[HANDLER] Loading database...');
-        
-        // Load database with 1 second timeout
-        const dbPromise = import("../config/database.js");
-        const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error("Database load timeout")), 1000)
-        );
-        
-        const db = await Promise.race([dbPromise, timeoutPromise]);
-        console.log('[HANDLER] Database loaded');
-        
-        // Get models
-        const Product = db.models?.Product;
-        const Category = db.models?.Category;
-        const { Op } = await import("sequelize");
-        
-        if (!Product || !Category) {
-          throw new Error("Models not available");
-        }
-        
-        // Build where clause
-        // Allow products with approved/active OR missing status (NULL/empty)
-        const statusFilter = {
-          [Op.or]: [
-            { status: { [Op.in]: ['approved', 'active'] } },
-            { status: null },
-            { status: '' }
-          ]
-        };
-        const where = { [Op.and]: [statusFilter] };
-        
-        // Add category filter if provided
+        const params = [];
+        let whereSql = "WHERE 1=1";
+
         if (categoryId) {
           const catId = Number(categoryId);
-          if (!isNaN(catId)) {
-            where[Op.and].push({ CategoryId: catId });
-            console.log('[HANDLER] Filtering by category:', catId);
+          if (!Number.isNaN(catId)) {
+            params.push(catId);
+            whereSql += ` AND p.\"CategoryId\" = $${params.length}`;
           }
         }
-        
-        // Add search filter if provided
+
         if (searchQuery) {
-          where[Op.and].push({
-            [Op.or]: [
-            { title: { [Op.iLike]: `%${searchQuery}%` } },
-            { variety: { [Op.iLike]: `%${searchQuery}%` } },
-            { subVariety: { [Op.iLike]: `%${searchQuery}%` } },
-            { description: { [Op.iLike]: `%${searchQuery}%` } },
-            ]
-          });
-          console.log('[HANDLER] Searching for:', searchQuery);
+          params.push(`%${searchQuery}%`);
+          const idx = params.length;
+          whereSql += ` AND (p.title ILIKE $${idx} OR p.variety ILIKE $${idx} OR p.\"subVariety\" ILIKE $${idx} OR p.description ILIKE $${idx})`;
         }
-        
-        // Query products with 1.5 second timeout
-        console.log('[HANDLER] Querying products...');
-        const queryPromise = Product.findAll({
-          where,
-          include: [{
-            model: Category,
-            attributes: ["id", "name", "icon", "titleKannada", "kn", "knDisplay"],
-            required: false,
-          }],
-          order: [["id", "DESC"]],
-          limit: 100,
+
+        params.push(limit);
+        const limitIdx = params.length;
+
+        const query = `
+          SELECT
+            p.*,
+            c.id as "cat_id",
+            c.name as "cat_name",
+            c.icon as "cat_icon"
+          FROM public."Products" p
+          LEFT JOIN public."Categories" c ON c.id = p."CategoryId"
+          ${whereSql}
+          ORDER BY p.id DESC
+          LIMIT $${limitIdx}
+        `;
+
+        const result = await dbPool.query(query, params);
+        const rows = result.rows || [];
+
+        const products = rows.map((row) => {
+          const product = { ...row };
+          product.Category = row.cat_id
+            ? { id: row.cat_id, name: row.cat_name, icon: row.cat_icon }
+            : null;
+          delete product.cat_id;
+          delete product.cat_name;
+          delete product.cat_icon;
+          product.basePrice = product.price;
+          return product;
         });
-        
-        const queryTimeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error("Query timeout")), 1500)
-        );
-        
-        let products = await Promise.race([queryPromise, queryTimeoutPromise]);
-        console.log('[HANDLER] Products fetched:', products.length);
 
-        // Fallback: if no results, retry without status filter (keep category/search)
-        if (products.length === 0) {
-          console.log('[HANDLER] No products found. Retrying without status filter...');
-          const fallbackWhere = {};
-          if (categoryId) {
-            const catId = Number(categoryId);
-            if (!isNaN(catId)) {
-              fallbackWhere.CategoryId = catId;
-            }
-          }
-          if (searchQuery) {
-            fallbackWhere[Op.or] = [
-              { title: { [Op.iLike]: `%${searchQuery}%` } },
-              { variety: { [Op.iLike]: `%${searchQuery}%` } },
-              { subVariety: { [Op.iLike]: `%${searchQuery}%` } },
-              { description: { [Op.iLike]: `%${searchQuery}%` } },
-            ];
-          }
-
-          const fallbackQuery = Product.findAll({
-            where: fallbackWhere,
-            include: [{
-              model: Category,
-              attributes: ["id", "name", "icon", "titleKannada", "kn", "knDisplay"],
-              required: false,
-            }],
-            order: [["id", "DESC"]],
-            limit: 100,
-          });
-
-          products = await Promise.race([
-            fallbackQuery,
-            new Promise((_, reject) => setTimeout(() => reject(new Error("Fallback query timeout")), 1500))
-          ]);
-          console.log('[HANDLER] Fallback products fetched:', products.length);
-        }
-        
-        // Transform products
-        const productsData = products.map((p) => {
-          const obj = p.toJSON();
-          obj.basePrice = obj.price;
-          if (!obj.knDisplay && obj.titleKannada) {
-            obj.knDisplay = obj.titleKannada;
-          }
-          if (!obj.kn && obj.titleKannada) {
-            obj.kn = obj.titleKannada;
-          }
-          return obj;
-        });
-        
-        clearTimeout(timeout);
         if (!res.headersSent) {
           res.statusCode = 200;
           res.setHeader('Content-Type', 'application/json');
-          res.end(JSON.stringify(productsData));
+          res.end(JSON.stringify(debug ? {
+            ok: true,
+            debug: true,
+            categoryId,
+            q: searchQuery,
+            limit,
+            matchedCount: products.length,
+            sample: products.slice(0, 3),
+          } : products));
         }
-        
       } catch (err) {
         console.error('[HANDLER] Error:', err.message);
-        clearTimeout(timeout);
         if (!res.headersSent) {
-          res.statusCode = 200;
+          res.statusCode = debug ? 500 : 200;
           res.setHeader('Content-Type', 'application/json');
-          res.end(JSON.stringify([])); // Return empty array on error
+          res.end(JSON.stringify(debug ? { ok: false, error: err.message } : []));
         }
       }
     })();
