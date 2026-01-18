@@ -37,13 +37,24 @@ router.get('/', async (req, res) => {
       return res.json(rows.map((row) => (row.toJSON ? row.toJSON() : row)));
     }
 
-    const result = await dbPool.query(
-      `
+    const primaryQuery = `
       SELECT id, name, icon
       FROM "Categories"
       ORDER BY id ASC
-      `
-    );
+    `;
+    let result;
+    try {
+      result = await dbPool.query(primaryQuery);
+    } catch (err) {
+      const isMissingTable = err?.code === '42P01' || /relation .* does not exist/i.test(err?.message || '');
+      if (!isMissingTable) throw err;
+      const fallbackQuery = `
+        SELECT id, name, icon
+        FROM categories
+        ORDER BY id ASC
+      `;
+      result = await dbPool.query(fallbackQuery);
+    }
 
     res.json(result.rows);
   } catch (err) {

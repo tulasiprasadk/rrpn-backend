@@ -177,8 +177,29 @@ app.get("/api/products", async (req, res) => {
       ORDER BY p.id DESC
       LIMIT $${limitIdx}
     `;
-
-    const result = await dbPool.query(query, params);
+    let result;
+    try {
+      result = await dbPool.query(query, params);
+    } catch (err) {
+      const isMissingTable = err?.code === "42P01" || /relation .* does not exist/i.test(err?.message || "");
+      if (!isMissingTable) throw err;
+      const fallbackQuery = `
+        SELECT 
+          p.*,
+          c.id as "cat_id",
+          c.name as "cat_name",
+          c.icon as "cat_icon",
+          NULL as "cat_titleKannada",
+          NULL as "cat_kn",
+          NULL as "cat_knDisplay"
+        FROM public.products p
+        LEFT JOIN public.categories c ON c.id = p."CategoryId"
+        ${whereSql}
+        ORDER BY p.id DESC
+        LIMIT $${limitIdx}
+      `;
+      result = await dbPool.query(fallbackQuery, params);
+    }
     const rows = result.rows || [];
 
     const products = rows.map((row) => {
