@@ -60,10 +60,7 @@ router.get("/", async (req, res) => {
         p.*,
         c.id as "cat_id",
         c.name as "cat_name",
-        c.icon as "cat_icon",
-        c."titleKannada" as "cat_titleKannada",
-        c."kn" as "cat_kn",
-        c."knDisplay" as "cat_knDisplay"
+        c.icon as "cat_icon"
       FROM public."Products" p
       LEFT JOIN public."Categories" c ON c.id = p."CategoryId"
       ${whereSql}
@@ -81,26 +78,13 @@ router.get("/", async (req, res) => {
             id: row.cat_id,
             name: row.cat_name,
             icon: row.cat_icon,
-            titleKannada: row.cat_titleKannada,
-            kn: row.cat_kn,
-            knDisplay: row.cat_knDisplay,
           }
         : null;
 
       delete product.cat_id;
       delete product.cat_name;
       delete product.cat_icon;
-      delete product.cat_titleKannada;
-      delete product.cat_kn;
-      delete product.cat_knDisplay;
-
       product.basePrice = product.price;
-      if (!product.knDisplay && product.titleKannada) {
-        product.knDisplay = product.titleKannada;
-      }
-      if (!product.kn && product.titleKannada) {
-        product.kn = product.titleKannada;
-      }
       return product;
     });
 
