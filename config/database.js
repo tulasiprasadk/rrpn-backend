@@ -10,19 +10,20 @@ let sequelize;
 
 if (process.env.DATABASE_URL) {
   const useSsl = process.env.DB_SSL === "true" || process.env.NODE_ENV === "production";
+  const sslOptions = useSsl
+    ? {
+        ssl: {
+          require: true,
+          rejectUnauthorized: false,
+        },
+      }
+    : {};
 
   sequelize = new Sequelize(process.env.DATABASE_URL, {
     dialect: "postgres",
     protocol: "postgres",
     logging: false,
-    dialectOptions: useSsl
-      ? {
-          ssl: {
-            require: true,
-            rejectUnauthorized: false,
-          },
-        }
-      : {},
+    dialectOptions: sslOptions,
     pool: {
       max: 5, // VERY IMPORTANT for serverless
       min: 0,
