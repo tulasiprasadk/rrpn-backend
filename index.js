@@ -14,11 +14,13 @@ const { Pool } = pkg;
 let pool;
 function getPool() {
   if (!pool && process.env.DATABASE_URL) {
+    const useSsl = process.env.DB_SSL === "true" || process.env.NODE_ENV === "production";
     pool = new Pool({
       connectionString: process.env.DATABASE_URL,
       connectionTimeoutMillis: 10000,
       idleTimeoutMillis: 10000,
       max: 5,
+      ssl: useSsl ? { rejectUnauthorized: false } : undefined,
     });
   }
   return pool;
