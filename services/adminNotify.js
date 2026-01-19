@@ -6,7 +6,8 @@ const adminNotify = async (type, title, message) => {
     await Notification.create({
       type,
       title,
-      message
+      message,
+      audience: "admin"
     });
     console.log("ADMIN NOTIFY:", title);
   } catch (err) {

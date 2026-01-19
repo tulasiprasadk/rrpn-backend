@@ -13,6 +13,7 @@ export async function notifyAdmin(title, message, meta = {}) {
       message,
       meta: JSON.stringify(meta),
       isRead: false,
+      audience: "admin"
     });
   } catch (err) {
     console.error("Notification error:", err);

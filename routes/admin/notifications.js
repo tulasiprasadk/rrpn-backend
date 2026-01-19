@@ -7,7 +7,7 @@ const router = express.Router();
 /* Get all unread notifications */
 router.get("/", async (req, res) => {
   const list = await Notification.findAll({
-    where: { isRead: false },
+    where: { isRead: false, audience: "admin" },
     order: [["createdAt", "DESC"]]
   });
   res.json(list);
@@ -17,7 +17,7 @@ router.get("/", async (req, res) => {
 router.put("/mark-read", async (req, res) => {
   await Notification.update(
     { isRead: true },
-    { where: {} }
+    { where: { audience: "admin" } }
   );
 
   res.json({ success: true });

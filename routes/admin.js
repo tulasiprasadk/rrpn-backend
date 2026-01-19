@@ -646,14 +646,6 @@ router.get('/charts/orders', async (req, res) => {
 });
 
 /* ======================================================
-   NOTIFICATIONS (STUB)
-====================================================== */
-
-router.get('/notifications', (req, res) => {
-  res.json([]);
-});
-
-/* ======================================================
    CATEGORIES & ADS
 ====================================================== */
 
@@ -705,7 +697,7 @@ router.put('/products/:id', async (req, res) => {
       return res.status(404).json({ error: 'Product not found' });
     }
 
-    const { title, price, description, unit, variety, subVariety, categoryId, monthlyPrice, hasMonthlyPackage } = req.body;
+    const { title, price, description, unit, variety, subVariety, categoryId, monthlyPrice, hasMonthlyPackage, yearlyPrice, hasYearlyPackage } = req.body;
     
     const updateData = {};
     if (title !== undefined) updateData.title = title;
@@ -717,6 +709,8 @@ router.put('/products/:id', async (req, res) => {
     if (categoryId !== undefined) updateData.CategoryId = categoryId ? parseInt(categoryId) : null;
     if (monthlyPrice !== undefined) updateData.monthlyPrice = monthlyPrice ? parseFloat(monthlyPrice) : null;
     if (hasMonthlyPackage !== undefined) updateData.hasMonthlyPackage = hasMonthlyPackage === true || hasMonthlyPackage === 'true';
+    if (yearlyPrice !== undefined) updateData.yearlyPrice = yearlyPrice ? parseFloat(yearlyPrice) : null;
+    if (hasYearlyPackage !== undefined) updateData.hasYearlyPackage = hasYearlyPackage === true || hasYearlyPackage === 'true';
 
     await product.update(updateData);
 
@@ -736,7 +730,7 @@ router.put('/products/:id', async (req, res) => {
 
 router.post('/products', async (req, res) => {
   try {
-    const { title, description, price, unit, categoryId } = req.body;
+    const { title, description, price, unit, categoryId, monthlyPrice, hasMonthlyPackage, yearlyPrice, hasYearlyPackage } = req.body;
     if (!title || !price) {
       return res.status(400).json({ error: 'Title and price required' });
     }
@@ -747,6 +741,10 @@ router.post('/products', async (req, res) => {
       price: Number(price),
       unit: unit || 'piece',
       CategoryId: categoryId || null,
+      monthlyPrice: monthlyPrice ? Number(monthlyPrice) : null,
+      hasMonthlyPackage: hasMonthlyPackage === true || hasMonthlyPackage === 'true',
+      yearlyPrice: yearlyPrice ? Number(yearlyPrice) : null,
+      hasYearlyPackage: hasYearlyPackage === true || hasYearlyPackage === 'true',
       isTemplate: true,
       supplierId: null
     });

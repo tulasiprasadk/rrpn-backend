@@ -153,10 +153,37 @@ router.post("/create", requireLogin, async (req, res) => {
         type: "order_created",
         title: "New Order Received",
         message: `Order #${order.id} from ${customerName} (${customerPhone}) - ₹${totalAmount}`,
-        isRead: false
+        isRead: false,
+        audience: "admin"
       });
     } catch (notifErr) {
       console.error("Notification creation failed:", notifErr);
+    }
+
+    // Notify customer about subscription option (if applicable)
+    try {
+      if (req.session.customerId && (product.hasMonthlyPackage || product.hasYearlyPackage)) {
+        const options = [];
+        if (product.hasMonthlyPackage) options.push("monthly");
+        if (product.hasYearlyPackage) options.push("yearly");
+        const message = options.length === 2
+          ? `Subscribe to ${product.title} monthly or yearly for automatic deliveries.`
+          : `Subscribe to ${product.title} on a ${options[0]} plan for automatic deliveries.`;
+        await Notification.create({
+          type: "subscription_prompt",
+          title: "Subscribe & Save",
+          message,
+          isRead: false,
+          audience: "customer",
+          customerId: req.session.customerId,
+          meta: JSON.stringify({
+            productId: product.id,
+            options
+          })
+        });
+      }
+    } catch (notifErr) {
+      console.error("Customer subscription notification failed:", notifErr);
     }
 
     res.json({
@@ -347,7 +374,8 @@ router.post("/create-guest", async (req, res) => {
         type: "order_created",
         title: "New Guest Order Received",
         message: `Guest Order #${order.id} from ${customerName} (${customerPhone}) - ₹${calculatedAmount}`,
-        isRead: false
+        isRead: false,
+        audience: "admin"
       });
     } catch (notifErr) {
       console.error("Notification creation failed:", notifErr);
@@ -531,7 +559,8 @@ router.post("/submit-payment", upload.single("paymentScreenshot"), async (req, r
         type: "payment_submitted",
         title: "Payment Submitted",
         message: `Order #${order.id} payment submitted. ${customerInfo}. UNR: ${order.paymentUNR || 'N/A'}. Approve in Admin → Payments.`,
-        isRead: false
+        isRead: false,
+        audience: "admin"
       });
     } catch (notifErr) {
       console.error("Payment notification creation failed:", notifErr);
