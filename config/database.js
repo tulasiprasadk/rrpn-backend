@@ -10,6 +10,9 @@ let sequelize;
 
 if (process.env.DATABASE_URL) {
   const useSsl = process.env.DB_SSL === "true" || process.env.NODE_ENV === "production";
+  if (useSsl) {
+    process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+  }
   const sslOptions = useSsl
     ? {
         require: true,
