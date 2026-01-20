@@ -11,11 +11,13 @@ const router = express.Router();
 let pool;
 function getPool() {
   if (!pool && process.env.DATABASE_URL) {
+    const useSsl = process.env.DB_SSL === "true" || process.env.NODE_ENV === "production";
     pool = new Pool({
       connectionString: process.env.DATABASE_URL,
       connectionTimeoutMillis: 10000,
       idleTimeoutMillis: 10000,
       max: 5,
+      ssl: useSsl ? { rejectUnauthorized: false } : undefined,
     });
   }
   return pool;
@@ -226,11 +228,70 @@ router.get("/health", (req, res) => {
 });
 
 /* =====================================================
-   POST /api/products/bulk
-   - Placeholder for now
+  POST /api/products/bulk
+  - Create products from CSV payload
 ===================================================== */
-router.post("/bulk", (req, res) => {
-  res.status(501).json({ error: "Not implemented yet" });
+router.post("/bulk", async (req, res) => {
+  try {
+    const { Product, Category } = models || {};
+    if (!Product || !Category) {
+      return res.status(503).json({ error: "Database not ready" });
+    }
+
+    const { products } = req.body || {};
+    if (!Array.isArray(products) || products.length === 0) {
+      return res.status(400).json({ error: "No products provided" });
+    }
+
+    const normalize = (value) => (value || "").toString().trim().toLowerCase();
+    const categoryCache = new Map();
+    const existingCategories = await Category.findAll();
+    existingCategories.forEach((c) => categoryCache.set(normalize(c.name), c));
+
+    const toCreate = [];
+    const errors = [];
+
+    for (const [index, raw] of products.entries()) {
+      const title = raw?.title?.trim();
+      const price = Number(raw?.price || 0);
+      if (!title || !Number.isFinite(price)) {
+        errors.push({ index, error: "Missing title or price" });
+        continue;
+      }
+
+      let categoryId = raw.CategoryId || raw.categoryId || null;
+      if (!categoryId && raw.categoryName) {
+        const key = normalize(raw.categoryName);
+        let cat = categoryCache.get(key);
+        if (!cat) {
+          cat = await Category.create({ name: raw.categoryName });
+          categoryCache.set(key, cat);
+        }
+        categoryId = cat.id;
+      }
+
+      toCreate.push({
+        title,
+        price,
+        unit: raw.unit || null,
+        description: raw.description || null,
+        variety: raw.variety || null,
+        subVariety: raw.subVariety || null,
+        CategoryId: categoryId || null,
+        status: "approved",
+      });
+    }
+
+    if (toCreate.length === 0) {
+      return res.status(400).json({ error: "No valid products to create", errors: errors.length });
+    }
+
+    const created = await Product.bulkCreate(toCreate, { validate: true });
+    res.json({ created: created.length, errors: errors.length, errorDetails: errors });
+  } catch (err) {
+    console.error("Bulk upload error:", err);
+    res.status(500).json({ error: "Bulk upload failed" });
+  }
 });
 
 export default router;
