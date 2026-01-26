@@ -64,32 +64,40 @@ router.get('/test-admin', async (req, res) => {
 // Admin login - TEMPORARY: Password check disabled for debugging
 router.post('/login', async (req, res) => {
   try {
-    const { email, password } = req.body;
-    if (!email) {
-      return res.status(400).json({ message: 'Email required' });
+    const { email, phone, password, identifier } = req.body;
+    const idValue = identifier || email || phone;
+    if (!idValue) {
+      return res.status(400).json({ message: 'Email or phone required' });
     }
 
-    console.log('🔓 Admin login attempt (PASSWORD CHECK DISABLED):', email);
+    console.log('🔓 Admin login attempt (PASSWORD CHECK DISABLED):', idValue);
     console.log('⚠️  WARNING: This is a temporary bypass for debugging!');
 
-    let admin = await Admin.findOne({ where: { email } });
+    // Try to find by email first, then phone
+    let admin = null;
+    if (email) admin = await Admin.findOne({ where: { email } });
+    if (!admin && phone) admin = await Admin.findOne({ where: { phone } });
+    if (!admin && identifier) {
+      admin = await Admin.findOne({ where: { [Op.or]: [{ email: identifier }, { phone: identifier }] } });
+    }
+
     if (!admin) {
-      console.log('❌ Admin not found:', email);
+      console.log('❌ Admin not found:', idValue);
       console.log('🔧 Creating admin account automatically...');
-      
-      // Auto-create admin if it doesn't exist
+
       try {
         const hashedPassword = await bcrypt.hash('temp123', 10);
         admin = await Admin.create({
           name: 'Super Admin',
-          email: email,
+          email: email || null,
+          phone: phone || identifier || null,
           password: hashedPassword,
           role: 'super_admin',
           isActive: true,
           isApproved: true,
           approvedAt: new Date()
         });
-        console.log('✅ Admin account created automatically:', admin.email);
+        console.log('✅ Admin account created automatically:', admin.email || admin.phone);
       } catch (createErr) {
         console.error('❌ Failed to create admin:', createErr);
         return res.status(500).json({ message: 'Failed to create admin account', error: createErr.message });
@@ -99,6 +107,7 @@ router.post('/login', async (req, res) => {
     console.log('✅ Admin found:', {
       id: admin.id,
       email: admin.email,
+      phone: admin.phone,
       name: admin.name,
       isActive: admin.isActive,
       isApproved: admin.isApproved,
@@ -110,7 +119,6 @@ router.post('/login', async (req, res) => {
       await admin.update({ isActive: true });
     }
 
-    // Check if admin is approved
     if (!admin.isApproved) {
       console.log('⚠️  Admin account is not approved - auto-approving for debugging');
       await admin.update({ 
@@ -127,7 +135,7 @@ router.post('/login', async (req, res) => {
     await admin.update({ lastLogin: new Date() });
     req.session.adminId = admin.id;
 
-    console.log('✅ Admin login successful (bypassed):', admin.email);
+    console.log('✅ Admin login successful (bypassed):', admin.email || admin.phone);
     console.log('⚠️  REMEMBER: Re-enable password check after debugging!');
 
     const token = `admin_${admin.id}_${Date.now()}`;
@@ -136,6 +144,7 @@ router.post('/login', async (req, res) => {
       admin: {
         id: admin.id,
         email: admin.email,
+        phone: admin.phone,
         name: admin.name,
         role: admin.role
       },
@@ -273,7 +282,7 @@ router.post('/admins/:id/approve', requireSuperAdmin, async (req, res) => {
 router.get('/admins', requireSuperAdmin, async (req, res) => {
   try {
     const admins = await Admin.findAll({
-      attributes: ['id', 'name', 'email', 'role', 'isActive', 'isApproved', 'approvedAt', 'lastLogin', 'createdAt'],
+      attributes: ['id', 'name', 'email', 'phone', 'role', 'isActive', 'isApproved', 'approvedAt', 'lastLogin', 'createdAt'],
       order: [['createdAt', 'DESC']]
     });
     res.json(admins);
