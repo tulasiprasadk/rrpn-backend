@@ -22,25 +22,37 @@ if (process.env.GOOGLE_CALLBACK_URL && !process.env.GOOGLE_CALLBACK_URL.endsWith
 /* ============================================================
    GOOGLE OAUTH — SUPPLIER
    GET /api/suppliers/auth/google
+   NOTE: Guard routes when Google OAuth is not configured to avoid
+   "Unknown authentication strategy" runtime errors. When env vars
+   are present the normal passport strategy will be used.
 ============================================================ */
-router.get(
-  "/auth/google",
-  passport.authenticate("supplier-google", {
-    scope: ["profile", "email"],
-  })
-);
+const googleConfigured = !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
+
+if (googleConfigured) {
+  router.get(
+    "/auth/google",
+    passport.authenticate("supplier-google", {
+      scope: ["profile", "email"],
+    })
+  );
+} else {
+  router.get('/auth/google', (req, res) => {
+    res.status(501).send('Google OAuth not configured for suppliers. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to enable.');
+  });
+}
 
 /* ============================================================
    GOOGLE OAUTH CALLBACK — SUPPLIER
    GET /api/suppliers/auth/google/callback
 ============================================================ */
-router.get(
-  "/auth/google/callback",
-  passport.authenticate("supplier-google", {
-    failureRedirect: "/supplier/login",
-    session: true,
-  }),
-  async (req, res) => {
+if (googleConfigured) {
+  router.get(
+    "/auth/google/callback",
+    passport.authenticate("supplier-google", {
+      failureRedirect: "/supplier/login",
+      session: true,
+    }),
+    async (req, res) => {
     const frontendUrl = process.env.FRONTEND_URL;
     if (!frontendUrl) {
       return res.status(500).send("FRONTEND_URL not configured");
@@ -87,8 +99,13 @@ router.get(
 
     // Otherwise, pending approval
     return res.redirect(`${frontendUrl}/supplier/login?pending=1`);
-  }
-);
+    }
+  );
+} else {
+  router.get('/auth/google/callback', (req, res) => {
+    res.status(501).send('Google OAuth not configured for suppliers. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to enable.');
+  });
+}
 
 /* ============================================================
    MULTER CONFIG — KYC UPLOADS
@@ -195,10 +212,11 @@ router.post("/kyc", upload.fields([
 
     await supplier.update(updateData);
 
-    // Notify admin about new KYC submission
+    // Notify admin about new KYC submission (use specific type so frontend shows approve action)
     try {
       await adminNotify(
-        "New Supplier KYC Submission",
+        'supplier_registration', // type used by frontend to show approve link
+        'New Supplier KYC Submission',
         `Supplier: ${supplier.name} (${supplier.email})\nBusiness: ${businessName}\nPhone: ${phone}\nGST: ${gstNumber}\nPAN: ${panNumber}\n\nPlease review and approve in Admin Dashboard.`
       );
     } catch (notifyErr) {
