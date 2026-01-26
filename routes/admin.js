@@ -308,10 +308,10 @@ router.get('/admins/pending', requireSuperAdmin, async (req, res) => {
 // Create new admin (super admin only)
 router.post('/admins', requireSuperAdmin, async (req, res) => {
   try {
-    const { name, email, password, role = 'admin', autoApprove = false } = req.body;
+    const { name, email, phone, password, role = 'admin', autoApprove = false } = req.body;
 
-    if (!name || !email || !password) {
-      return res.status(400).json({ error: 'Name, email, and password are required' });
+    if (!name || !password || (!email && !phone)) {
+      return res.status(400).json({ error: 'Name, password and either email or phone are required' });
     }
 
     if (password.length < 6) {
@@ -323,10 +323,10 @@ router.post('/admins', requireSuperAdmin, async (req, res) => {
       return res.status(400).json({ error: `Role must be one of: ${validRoles.join(', ')}` });
     }
 
-    // Check if email already exists
-    const existing = await Admin.findOne({ where: { email } });
+    // Check if email or phone already exists
+    const existing = await Admin.findOne({ where: { [Op.or]: [{ email }, { phone }] } });
     if (existing) {
-      return res.status(400).json({ error: 'Email already exists' });
+      return res.status(400).json({ error: 'Email or phone already exists' });
     }
 
     // Hash password
@@ -335,7 +335,8 @@ router.post('/admins', requireSuperAdmin, async (req, res) => {
     // Create admin
     const admin = await Admin.create({
       name,
-      email,
+      email: email || null,
+      phone: phone || null,
       password: hashedPassword,
       role,
       isActive: true,
@@ -350,6 +351,7 @@ router.post('/admins', requireSuperAdmin, async (req, res) => {
         id: admin.id,
         name: admin.name,
         email: admin.email,
+        phone: admin.phone,
         role: admin.role,
         isApproved: admin.isApproved
       },
@@ -358,7 +360,7 @@ router.post('/admins', requireSuperAdmin, async (req, res) => {
   } catch (err) {
     console.error('Create admin error:', err);
     if (err.name === 'SequelizeUniqueConstraintError') {
-      return res.status(400).json({ error: 'Email already exists' });
+      return res.status(400).json({ error: 'Email or phone already exists' });
     }
     res.status(500).json({ error: 'Server error', details: err.message });
   }
