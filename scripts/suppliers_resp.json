@@ -1,0 +1,16 @@
+HTTP/1.1 200 OK
+Access-Control-Allow-Credentials: true
+Cache-Control: public, max-age=0, must-revalidate
+Content-Length: 1014
+Content-Type: application/json; charset=utf-8
+Date: Mon, 26 Jan 2026 09:19:07 GMT
+Etag: W/"3f6-Ws3/iwANI9nT0obb36HObrAiWM4"
+Server: Vercel
+Strict-Transport-Security: max-age=63072000
+Vary: Origin
+X-Cloud-Trace-Context: 5cda3fb28407ac70f5b043dfea8b5b79;o=1
+X-Powered-By: Express
+X-Vercel-Cache: MISS
+X-Vercel-Id: bom1::vd556-1769419147726-5adc993dd983
+
+[{"id":2,"name":"Praveen Kumar","businessName":null,"email":"praveenkumar87927@gmail.com","phone":null,"password":null,"otp":null,"otpExpiry":null,"address":null,"gstNumber":null,"panNumber":null,"businessLicense":null,"gstCertificate":null,"idProof":null,"bankDetails":null,"status":"pending","kycSubmitted":false,"kycSubmittedAt":null,"rejectionReason":null,"approvedBy":null,"approvedAt":null,"acceptedTnC":false,"metadata":null,"createdAt":"2026-01-20T17:43:35.502Z","updatedAt":"2026-01-20T17:43:35.502Z"},{"id":1,"name":"Prasad K T","businessName":null,"email":"tulasiprasadk@gmail.com","phone":null,"password":null,"otp":null,"otpExpiry":null,"address":null,"gstNumber":null,"panNumber":null,"businessLicense":null,"gstCertificate":null,"idProof":null,"bankDetails":null,"status":"pending","kycSubmitted":false,"kycSubmittedAt":null,"rejectionReason":null,"approvedBy":null,"approvedAt":null,"acceptedTnC":false,"metadata":null,"createdAt":"2026-01-20T03:14:27.165Z","updatedAt":"2026-01-20T03:14:27.165Z"}]

@@ -1,0 +1,16 @@
+HTTP/1.1 200 OK
+Access-Control-Allow-Credentials: true
+Cache-Control: public, max-age=0, must-revalidate
+Content-Length: 2
+Content-Type: application/json; charset=utf-8
+Date: Mon, 26 Jan 2026 10:04:31 GMT
+Etag: W/"2-l9Fw4VUO7kr8CvBlt4zaMCqXZ0w"
+Server: Vercel
+Strict-Transport-Security: max-age=63072000
+Vary: Origin
+X-Cloud-Trace-Context: d5eb14460fddcfd38876aa28e0b8b9d0
+X-Powered-By: Express
+X-Vercel-Cache: MISS
+X-Vercel-Id: bom1::g45q4-1769421871358-74f41d488eb7
+
+[]
