@@ -1,0 +1,178 @@
+title,variety,subVariety,price,unit,description,categoryId,categoryName
+Banana – Yelakki,Fruits,,199,Kg,,,Groceries
+Banana – Nendran,Fruits,,200,Kg,,,Groceries
+Banana – Robusta,Fruits,,120,Kg,,,Groceries
+Banana – Poovan,Fruits,,125,Kg,,,Groceries
+Apple – Shimla,Fruits,,299,Kg,,,Groceries
+Apple – Washington,Fruits,,271,Kg,,,Groceries
+Apple – Fuji,Fruits,,450,Kg,,,Groceries
+Apple – Royal Gala,Fruits,,318,Kg,,,Groceries
+Mango – Alphonso,Fruits,,,Kg,,,Groceries
+Mango – Badami,Fruits,,,Kg,,,Groceries
+Mango – Totapuri,Fruits,,,Kg,,,Groceries
+Mango – Banganapalli,Fruits,,,Kg,,,Groceries
+Orange – Nagpur,Fruits,,100,Kg,,,Groceries
+Orange – Imported,Fruits,,270,Kg,,,Groceries
+Mosambi,Fruits,,45,Kg,,,Groceries
+Sweet Lime – Local,Fruits,,100,Kg,,,Groceries
+Grapes – Green,Fruits,,299,Kg,,,Groceries
+Grapes – Black,Fruits,,199,Kg,,,Groceries
+Pomegranate,Fruits,,239,Kg,,,Groceries
+Papaya,Fruits,,157,piece,,,Groceries
+Pineapple,Fruits,,60,piece,,,Groceries
+Watermelon,Fruits,,123,Kg,,,Groceries
+Muskmelon,Fruits,,45,Kg,,,Groceries
+Guava – White,Fruits,,80,Kg,,,Groceries
+Guava – Pink,Fruits,,60,Kg,,,Groceries
+Chikoo,Fruits,,105,Kg,,,Groceries
+Custard Apple,Fruits,,95,Kg,,,Groceries
+Kiwi,Fruits,,110,Kg,,,Groceries
+Strawberry,Fruits,,250,250 gms,,,Groceries
+Blueberry,Fruits,,200,125 gms,,,Groceries
+Pear,Fruits,,170,500 gms,,,Groceries
+Plum,Fruits,,,Kg,,,Groceries
+Peach,Fruits,,,Kg,,,Groceries
+Apricot,Fruits,,,Kg,,,Groceries
+Fig,Fruits,,,Kg,,,Groceries
+Dragon Fruit,Fruits,,113,piece,,,Groceries
+Tomato – Local,Vegetables,,20,Kg,,,Groceries
+Tomato – Hybrid,Vegetables,,45,Kg,,,Groceries
+Onion – Big,Vegetables,,34,Kg,,,Groceries
+Onion – Small,Vegetables,,90,Kg,,,Groceries
+Potato – Jyothi,Vegetables,,23,Kg,,,Groceries
+Potato – Local,Vegetables,,20,Kg,,,Groceries
+Carrot – Ooty,Vegetables,,22,Kg,,,Groceries
+Carrot – Local,Vegetables,,53,Kg,,,Groceries
+Beans,Vegetables,,75,Kg,,,Groceries
+Cluster Beans,Vegetables,,132,Kg,,,Groceries
+Brinjal – Purple,Vegetables,,100,Kg,,,Groceries
+Brinjal – Green,Vegetables,,37,Kg,,,Groceries
+Ladies Finger,Vegetables,,21,Kg,,,Groceries
+Cabbage,Vegetables,,32,piece,,,Groceries
+Cauliflower,Vegetables,,30,piece,,,Groceries
+Capsicum – Green,Vegetables,,94,Kg,,,Groceries
+Capsicum – Red,Vegetables,,248,Kg,,,Groceries
+Capsicum – Yellow,Vegetables,,276,Kg,,,Groceries
+Beetroot,Vegetables,,47,Kg,,,Groceries
+Radish,Vegetables,,41,Kg,,,Groceries
+Ridge Gourd,Vegetables,,79,Kg,,,Groceries
+Bottle Gourd,Vegetables,,32,Kg,,,Groceries
+Snake Gourd,Vegetables,,46,Kg,,,Groceries
+Ash Gourd,Vegetables,,177,500 gms,,,Groceries
+Pumpkin,Vegetables,,74,500 gms,,,Groceries
+Drumstick,Vegetables,,294,Kg,,,Groceries
+Sweet Corn,Vegetables,,46,2 pcs,,,Groceries
+Green Peas,Vegetables,,42,Kg,,,Groceries
+Broad Beans,Vegetables,,70,Kg,,,Groceries
+French Beans,Vegetables,,98,Kg,,,Groceries
+Tinda,Vegetables,,200,Kg,,,Groceries
+Chow Chow,Vegetables,,,Kg,,,Groceries
+Raw Banana,Vegetables,,59,Kg,,,Groceries
+Raw Papaya,Vegetables,,48,piece,,,Groceries
+Spinach,Leafy Vegetables,,25,bunch,,,Groceries
+Palak,Leafy Vegetables,,25,Bunch,,,Groceries
+Coriander Leaves,Leafy Vegetables,,20,Bunch,,,Groceries
+Curry Leaves,Leafy Vegetables,,20,Bunch,,,Groceries
+Mint Leaves,Leafy Vegetables,,20,Bunch,,,Groceries
+Fenugreek Leaves,Leafy Vegetables,,25,Bunch,,,Groceries
+Dill Leaves,Leafy Vegetables,,20,Bunch,,,Groceries
+Amaranthus – Green,Leafy Vegetables,,25,Bunch,,,Groceries
+Amaranthus – Red,Leafy Vegetables,,25,Bunch,,,Groceries
+Basale Soppu,Leafy Vegetables,,25,Bunch,,,Groceries
+Shepu Soppu,Leafy Vegetables,,25,Bunch,,,Groceries
+Gongura,Leafy Vegetables,,25,Bunch,,,Groceries
+Colocasia Leaves,Leafy Vegetables,,25,Bunch,,,Groceries
+White Bread,Bakery,,45,Packet,,,Groceries
+Brown Bread,Bakery,,55,Packet,,,Groceries
+Milk Bread,Bakery,,55,Packet,,,Groceries
+Multigrain Bread,Bakery,,70,Packet,,,Groceries
+Bun,Bakery,,35,Packet,,,Groceries
+Pav,Bakery,,25,Packet,,,Groceries
+Burger Bun,Bakery,,38,Packet,,,Groceries
+Hot Dog Bun,Bakery,,25,Packet,,,Groceries
+Rusk,Bakery,,165,kg,,,Groceries
+Toast Bread,Bakery,,40,Packet,,,Groceries
+Khari Biscuit,Bakery,,,Packet,,,Groceries
+Cookies,Bakery,,100,Packet,,,Groceries
+Plum Cake,Bakery,,150,Packet,,,Groceries
+Fruit Cake,Bakery,,200,Packet,,,Groceries
+Cream Roll,Bakery,,270,Packet,,,Groceries
+Croissant,Bakery,,28,Packet,,,Groceries
+Donut,Bakery,,210,Packet,,,Groceries
+Muffin,Bakery,,110,Packet,,,Groceries
+Cup Cake,Bakery,,54,Packet,,,Groceries
+Toned Milk,Milk Products,,75,Litre,,,Groceries
+Double Toned Milk,Milk Products,,55,Litre,,,Groceries
+Full Cream Milk,Milk Products,,,Litre,,,Groceries
+A2 Cow Milk,Milk Products,,100,Litre,,,Groceries
+Curd – Cup,Milk Products,,35,400 gms,,,Groceries
+Curd – Packet,Milk Products,,75,kg,,,Groceries
+Butter,Milk Products,,60,100 gms,,,Groceries
+Ghee,Milk Products,,335,Litre,,,Groceries
+Paneer,Milk Products,,369,Litre,,,Groceries
+Cheese Slice,Milk Products,,140,200 gms,,,Groceries
+Cheese Block,Milk Products,,565,kg,,,Groceries
+Buttermilk,Milk Products,,70,Litre,,,Groceries
+Lassi,Milk Products,,70,Litre,,,Groceries
+Flavoured Milk,Milk Products,,43,200 ml,,,Groceries
+Ice Cream – Cup,Milk Products,,40,Litre,,,Groceries
+Ice Cream – Family Pack,Milk Products,,500,Litre,,,Groceries
+Rice – Sona Masuri,Staples,,75,Kg,,,Groceries
+Rice – Idli,Staples,,50,Kg,,,Groceries
+Rice – Basmati,Staples,,360,Kg,,,Groceries
+Rice – Brown,Staples,,177,Kg,,,Groceries
+Wheat Flour,Staples,,65,Kg,,,Groceries
+Ragi Flour,Staples,,85,Kg,,,Groceries
+Jowar Flour,Staples,,90,Kg,,,Groceries
+Maida,Staples,,75,Kg,,,Groceries
+Sugar,Staples,,55,Kg,,,Groceries
+Jaggery,Staples,,100,Kg,,,Groceries
+Salt – Iodised,Staples,,25,Kg,,,Groceries
+Salt – Rock,Staples,,120,Kg,,,Groceries
+Toor Dal,Staples,,150,Kg,,,Groceries
+Moong Dal,Staples,,186,Kg,,,Groceries
+Chana Dal,Staples,,100,Kg,,,Groceries
+Urad Dal,Staples,,100,Kg,,,Groceries
+Masoor Dal,Staples,,112,Kg,,,Groceries
+Sunflower Oil,Staples,,179,Litre,,,Groceries
+Groundnut Oil,Staples,,198,Litre,,,Groceries
+Coconut Oil,Staples,,275,Litre,,,Groceries
+Mustard Oil,Staples,,192,Litre,,,Groceries
+Tea Powder,Staples,,325,Kg,,,Groceries
+Coffee Powder,Staples,,720,500 gms,,,Groceries
+Poha,Staples,,90,Kg,,,Groceries
+Vermicelli,Staples,,75,800 gms,,,Groceries
+Noodles,Staples,,122,800 gms,,,Groceries
+Pasta,Staples,,169,500 gms,,,Groceries
+Turmeric Powder,Staples,,83,250 gms,,,Groceries
+Chilli Powder,Staples,,180,500 gms,,,Groceries
+Coriander Powder,Staples,,156,Kg,,,Groceries
+Garam Masala,Staples,,208,200 gms,,,Groceries
+Sambar Powder,Staples,,98,200 gms,,,Groceries
+Rasam Powder,Staples,,133,200 gms,,,Groceries
+Pickle,Staples,,129,500 gms,,,Groceries
+Papad,Staples,,375,Kg,,,Groceries
+Breakfast Cereal,Staples,,,Kg,,,Groceries
+Chocolate Cake,Bakery,Egg,122,250 gms,,,Groceries
+Black Forest Cake,Bakery,Egg,549,350 gms,,,Groceries
+Red Velvet Cake,Bakery,Egg,120,250 gms,,,Groceries
+Chocolate Pastry,Bakery,Egg,124,200 gms,,,Groceries
+Pineapple Pastry,Bakery,Egg,65,1 piece,,,Groceries
+White Bread,Bakery,Veg,40,400g,,,Groceries
+Brown Bread,Bakery,Veg,55,400g,,,Groceries
+Veg Puff,Bakery,Veg,75,1 piece,,,Groceries
+Paneer Puff,Bakery,Veg,85,1 piece,,,Groceries
+Egg Puff,Bakery,Egg,90,1 piece,,,Groceries
+Butter Cookies,Bakery,Veg,35,200g,,,Groceries
+Chocolate Chip Cookies,Bakery,Veg,507,660 gms,,,Groceries
+Chocolate Muffin,Bakery,Eggless,70,150 gms,,,Groceries
+Vanilla Cupcake,Bakery,Eggless,120,200 gms,,,Groceries
+Plum Cake,Bakery,Eggless,149,330 gms,,,Groceries
+Chocolate Cake,Bakery,Eggless,269,365 gms,,,Groceries
+Black Forest Cake,Bakery,Eggless,405,500g ,,,Groceries
+Red Velvet Cake,Bakery,Eggless,249,330 gms,,,Groceries
+Chocolate Pastry,Bakery,Eggless,269,365 gms,,,Groceries
+Pineapple Pastry,Bakery,Eggless,125,1 piece,,,Groceries
+Chocolate Muffin,Bakery,Egg,249,1 piece,,,Groceries
+Vanilla Cupcake,Bakery,Egg,119,1 piece,,,Groceries
+Plum Cake,Bakery,Egg,149,330 gms,,,Groceries
