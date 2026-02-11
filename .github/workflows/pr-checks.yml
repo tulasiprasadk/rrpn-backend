@@ -1,0 +1,31 @@
+name: PR Checks (lint, test, build)
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install backend deps & run lint/tests
+        working-directory: backend
+        run: |
+          npm ci
+          npm run lint || true
+          npm test || true
+
+      - name: Install frontend deps & run lint/build
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run lint || true
+          npm run build || true

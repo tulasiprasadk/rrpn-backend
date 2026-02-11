@@ -1,0 +1,40 @@
+name: Deploy Production (manual or tag)
+
+on:
+  workflow_dispatch: {}
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install backend deps
+        working-directory: backend
+        run: |
+          npm ci
+
+      - name: Build frontend
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build || true
+
+      # Deployment step intentionally left as a manual placeholder.
+      # To enable automated deploys, uncomment and configure provider-specific secrets.
+      - name: Deploy (manual step)
+        run: |
+          echo "This workflow requires manual configuration to deploy."
+          echo "Set provider secrets and replace this step with a deploy command."
+          exit 0

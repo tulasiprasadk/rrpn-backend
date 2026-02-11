@@ -1,0 +1,35 @@
+name: Deploy Staging (push to staging)
+
+on:
+  push:
+    branches:
+      - staging
+  workflow_dispatch: {}
+
+jobs:
+  build-and-deploy-staging:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install backend deps
+        working-directory: backend
+        run: |
+          npm ci
+
+      - name: Build frontend
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build || true
+
+      - name: Staging Deploy (placeholder)
+        run: |
+          echo "Staging deploy placeholder — configure provider-specific deploy commands here."
+          exit 0

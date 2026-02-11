@@ -1,0 +1,7 @@
+✓ Passport loaded
+✓ Routes loaded
+🚀 Cloud Run backend running on port 3000
+✓ Health endpoints available: /, /api/health, /api/auth/status
+✓ All routes loaded and ready
+✅ Database connected
+✅ Database synced (altered to match models)
