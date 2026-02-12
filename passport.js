@@ -66,7 +66,9 @@ if (googleConfigured) {
       supplier = await SupplierModel.create({
         name: profile.displayName,
         email,
-        status: 'pending', // After Google login, supplier needs to complete KYC
+        // New suppliers should first submit KYC before admin approval.
+        // Use explicit 'kyc_pending' to indicate the supplier needs to complete KYC.
+        status: 'kyc_pending',
         acceptedTnC: false,
         kycSubmitted: false
       });

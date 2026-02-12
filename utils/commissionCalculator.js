@@ -28,7 +28,7 @@ export async function getPlatformConfig() {
       } else if (config.type === 'json') {
         try {
           value = JSON.parse(value);
-        } catch {
+        } catch (err) {
           value = value;
         }
       }

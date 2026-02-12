@@ -2,6 +2,7 @@ import express from "express";
 import pkg from "pg";
 import { Op } from "sequelize";
 import { models, sequelize } from "../config/database.js";
+import { getPlatformConfig } from "../utils/commissionCalculator.js";
 
 const { Pool } = pkg;
 
@@ -73,6 +74,9 @@ router.get("/", async (req, res) => {
         limit,
       });
 
+      const config = await getPlatformConfig();
+      const commissionRate = config.platform_commission || parseFloat(process.env.PLATFORM_COMMISSION || 15);
+
       const normalized = results.map((row) => {
         const product = row.toJSON ? row.toJSON() : { ...row };
         if (product.Category) {
@@ -85,6 +89,14 @@ router.get("/", async (req, res) => {
           product.Category = null;
         }
         product.basePrice = product.price;
+        // apply platform commission to public-facing price
+        try {
+          const pct = Number(product.basePrice) || 0;
+          const commission = (pct * commissionRate) / 100;
+          product.price = Number((pct + commission).toFixed(2));
+        } catch (e) {
+          // if any error, leave price as-is
+        }
         return product;
       });
 
@@ -161,6 +173,9 @@ router.get("/", async (req, res) => {
     }
     const rows = result.rows || [];
 
+    const config = await getPlatformConfig();
+    const commissionRate = config.platform_commission || parseFloat(process.env.PLATFORM_COMMISSION || 15);
+
     const products = rows.map((row) => {
       const product = { ...row };
       product.Category = row.cat_id
@@ -175,6 +190,14 @@ router.get("/", async (req, res) => {
       delete product.cat_name;
       delete product.cat_icon;
       product.basePrice = product.price;
+      // apply platform commission to public-facing price
+      try {
+        const pct = Number(product.basePrice) || 0;
+        const commission = (pct * commissionRate) / 100;
+        product.price = Number((pct + commission).toFixed(2));
+      } catch (e) {
+        // noop
+      }
       return product;
     });
 
@@ -225,6 +248,69 @@ router.get("/test", (req, res) => {
 ===================================================== */
 router.get("/health", (req, res) => {
   res.json({ ok: true });
+});
+
+/* =====================================================
+  POST /api/products/:id/view
+  - Record a product view and enqueue activation job when threshold reached
+===================================================== */
+router.post('/:id/view', async (req, res) => {
+  try {
+    const { ProductView, ActivationJob, Product } = models || {};
+    if (!Product) return res.status(503).json({ ok: false, error: 'DB not ready' });
+    const id = Number(req.params.id);
+    if (!id) return res.status(400).json({ ok: false, error: 'Invalid id' });
+
+    // upsert view record
+    let view = null;
+    if (ProductView) {
+      view = await ProductView.findOne({ where: { ProductId: id } });
+      if (!view) {
+        view = await ProductView.create({ ProductId: id, views: 1, lastViewAt: new Date() });
+      } else {
+        view.views = (view.views || 0) + 1;
+        view.lastViewAt = new Date();
+        await view.save();
+      }
+    }
+
+    const threshold = Number(process.env.ACTIVATION_THRESHOLD || 3);
+    const currentViews = view ? view.views : 0;
+    if (currentViews >= threshold) {
+      // ensure activation job exists
+      if (ActivationJob) {
+        const existing = await ActivationJob.findOne({ where: { ProductId: id, status: 'pending' } });
+        if (!existing) {
+          await ActivationJob.create({ ProductId: id });
+        }
+      }
+    }
+
+    res.json({ ok: true, views: currentViews, threshold });
+  } catch (err) {
+    console.error('Error recording view:', err);
+    res.status(500).json({ ok: false });
+  }
+});
+
+/* =====================================================
+  POST /api/products/:id/activate
+  - For testing: enqueue activation job immediately
+===================================================== */
+router.post('/:id/activate', async (req, res) => {
+  try {
+    const { ActivationJob } = models || {};
+    const id = Number(req.params.id);
+    if (!id) return res.status(400).json({ ok: false, error: 'Invalid id' });
+    if (!ActivationJob) return res.status(503).json({ ok: false, error: 'DB not ready' });
+    const existing = await ActivationJob.findOne({ where: { ProductId: id, status: 'pending' } });
+    if (existing) return res.json({ ok: true, message: 'Already queued' });
+    await ActivationJob.create({ ProductId: id });
+    res.json({ ok: true, message: 'Queued' });
+  } catch (err) {
+    console.error('Error enqueue activation:', err);
+    res.status(500).json({ ok: false });
+  }
 });
 
 /* =====================================================

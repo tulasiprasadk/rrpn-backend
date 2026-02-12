@@ -53,6 +53,7 @@ app.use(bodyParser.json({ limit: "10mb" }));
 // Session
 app.use(
   session({
+    name: process.env.SESSION_COOKIE_NAME || 'rrnagar.sid',
     secret: process.env.SESSION_SECRET || "fallback-secret",
     resave: false,
     saveUninitialized: false,
@@ -299,10 +300,10 @@ app.get("/api/auth/me", async (req, res) => {
 
 /**
  * REQUIRED FOR CLOUD RUN:
- * Must listen on PORT=8080
+ * Default local dev port is 3000 (can be overridden with PORT env)
  * Load routes BEFORE starting server to ensure they're available immediately
  */
-const PORT = process.env.PORT || 8080;
+const PORT = process.env.PORT || 3000;
 
 // Load Passport and Routes BEFORE starting server
 // This ensures routes are available immediately when server starts

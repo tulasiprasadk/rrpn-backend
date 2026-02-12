@@ -65,6 +65,49 @@ router.post("/", requireLogin, async (req, res) => {
 });
 
 /* ======================================
+   GUEST ADDRESS - save to session for guest users
+   POST /guest   -> saves address to session (non-persistent)
+   GET  /guest   -> returns saved guest addresses
+====================================== */
+router.post("/guest", async (req, res) => {
+  try {
+    const data = req.body || {};
+    // Ensure session bucket
+    req.session.guestAddresses = req.session.guestAddresses || [];
+
+    const address = {
+      id: `sess-${Date.now()}`,
+      name: data.name || null,
+      phone: data.phone || null,
+      addressLine: data.addressLine || null,
+      city: data.city || null,
+      state: data.state || null,
+      pincode: data.pincode || null,
+      createdAt: new Date(),
+    };
+
+    req.session.guestAddresses.push(address);
+    // Optionally set a single saved guest address as default on session
+    req.session.guestDefaultAddressId = address.id;
+
+    res.json({ success: true, address });
+  } catch (err) {
+    console.error('Guest address save error:', err);
+    res.status(500).json({ error: 'Failed to save guest address' });
+  }
+});
+
+router.get("/guest", async (req, res) => {
+  try {
+    const list = req.session.guestAddresses || [];
+    res.json(list);
+  } catch (err) {
+    console.error('Guest address list error:', err);
+    res.status(500).json({ error: 'Failed to read guest addresses' });
+  }
+});
+
+/* ======================================
    UPDATE ADDRESS
 ====================================== */
 router.put("/:id", requireLogin, async (req, res) => {

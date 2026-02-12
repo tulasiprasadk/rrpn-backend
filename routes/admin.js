@@ -3,7 +3,7 @@ import bcrypt from 'bcrypt';
 import { Op } from 'sequelize';
 import { models } from "../config/database.js";
 
-const { Category, Ad, AnalyticsVisit, Product, Admin, Supplier, Order, Customer } = models;
+const { Category, Ad, AnalyticsVisit, Product, Admin, Supplier, Order, Customer, Notification } = models;
 
 import { translateToKannada } from '../services/translator.js';
 const router = express.Router();
@@ -465,6 +465,25 @@ router.post('/suppliers/:id/approve', requireSuperAdmin, async (req, res) => {
       approvedAt: new Date()
     });
 
+    // Mark related admin notifications (supplier registration) as read
+    try {
+      await Notification.update(
+        { isRead: true },
+        {
+          where: {
+            audience: 'admin',
+            type: 'supplier_registration',
+            [Op.or]: [
+              { message: { [Op.like]: `%${supplier.email || supplier.phone}%` } },
+              { meta: { [Op.like]: `%${supplier.id}%` } }
+            ]
+          }
+        }
+      );
+    } catch (notifyErr) {
+      console.error('Error marking supplier notifications read:', notifyErr);
+    }
+
     // TODO: Send notification to supplier about approval
 
     res.json({ 
@@ -504,6 +523,25 @@ router.post('/suppliers/:id/reject', requireSuperAdmin, async (req, res) => {
       status: 'rejected',
       rejectionReason: reason.trim()
     });
+
+    // Mark related admin notifications (supplier registration) as read on rejection
+    try {
+      await Notification.update(
+        { isRead: true },
+        {
+          where: {
+            audience: 'admin',
+            type: 'supplier_registration',
+            [Op.or]: [
+              { message: { [Op.like]: `%${supplier.email || supplier.phone}%` } },
+              { meta: { [Op.like]: `%${supplier.id}%` } }
+            ]
+          }
+        }
+      );
+    } catch (notifyErr) {
+      console.error('Error marking supplier notifications read (reject):', notifyErr);
+    }
 
     // TODO: Send notification to supplier about rejection
 

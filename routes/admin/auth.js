@@ -182,8 +182,9 @@ router.post("/logout", (req, res) => {
     if (err) {
       return res.status(500).json({ error: "Logout failed" });
     }
-
-    res.clearCookie("rrnagar.sid");
+    // Clear both the legacy and current session cookie names to be safe
+    try { res.clearCookie("rrnagar.sid"); } catch (e) {}
+    try { res.clearCookie("connect.sid"); } catch (e) {}
     res.json({ success: true });
   });
 });

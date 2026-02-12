@@ -20,6 +20,10 @@ import getAdClick from "./AdClick.js";
 import getOTPSession from "./OTPSession.js";
 import getBlog from "./Blog.js";
 import getSubscription from "./Subscription.js";
+import getFeaturedAd from "./FeaturedAd.js";
+import getProductView from "./ProductView.js";
+import getActivationJob from "./ActivationJob.js";
+import getItemActivationAudit from "./ItemActivationAudit.js";
 
 export default function initModels(sequelize) {
   const Admin = getAdmin(sequelize, DataTypes);
@@ -43,6 +47,10 @@ export default function initModels(sequelize) {
   const OTPSession = getOTPSession(sequelize, DataTypes);
   const Blog = getBlog(sequelize, DataTypes);
   const Subscription = getSubscription(sequelize, DataTypes);
+  const FeaturedAd = getFeaturedAd(sequelize, DataTypes);
+  const ProductView = getProductView(sequelize, DataTypes);
+  const ActivationJob = getActivationJob(sequelize, DataTypes);
+  const ItemActivationAudit = getItemActivationAudit(sequelize, DataTypes);
 
   // Junction table
   const ProductSupplier = sequelize.define("ProductSupplier", {
@@ -74,6 +82,9 @@ export default function initModels(sequelize) {
 
   Product.hasMany(StockHistory);
   StockHistory.belongsTo(Product);
+
+  // Featured ads (mega grid, scroll ads)
+  FeaturedAd.belongsTo(Product, { foreignKey: 'ProductId', allowNull: true });
 
   Customer.hasMany(Order, { foreignKey: 'CustomerId' });
   Order.belongsTo(Customer, { foreignKey: 'CustomerId' });
@@ -119,6 +130,16 @@ export default function initModels(sequelize) {
   Blog.belongsTo(Admin, { foreignKey: 'authorId', as: 'author' });
   Admin.hasMany(Blog, { foreignKey: 'authorId', as: 'blogs' });
 
+  // Activation-related models
+  Product.hasOne(ProductView, { foreignKey: 'ProductId' });
+  ProductView.belongsTo(Product, { foreignKey: 'ProductId' });
+
+  Product.hasMany(ActivationJob, { foreignKey: 'ProductId' });
+  ActivationJob.belongsTo(Product, { foreignKey: 'ProductId' });
+
+  Product.hasMany(ItemActivationAudit, { foreignKey: 'ProductId' });
+  ItemActivationAudit.belongsTo(Product, { foreignKey: 'ProductId' });
+
   return {
     Admin,
     Ad,
@@ -142,5 +163,14 @@ export default function initModels(sequelize) {
     OTPSession,
     Blog,
     Subscription
+    ,
+    ProductView,
+    ActivationJob,
+    ItemActivationAudit,
+    FeaturedAd
+    ,
+    ProductView,
+    ActivationJob,
+    ItemActivationAudit
   };
 }

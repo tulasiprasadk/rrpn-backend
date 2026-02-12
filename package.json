@@ -7,6 +7,9 @@
   "scripts": {
     "start": "node index.js",
     "migrate": "node migrate.js",
+    "migrate:add-active": "node scripts/migrate_add_active_and_audit.js",
+    "activation:worker": "node services/activationWorker.js",
+    "import:batch": "node scripts/import_batch.js",
     "dev": "nodemon index.js",
     "add-order-columns": "node scripts/add-order-columns.js",
     "check-order-table": "node scripts/check-order-table.js",
