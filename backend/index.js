@@ -7,6 +7,8 @@ import session from "express-session";
 import { Op } from "sequelize";
 import { initDatabase, models, sequelize } from "./config/database.js";
 import { getPlatformConfig } from "./utils/commissionCalculator.js";
+import passport from "./passport.js";
+import routes from "./routes/index.js";
 
 const app = express();
 const { Pool } = pkg;
@@ -388,32 +390,14 @@ app.get("/api/auth/me", async (req, res) => {
  */
 const PORT = process.env.PORT || 3000;
 
-// Load Passport and Routes. These will be initialized when the module is loaded.
-// The database connection will be established by the pool when the first query is made.
-try {
-    const passport = (await import("./passport.js")).default;
-    app.use(passport.initialize());
-    app.use(passport.session());
-    console.log("✓ Passport loaded");
-  } catch (err) {
-    console.error("⚠ Passport load error:", err.message);
-    console.error("Stack:", err.stack);
-    // Continue even if passport fails - health endpoints will still work
-  }
+// Initialize Passport
+app.use(passport.initialize());
+app.use(passport.session());
+console.log("✓ Passport loaded");
 
-  try {
-    const routes = (await import("./routes/index.js")).default;
-    app.use("/api", routes);
-    console.log("✓ Routes loaded");
-    // Log a few registered paths to confirm
-    app._router.stack.forEach(r => {
-      if (r.route && r.route.path) console.log(`  - ${r.route.path}`);
-    });
-  } catch (err) {
-    console.error("⚠ Routes load error:", err.message);
-    console.error("Stack:", err.stack);
-    // Health endpoints are already defined above, so they'll still work
-  }
+// Initialize Routes
+app.use("/api", routes);
+console.log("✓ Routes loaded");
 
   // Error handler - must be after routes
   app.use((err, req, res, next) => {
