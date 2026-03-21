@@ -1,22 +1,22 @@
-// Diagnostic Bootloader for Vercel
-// This wraps the backend import to catch startup crashes (missing modules, syntax errors)
-// and report them to the browser instead of returning a generic 404.
+import express from "express";
+import cors from "cors";
 
-export default async function handler(req, res) {
-  try {
-    // Dynamically load the backend app
-    const appModule = await import('../backend/index.js');
-    const app = appModule.default;
-    
-    // Pass the request to the Express app
-    return app(req, res);
-  } catch (err) {
-    console.error("CRITICAL: Backend startup failed:", err);
-    res.status(500).json({
-      error: "Backend Startup Failed",
-      message: err.message,
-      stack: err.stack,
-      hint: "Check if all files referenced in imports are present in the git repo."
-    });
-  }
+const app = express();
+
+// Middleware
+app.use(cors());
+app.use(express.json());
+
+// Health Route
+app.get("/", (req, res) => res.json({ message: "Backend is running!", env: process.env.NODE_ENV }));
+app.get("/api/health", (req, res) => res.json({ status: "ok" }));
+
+// Start server locally (but NOT on Vercel)
+if (process.env.VERCEL !== "1") {
+  const PORT = process.env.PORT || 3000;
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  });
 }
+
+export default app;

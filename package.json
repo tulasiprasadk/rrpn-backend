@@ -5,9 +5,9 @@
   "main": "api/index.js",
   "license": "MIT",
   "scripts": {
-    "start": "node api/index.js",
+    "start": "node backend/index.js",
     "migrate": "node migrate.js",
-    "dev": "nodemon api/index.js"
+    "dev": "nodemon backend/index.js"
   },
   "dependencies": {
     "@vitalets/google-translate-api": "^9.2.1",
