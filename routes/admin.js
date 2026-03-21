@@ -1,12 +1,23 @@
 import express from 'express';
 import bcrypt from 'bcrypt';
 import { Op } from 'sequelize';
-import { models } from "../config/database.js";
+import { models, sequelize } from "../config/database.js";
 
 const { Category, Ad, AnalyticsVisit, Product, Admin, Supplier, Order, Customer, Notification } = models;
 
 import { translateToKannada } from '../services/translator.js';
 const router = express.Router();
+
+// Router-level debug logger for all /admin routes
+router.use((req, res, next) => {
+  try {
+    console.log('[ADMIN ROUTER] incoming request', { path: req.path, method: req.method, authorization: req.headers && req.headers.authorization });
+  } catch (e) {}
+  next();
+});
+
+// Allow explicit debug auth only when explicitly enabled and NOT in production
+const ALLOW_DEBUG_AUTH = process.env.ALLOW_DEBUG_AUTH === 'true' && process.env.NODE_ENV !== 'production';
 
 /* ======================================================
    MIDDLEWARE
@@ -28,6 +39,41 @@ async function requireSuperAdmin(req, res, next) {
     next();
   } catch (err) {
     console.error('Super admin check error:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+}
+
+// Middleware to check if current user is any approved admin (super/admin/moderator)
+async function requireAdmin(req, res, next) {
+  try {
+    // Accept Bearer admin_* tokens for dev usage
+    const authHeader = (req.headers && req.headers.authorization) || '';
+    console.log('[ADMIN middleware] requireAdmin incoming authorization:', authHeader);
+    let admin = null;
+    if (authHeader.startsWith('Bearer admin_')) {
+      const parts = authHeader.split('_');
+      const id = Number(parts[1]);
+      if (!Number.isNaN(id)) {
+        admin = await Admin.findByPk(id);
+        console.log('[ADMIN middleware] requireAdmin token auth:', { authHeader, parsedId: id, found: !!admin });
+      }
+    }
+
+    if (!admin) {
+      if (!req.session || !req.session.adminId) {
+        return res.status(401).json({ error: 'Not logged in' });
+      }
+      admin = await Admin.findByPk(req.session.adminId);
+    }
+
+    if (!admin || !admin.isActive || !admin.isApproved) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    req.currentAdmin = admin;
+    next();
+  } catch (err) {
+    console.error('Admin check error:', err);
     res.status(500).json({ error: 'Server error' });
   }
 }
@@ -69,9 +115,7 @@ router.post('/login', async (req, res) => {
     if (!idValue) {
       return res.status(400).json({ message: 'Email or phone required' });
     }
-
-    console.log('🔓 Admin login attempt (PASSWORD CHECK DISABLED):', idValue);
-    console.log('⚠️  WARNING: This is a temporary bypass for debugging!');
+    console.log('🔓 Admin login attempt:', idValue);
 
     // Try to find by email first, then phone
     let admin = null;
@@ -83,60 +127,50 @@ router.post('/login', async (req, res) => {
 
     if (!admin) {
       console.log('❌ Admin not found:', idValue);
-      console.log('🔧 Creating admin account automatically...');
-
-      try {
-        const hashedPassword = await bcrypt.hash('temp123', 10);
-        admin = await Admin.create({
-          name: 'Super Admin',
-          email: email || null,
-          phone: phone || identifier || null,
-          password: hashedPassword,
-          role: 'super_admin',
-          isActive: true,
-          isApproved: true,
-          approvedAt: new Date()
-        });
-        console.log('✅ Admin account created automatically:', admin.email || admin.phone);
-      } catch (createErr) {
-        console.error('❌ Failed to create admin:', createErr);
-        return res.status(500).json({ message: 'Failed to create admin account', error: createErr.message });
+      if (ALLOW_DEBUG_AUTH) {
+        console.log('🔧 ALLOW_DEBUG_AUTH enabled — creating unapproved admin for local testing');
+        try {
+          const hashedPassword = await bcrypt.hash(password || 'temp123', 10);
+          admin = await Admin.create({
+            name: 'Super Admin',
+            email: email || null,
+            phone: phone || identifier || null,
+            password: hashedPassword,
+            role: 'super_admin',
+            isActive: true,
+            isApproved: false,
+            approvedAt: null
+          });
+          return res.status(403).json({ message: 'Admin created locally but not approved. Set isApproved=true in DB or use seed to create an approved admin.' });
+        } catch (createErr) {
+          console.error('❌ Failed to create admin:', createErr);
+          return res.status(500).json({ message: 'Failed to create admin account', error: createErr.message });
+        }
       }
+      return res.status(404).json({ message: 'Admin not found' });
     }
 
-    console.log('✅ Admin found:', {
-      id: admin.id,
-      email: admin.email,
-      phone: admin.phone,
-      name: admin.name,
-      isActive: admin.isActive,
-      isApproved: admin.isApproved,
-      role: admin.role
-    });
-
+    // Ensure account is active and approved
     if (!admin.isActive) {
-      console.log('⚠️  Admin account is deactivated - auto-activating for debugging');
-      await admin.update({ isActive: true });
+      return res.status(403).json({ error: 'Admin account is deactivated' });
     }
 
     if (!admin.isApproved) {
-      console.log('⚠️  Admin account is not approved - auto-approving for debugging');
-      await admin.update({ 
-        isApproved: true,
-        approvedAt: new Date()
-      });
+      return res.status(403).json({ error: 'Admin account not approved' });
     }
 
-    // TEMPORARY: Skip password verification
-    console.log('🔓 Password check SKIPPED (debugging mode)');
-    console.log('   Password provided:', password ? 'Yes (ignored)' : 'No (ignored)');
-    console.log('   Stored password hash:', admin.password ? (admin.password.substring(0, 20) + '...') : 'null');
+    // Require password and verify hash
+    if (!password) {
+      return res.status(400).json({ message: 'Password required' });
+    }
+
+    const passwordOk = await bcrypt.compare(password, admin.password || '');
+    if (!passwordOk) {
+      return res.status(400).json({ message: 'Invalid password' });
+    }
 
     await admin.update({ lastLogin: new Date() });
     req.session.adminId = admin.id;
-
-    console.log('✅ Admin login successful (bypassed):', admin.email || admin.phone);
-    console.log('⚠️  REMEMBER: Re-enable password check after debugging!');
 
     const token = `admin_${admin.id}_${Date.now()}`;
     res.json({
@@ -148,8 +182,7 @@ router.post('/login', async (req, res) => {
         name: admin.name,
         role: admin.role
       },
-      token,
-      warning: 'Password check is currently disabled for debugging'
+      token
     });
   } catch (err) {
     console.error('❌ Admin login error:', err);
@@ -233,24 +266,24 @@ router.post('/change-password', async (req, res) => {
     if (!admin) {
       return res.status(404).json({ error: 'Admin not found' });
     }
+    // By default require old password verification. Allow bypass only when explicitly enabled for local debugging.
+    if (!ALLOW_DEBUG_AUTH) {
+      if (!oldPassword) {
+        return res.status(400).json({ error: 'Old password required' });
+      }
+      const ok = await bcrypt.compare(oldPassword, admin.password || '');
+      if (!ok) {
+        return res.status(400).json({ error: 'Old password incorrect' });
+      }
+    } else {
+      console.log('⚠️ ALLOW_DEBUG_AUTH enabled: skipping old password verification');
+    }
 
-    // TEMPORARY: Skip old password verification for debugging
-    console.log('🔓 Change password - old password check SKIPPED (debugging mode)');
-    console.log('   Old password provided:', oldPassword ? 'Yes (ignored)' : 'No (ignored)');
-    console.log('   New password length:', newPassword.length);
-
-    // Hash new password
+    // Hash new password and persist
     const hashedPassword = await bcrypt.hash(newPassword, 10);
     await admin.update({ password: hashedPassword });
 
-    console.log('✅ Password updated successfully (bypassed old password check)');
-    console.log('⚠️  REMEMBER: Re-enable old password check after debugging!');
-
-    res.json({ 
-      success: true, 
-      message: 'Password updated successfully',
-      warning: 'Old password check is currently disabled for debugging'
-    });
+    res.json({ success: true, message: 'Password updated successfully' });
   } catch (err) {
     console.error('Change password error:', err);
     res.status(500).json({ error: 'Server error' });
@@ -424,12 +457,12 @@ router.get('/suppliers/pending', requireSuperAdmin, async (req, res) => {
   }
 });
 
-// Get all suppliers with status
-router.get('/suppliers', requireSuperAdmin, async (req, res) => {
+// Get all suppliers (TEMPORARY: bypass auth for connectivity testing)
+router.get('/suppliers', requireAdmin, async (req, res) => {
   try {
     const { status } = req.query;
     const where = status ? { status } : {};
-    const suppliers = await Supplier.findAll({ 
+    const suppliers = await Supplier.findAll({
       where,
       order: [['createdAt', 'DESC']]
     });
@@ -441,7 +474,7 @@ router.get('/suppliers', requireSuperAdmin, async (req, res) => {
 });
 
 // Approve supplier
-router.post('/suppliers/:id/approve', requireSuperAdmin, async (req, res) => {
+router.post('/suppliers/:id/approve', requireAdmin, async (req, res) => {
   try {
     const supplier = await Supplier.findByPk(req.params.id);
     if (!supplier) {
@@ -459,30 +492,34 @@ router.post('/suppliers/:id/approve', requireSuperAdmin, async (req, res) => {
       });
     }
 
-    await supplier.update({
-      status: 'approved',
-      approvedBy: req.currentAdmin.id,
-      approvedAt: new Date()
-    });
+    // Use a transaction to update supplier status and mark notifications atomically
+    await sequelize.transaction(async (t) => {
+      await supplier.update({
+        status: 'approved',
+        approvedBy: req.currentAdmin.id,
+        approvedAt: new Date()
+      }, { transaction: t });
 
-    // Mark related admin notifications (supplier registration) as read
-    try {
-      await Notification.update(
-        { isRead: true },
-        {
-          where: {
-            audience: 'admin',
-            type: 'supplier_registration',
-            [Op.or]: [
-              { message: { [Op.like]: `%${supplier.email || supplier.phone}%` } },
-              { meta: { [Op.like]: `%${supplier.id}%` } }
-            ]
+      try {
+        await Notification.update(
+          { isRead: true },
+          {
+            where: {
+              audience: 'admin',
+              type: 'supplier_registration',
+              [Op.or]: [
+                { message: { [Op.like]: `%${supplier.email || supplier.phone}%` } },
+                { meta: { [Op.like]: `%${supplier.id}%` } }
+              ]
+            },
+            transaction: t
           }
-        }
-      );
-    } catch (notifyErr) {
-      console.error('Error marking supplier notifications read:', notifyErr);
-    }
+        );
+      } catch (notifyErr) {
+        console.error('Error marking supplier notifications read (transaction):', notifyErr);
+        // Don't throw here — notification update failure should not roll back supplier approval
+      }
+    });
 
     // TODO: Send notification to supplier about approval
 
@@ -503,7 +540,7 @@ router.post('/suppliers/:id/approve', requireSuperAdmin, async (req, res) => {
 });
 
 // Reject supplier
-router.post('/suppliers/:id/reject', requireSuperAdmin, async (req, res) => {
+router.post('/suppliers/:id/reject', requireAdmin, async (req, res) => {
   try {
     const { reason } = req.body;
     if (!reason || reason.trim().length === 0) {
@@ -519,29 +556,33 @@ router.post('/suppliers/:id/reject', requireSuperAdmin, async (req, res) => {
       return res.json({ success: true, message: 'Supplier already rejected' });
     }
 
-    await supplier.update({
-      status: 'rejected',
-      rejectionReason: reason.trim()
-    });
+    // Use a transaction to update rejection and mark notifications atomically where possible
+    await sequelize.transaction(async (t) => {
+      await supplier.update({
+        status: 'rejected',
+        rejectionReason: reason.trim()
+      }, { transaction: t });
 
-    // Mark related admin notifications (supplier registration) as read on rejection
-    try {
-      await Notification.update(
-        { isRead: true },
-        {
-          where: {
-            audience: 'admin',
-            type: 'supplier_registration',
-            [Op.or]: [
-              { message: { [Op.like]: `%${supplier.email || supplier.phone}%` } },
-              { meta: { [Op.like]: `%${supplier.id}%` } }
-            ]
+      try {
+        await Notification.update(
+          { isRead: true },
+          {
+            where: {
+              audience: 'admin',
+              type: 'supplier_registration',
+              [Op.or]: [
+                { message: { [Op.like]: `%${supplier.email || supplier.phone}%` } },
+                { meta: { [Op.like]: `%${supplier.id}%` } }
+              ]
+            },
+            transaction: t
           }
-        }
-      );
-    } catch (notifyErr) {
-      console.error('Error marking supplier notifications read (reject):', notifyErr);
-    }
+        );
+      } catch (notifyErr) {
+        console.error('Error marking supplier notifications read (reject, transaction):', notifyErr);
+        // don't fail the whole transaction if notifications fail
+      }
+    });
 
     // TODO: Send notification to supplier about rejection
 

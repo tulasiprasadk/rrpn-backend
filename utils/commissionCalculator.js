@@ -69,13 +69,14 @@ export async function calculateOrderTotal(baseAmount, options = {}) {
   // Import delivery calculator dynamically to avoid circular dependency
   const { calculateDeliveryCharge } = await import('./deliveryCalculator.js');
   
-  const {
+  let {
     platformFee = config.platform_fee || parseFloat(process.env.PLATFORM_FEE || 0),
     commissionRate = config.platform_commission || parseFloat(process.env.PLATFORM_COMMISSION || 15),
     minOrderAmount = config.min_order_amount || parseFloat(process.env.MIN_ORDER_AMOUNT || 0),
     distance = 0,
     weight = 0,
-    zone = null
+    zone = null,
+    discount = 0
   } = options;
   
   // Calculate delivery charge using the delivery calculator
@@ -93,8 +94,8 @@ export async function calculateOrderTotal(baseAmount, options = {}) {
   }
 
   const commission = await calculateCommission(baseAmount, commissionRate);
-  const supplierAmount = baseAmount - commission;
-  const totalAmount = baseAmount + platformFee + deliveryFee;
+  const supplierAmount = baseAmount;
+  const totalAmount = Math.max(baseAmount + commission + platformFee + deliveryFee - Number(discount || 0), 0);
 
   return {
     baseAmount,
@@ -102,6 +103,7 @@ export async function calculateOrderTotal(baseAmount, options = {}) {
     deliveryFee,
     commission,
     supplierAmount,
+    discount: Number(discount || 0),
     totalAmount
   };
 }

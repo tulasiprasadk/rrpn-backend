@@ -6,6 +6,7 @@ import bodyParser from "body-parser";
 import session from "express-session";
 import { Op } from "sequelize";
 import { initDatabase, models, sequelize } from "./config/database.js";
+import { getPlatformConfig } from "./utils/commissionCalculator.js";
 
 const app = express();
 const { Pool } = pkg;
@@ -65,6 +66,14 @@ app.use(
   })
 );
 
+// Top-level request logger (temporary) to capture Authorization header and path
+app.use((req, res, next) => {
+  try {
+    console.log('[TOP LEVEL] ', { method: req.method, path: req.path, authorization: req.headers && req.headers.authorization });
+  } catch (e) {}
+  next();
+});
+
 // Root - must respond immediately for Cloud Run health checks
 app.get("/", (req, res) => {
   res.json({
@@ -103,11 +112,20 @@ app.get("/api/products", async (req, res) => {
         const likeOp =
           sequelize?.getDialect?.() === "postgres" ? Op.iLike : Op.like;
         const term = `%${q}%`;
+        let categoryMatchIds = [];
+        if (Category) {
+          const matchingCategories = await Category.findAll({
+            attributes: ["id"],
+            where: { name: { [likeOp]: term } },
+          });
+          categoryMatchIds = matchingCategories.map((category) => category.id);
+        }
         where[Op.or] = [
           { title: { [likeOp]: term } },
           { variety: { [likeOp]: term } },
           { subVariety: { [likeOp]: term } },
           { description: { [likeOp]: term } },
+          ...(categoryMatchIds.length ? [{ CategoryId: { [likeOp === Op.iLike ? Op.in : Op.in]: categoryMatchIds } }] : []),
         ];
       }
 
@@ -117,6 +135,9 @@ app.get("/api/products", async (req, res) => {
         order: [["id", "DESC"]],
         limit,
       });
+
+      const config = await getPlatformConfig();
+      const commissionRate = config.platform_commission ?? 15;
 
       const normalized = results.map((row) => {
         const product = row.toJSON ? row.toJSON() : { ...row };
@@ -133,6 +154,11 @@ app.get("/api/products", async (req, res) => {
           product.Category = null;
         }
         product.basePrice = product.price;
+        try {
+          const pct = Number(product.basePrice) || 0;
+          const commission = (pct * Number(commissionRate || 0)) / 100;
+          product.price = Number((pct + commission).toFixed(2));
+        } catch (e) {}
         if (!product.knDisplay && product.titleKannada) {
           product.knDisplay = product.titleKannada;
         }
@@ -159,7 +185,7 @@ app.get("/api/products", async (req, res) => {
     if (q) {
       params.push(`%${q}%`);
       const idx = params.length;
-      whereSql += ` AND (p.title ILIKE $${idx} OR p.variety ILIKE $${idx} OR p."subVariety" ILIKE $${idx} OR p.description ILIKE $${idx})`;
+      whereSql += ` AND (p.title ILIKE $${idx} OR p.variety ILIKE $${idx} OR p."subVariety" ILIKE $${idx} OR p.description ILIKE $${idx} OR c.name ILIKE $${idx})`;
     }
 
     params.push(limit);
@@ -206,6 +232,9 @@ app.get("/api/products", async (req, res) => {
     }
     const rows = result.rows || [];
 
+    const config = await getPlatformConfig();
+    const commissionRate = config.platform_commission ?? 15;
+
     const products = rows.map((row) => {
       const product = { ...row };
       product.Category = row.cat_id
@@ -227,6 +256,11 @@ app.get("/api/products", async (req, res) => {
       delete product.cat_knDisplay;
 
       product.basePrice = product.price;
+      try {
+        const pct = Number(product.basePrice) || 0;
+        const commission = (pct * Number(commissionRate || 0)) / 100;
+        product.price = Number((pct + commission).toFixed(2));
+      } catch (e) {}
       if (!product.knDisplay && product.titleKannada) {
         product.knDisplay = product.titleKannada;
       }
@@ -274,6 +308,31 @@ app.get("/api/auth/status", (req, res, next) => {
     res.status(500).json({ error: "Internal server error", googleConfigured: false });
   }
 });
+
+// Debug: log Authorization header for admin API requests (helps diagnosing token auth)
+app.use((req, res, next) => {
+  try {
+    if (req.path && req.path.startsWith('/api/admin')) {
+      console.log('[GLOBAL DEBUG] incoming admin request', { path: req.path, auth: req.headers && req.headers.authorization });
+    }
+  } catch (e) {}
+  next();
+});
+
+// TEMP DEBUG: expose suppliers directly for testing route reachability
+app.get('/api/debug/suppliers', async (req, res) => {
+  try {
+    const { Supplier } = models || {};
+    if (!Supplier) return res.json({ count: 0, suppliers: [] });
+    const suppliers = await Supplier.findAll({ order: [['createdAt', 'DESC']] });
+    console.log('[DEBUG ENDPOINT] /api/debug/suppliers returning', suppliers.length, 'suppliers');
+    res.json({ count: suppliers.length, suppliers });
+  } catch (err) {
+    console.error('Debug suppliers error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+// (removed temporary debug endpoints)
 
 // Customer auth status (compatibility alias for /api/auth/me)
 app.get("/api/auth/me", async (req, res) => {

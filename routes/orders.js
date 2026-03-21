@@ -5,6 +5,7 @@ import path from "path";
 import fs from "fs";
 import jwt from "jsonwebtoken";
 import { models } from "../config/database.js";
+import { calculateOrderTotal } from "../utils/commissionCalculator.js";
 const { Order, Product, Supplier, Address, Notification } = models;
 const router = express.Router();
 
@@ -64,7 +65,9 @@ router.post("/create", requireLogin, async (req, res) => {
       customerPhone,
       customerAddress,
       paymentUNR,
-      paymentScreenshot
+      paymentScreenshot,
+      discount = 0,
+      promoCode = null
     } = req.body;
 
     // Validate product
@@ -122,8 +125,13 @@ router.post("/create", requireLogin, async (req, res) => {
       }
     }
 
-    // Calculate Total Price
-    const totalAmount = Number(product.price) * Number(qty);
+    // Calculate final customer total with platform fee/margin
+    const quantity = Number(qty || 1);
+    const baseAmount = Number(product.price || 0) * quantity;
+    const pricing = await calculateOrderTotal(baseAmount, {
+      discount: Number(discount || 0)
+    });
+    const totalAmount = pricing.totalAmount;
 
     // Create the Order
     const order = await Order.create({
@@ -143,7 +151,8 @@ router.post("/create", requireLogin, async (req, res) => {
       paymentScreenshot,
       paymentStatus: "pending",
 
-      totalAmount,
+      totalAmount: pricing.totalAmount,
+      platformFee: pricing.platformFee,
       status: "created"
     });
 
@@ -189,7 +198,12 @@ router.post("/create", requireLogin, async (req, res) => {
     res.json({
       success: true,
       orderId: order.id,
-      message: "Order created successfully"
+      message: "Order created successfully",
+      totalAmount: pricing.totalAmount,
+      platformFee: pricing.platformFee,
+      deliveryFee: pricing.deliveryFee,
+      discount: pricing.discount,
+      promoCode
     });
 
   } catch (err) {
@@ -218,7 +232,9 @@ router.post("/create-guest", async (req, res) => {
       customerPhone,
       customerAddress,
       totalAmount,
-      serviceInfo
+      serviceInfo,
+      discount = 0,
+      promoCode = null
     } = req.body;
 
     console.log("📋 Validating fields...");
@@ -303,24 +319,28 @@ router.post("/create-guest", async (req, res) => {
     }
 
     const itemQty = Number(qty || 1);
-    const calculatedAmount =
+    const baseAmount =
       Number(totalAmount) || productPrice * itemQty || 0;
+    const pricing = await calculateOrderTotal(baseAmount, {
+      discount: Number(discount || 0)
+    });
 
     console.log("💰 Price calculation:", {
       productPrice,
       qty: itemQty,
       providedTotalAmount: totalAmount,
-      calculatedAmount
+      baseAmount,
+      pricing
     });
 
-    if (calculatedAmount <= 0) {
-      console.error("❌ Invalid total amount calculated:", calculatedAmount);
+    if (pricing.totalAmount <= 0) {
+      console.error("❌ Invalid total amount calculated:", pricing.totalAmount);
       return res.status(400).json({
         error: "Invalid order amount",
         details: "Product price or quantity is invalid",
         productPrice,
         qty: itemQty,
-        calculatedAmount
+        calculatedAmount: pricing.totalAmount
       });
     }
 
@@ -334,10 +354,13 @@ router.post("/create-guest", async (req, res) => {
       customerAddress: String(customerAddress).trim(),
       addressId: null, // No saved address for guest
       paymentStatus: "pending",
-      totalAmount: Number(calculatedAmount),
+      totalAmount: Number(pricing.totalAmount),
+      platformFee: Number(pricing.platformFee || 0),
       status: "created",
       // Store service info in paymentInfo JSON field for services
-      paymentInfo: isServiceOrder ? serviceInfo : null
+      paymentInfo: isServiceOrder
+        ? { ...(serviceInfo || {}), pricing, promoCode }
+        : { pricing, promoCode }
     };
 
     // Add supplierId only if it exists (product orders only)
@@ -373,7 +396,7 @@ router.post("/create-guest", async (req, res) => {
       await Notification.create({
         type: "order_created",
         title: "New Guest Order Received",
-        message: `Guest Order #${order.id} from ${customerName} (${customerPhone}) - ₹${calculatedAmount}`,
+        message: `Guest Order #${order.id} from ${customerName} (${customerPhone}) - ₹${pricing.totalAmount}`,
         isRead: false,
         audience: "admin"
       });
@@ -385,7 +408,12 @@ router.post("/create-guest", async (req, res) => {
       success: true,
       orderId: order.id,
       id: order.id,
-      message: "Guest order created successfully"
+      message: "Guest order created successfully",
+      totalAmount: pricing.totalAmount,
+      platformFee: pricing.platformFee,
+      deliveryFee: pricing.deliveryFee,
+      discount: pricing.discount,
+      promoCode
     });
   } catch (err) {
     console.error("GUEST ORDER CREATION ERROR:", err);

@@ -8,6 +8,7 @@ import express from "express";
 import { models } from "../../config/database.js";
 const { Supplier } = models;
 import { sendOTP } from "../../services/emailService.js";
+import jwt from "jsonwebtoken";
 const router = express.Router();
 
 const otpStore = {}; // Format: { email: { otp: "123456", expiresAt: timestamp } }
@@ -127,12 +128,35 @@ router.post("/verify-email-otp", async (req, res) => {
    GET /api/supplier/auth/me
    ===================================================== */
 router.get("/me", async (req, res) => {
-  if (!req.session || !req.session.supplierId) {
-    return res.status(401).json({ loggedIn: false });
-  }
-
   try {
-    const supplier = await Supplier.findByPk(req.session.supplierId);
+    let supplierId = req.session?.supplierId || null;
+
+    if (!supplierId) {
+      const authHeader = req.headers.authorization || "";
+      if (authHeader.startsWith("Bearer ")) {
+        const token = authHeader.substring(7);
+        try {
+          const decoded = jwt.verify(
+            token,
+            process.env.JWT_SECRET || process.env.SESSION_SECRET || "fallback-secret"
+          );
+          if (decoded?.role === "supplier" && decoded?.id) {
+            supplierId = decoded.id;
+            if (req.session) {
+              req.session.supplierId = decoded.id;
+            }
+          }
+        } catch (err) {
+          // Ignore invalid token and fall through to unauthorized response.
+        }
+      }
+    }
+
+    if (!supplierId) {
+      return res.status(401).json({ loggedIn: false });
+    }
+
+    const supplier = await Supplier.findByPk(supplierId);
     
     if (!supplier) {
       return res.status(401).json({ loggedIn: false });

@@ -52,55 +52,67 @@ if (googleConfigured) {
   if (process.env.GOOGLE_CUSTOMER_CALLBACK_URL || process.env.GOOGLE_SUPPLIER_CALLBACK_URL) {
     console.warn('Notice: Detected legacy GOOGLE_CUSTOMER_CALLBACK_URL or GOOGLE_SUPPLIER_CALLBACK_URL. Prefer setting GOOGLE_CALLBACK_URL for both callbacks to standardize production config.');
   }
-
-  passport.use('supplier-google', new GoogleStrategy({
-    clientID: process.env.GOOGLE_CLIENT_ID,
-    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    callbackURL: GOOGLE_CALLBACK_URL || process.env.GOOGLE_SUPPLIER_CALLBACK_URL || defaultSupplierCallback,
-  }, async (accessToken, refreshToken, profile, done) => {
   try {
-    const { Supplier: SupplierModel } = await getModels();
-    const email = profile.emails[0].value;
-    let supplier = await SupplierModel.findOne({ where: { email } });
-    if (!supplier) {
-      supplier = await SupplierModel.create({
-        name: profile.displayName,
-        email,
-        // New suppliers should first submit KYC before admin approval.
-        // Use explicit 'kyc_pending' to indicate the supplier needs to complete KYC.
-        status: 'kyc_pending',
-        acceptedTnC: false,
-        kycSubmitted: false
-      });
-    }
-    return done(null, supplier);
-  } catch (err) {
-    return done(err);
-  }
-  }));
+    passport.use('supplier-google', new GoogleStrategy({
+      clientID: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      callbackURL: GOOGLE_CALLBACK_URL || process.env.GOOGLE_SUPPLIER_CALLBACK_URL || defaultSupplierCallback,
+    }, async (accessToken, refreshToken, profile, done) => {
+      try {
+        const { Supplier: SupplierModel } = await getModels();
+        const email = profile?.emails && profile.emails[0] && profile.emails[0].value;
+        if (!email) {
+          console.warn('Google supplier profile missing email:', profile && profile.id);
+          return done(new Error('No email found in Google profile'));
+        }
+        let supplier = await SupplierModel.findOne({ where: { email } });
+        if (!supplier) {
+          supplier = await SupplierModel.create({
+            name: profile.displayName || null,
+            email,
+            // New suppliers should first submit KYC before admin approval.
+            status: 'kyc_pending',
+            acceptedTnC: false,
+            kycSubmitted: false
+          });
+        }
+        return done(null, supplier);
+      } catch (err) {
+        console.error('Supplier GoogleStrategy error:', err);
+        return done(err);
+      }
+    }));
 
-  // Google OAuth for Customer (user)
-  passport.use('customer-google', new GoogleStrategy({
-    clientID: process.env.GOOGLE_CLIENT_ID,
-    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    callbackURL: GOOGLE_CALLBACK_URL || process.env.GOOGLE_CUSTOMER_CALLBACK_URL || defaultCustomerCallback,
-  }, async (accessToken, refreshToken, profile, done) => {
-  try {
-    const { Customer: CustomerModel } = await getModels();
-    const email = profile.emails[0].value;
-    let customer = await CustomerModel.findOne({ where: { email } });
-    if (!customer) {
-      customer = await CustomerModel.create({
-        name: profile.displayName,
-        email,
-        username: email,
-      });
-    }
-    return done(null, customer);
-  } catch (err) {
-    return done(err);
+    // Google OAuth for Customer (user)
+    passport.use('customer-google', new GoogleStrategy({
+      clientID: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      callbackURL: GOOGLE_CALLBACK_URL || process.env.GOOGLE_CUSTOMER_CALLBACK_URL || defaultCustomerCallback,
+    }, async (accessToken, refreshToken, profile, done) => {
+      try {
+        const { Customer: CustomerModel } = await getModels();
+        const email = profile?.emails && profile.emails[0] && profile.emails[0].value;
+        if (!email) {
+          console.warn('Google customer profile missing email:', profile && profile.id);
+          return done(new Error('No email found in Google profile'));
+        }
+        let customer = await CustomerModel.findOne({ where: { email } });
+        if (!customer) {
+          customer = await CustomerModel.create({
+            name: profile.displayName || null,
+            email,
+            username: email,
+          });
+        }
+        return done(null, customer);
+      } catch (err) {
+        console.error('Customer GoogleStrategy error:', err);
+        return done(err);
+      }
+    }));
+  } catch (regErr) {
+    console.error('Failed to register Google strategies:', regErr);
   }
-  }));
 } else {
   console.warn('Google OAuth not configured: set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to enable.');
 }

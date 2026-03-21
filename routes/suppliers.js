@@ -53,52 +53,66 @@ if (googleConfigured) {
       session: true,
     }),
     async (req, res) => {
-    const frontendUrl = process.env.FRONTEND_URL;
-    if (!frontendUrl) {
-      return res.status(500).send("FRONTEND_URL not configured");
-    }
+      const frontendUrl = process.env.FRONTEND_URL;
+      try {
+        if (!frontendUrl) {
+          console.warn('FRONTEND_URL not configured for OAuth callback');
+          return res.status(500).send('FRONTEND_URL not configured');
+        }
 
-    if (!req.user) {
-      return res.status(500).send("Supplier not found after OAuth");
-    }
+        if (!req.user) {
+          // Authentication unexpectedly succeeded but no user attached
+          console.warn('OAuth callback: no user after authentication');
+          return res.redirect(`${frontendUrl}/supplier/login?oauth_error=1`);
+        }
 
-    const supplier = req.user;
+        const supplier = req.user;
 
-    // Refresh supplier data to get latest status (including kycSubmitted)
-    const freshSupplier = await Supplier.findByPk(supplier.id);
-    if (!freshSupplier) {
-      return res.status(500).send("Supplier not found");
-    }
+        // Refresh supplier data to get latest status (including kycSubmitted)
+        const freshSupplier = await Supplier.findByPk(supplier.id);
+        if (!freshSupplier) {
+          console.warn('OAuth callback: supplier record not found for id', supplier.id);
+          return res.redirect(`${frontendUrl}/supplier/login?oauth_error=1`);
+        }
 
-    // If approved, go to dashboard
-    if (freshSupplier.status === "approved") {
-      // Set session for backend API calls
-      req.session.supplierId = freshSupplier.id;
-      
-      const token = jwt.sign(
-        {
-          id: freshSupplier.id,
-          email: freshSupplier.email,
-          role: "supplier",
-        },
-        process.env.JWT_SECRET || process.env.SESSION_SECRET || "fallback-secret",
-        { expiresIn: "7d" }
-      );
-      return res.redirect(`${frontendUrl}/oauth-success?token=${token}&role=supplier`);
-    }
+        // If approved, go to dashboard
+        if (freshSupplier.status === 'approved') {
+          // Set session for backend API calls
+          req.session.supplierId = freshSupplier.id;
 
-    // If KYC not submitted (check both kycSubmitted field and status)
-    if (!freshSupplier.kycSubmitted || freshSupplier.status === "pending") {
-      return res.redirect(`${frontendUrl}/supplier/kyc?email=${encodeURIComponent(freshSupplier.email)}`);
-    }
+          const token = jwt.sign(
+            {
+              id: freshSupplier.id,
+              email: freshSupplier.email,
+              role: 'supplier',
+            },
+            process.env.JWT_SECRET || process.env.SESSION_SECRET || 'fallback-secret',
+            { expiresIn: '7d' }
+          );
+          return res.redirect(`${frontendUrl}/oauth-success?token=${token}&role=supplier`);
+        }
 
-    // If KYC submitted but not approved, show pending message
-    if (freshSupplier.status === "kyc_submitted") {
-      return res.redirect(`${frontendUrl}/supplier/login?kyc_pending=1`);
-    }
+        // If KYC not submitted (check both kycSubmitted field and status)
+        if (!freshSupplier.kycSubmitted || freshSupplier.status === 'pending') {
+          return res.redirect(`${frontendUrl}/supplier/kyc?email=${encodeURIComponent(freshSupplier.email)}`);
+        }
 
-    // Otherwise, pending approval
-    return res.redirect(`${frontendUrl}/supplier/login?pending=1`);
+        // If KYC submitted but not approved, show pending message
+        if (freshSupplier.status === 'kyc_submitted') {
+          return res.redirect(`${frontendUrl}/supplier/login?kyc_pending=1`);
+        }
+
+        // Otherwise, pending approval
+        return res.redirect(`${frontendUrl}/supplier/login?pending=1`);
+      } catch (err) {
+        console.error('Error in supplier OAuth callback:', err && err.message ? err.message : err);
+        // Avoid leaking internal errors to users; redirect to login with a generic error flag
+        if (process.env.FRONTEND_URL) {
+          const msg = encodeURIComponent((err && err.message) || 'oauth_failure');
+          return res.redirect(`${frontendUrl}/supplier/login?oauth_error=1&msg=${msg}`);
+        }
+        return res.status(500).send('OAuth handling failed');
+      }
     }
   );
 } else {

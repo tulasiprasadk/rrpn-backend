@@ -51,6 +51,7 @@ router.get("/", async (req, res) => {
         : 50000;
 
       const where = {};
+      let categoryMatchIds = [];
       if (categoryId) {
         const catId = Number(categoryId);
         if (!Number.isNaN(catId)) where.CategoryId = catId;
@@ -59,11 +60,19 @@ router.get("/", async (req, res) => {
         const likeOp =
           sequelize?.getDialect?.() === "postgres" ? Op.iLike : Op.like;
         const term = `%${q}%`;
+        if (Category) {
+          const matchingCategories = await Category.findAll({
+            attributes: ["id"],
+            where: { name: { [likeOp]: term } },
+          });
+          categoryMatchIds = matchingCategories.map((category) => category.id);
+        }
         where[Op.or] = [
           { title: { [likeOp]: term } },
           { variety: { [likeOp]: term } },
           { subVariety: { [likeOp]: term } },
           { description: { [likeOp]: term } },
+          ...(categoryMatchIds.length ? [{ CategoryId: { [Op.in]: categoryMatchIds } }] : []),
         ];
       }
 
@@ -130,7 +139,7 @@ router.get("/", async (req, res) => {
     if (q) {
       params.push(`%${q}%`);
       const idx = params.length;
-      whereSql += ` AND (p.title ILIKE $${idx} OR p.variety ILIKE $${idx} OR p."subVariety" ILIKE $${idx} OR p.description ILIKE $${idx})`;
+      whereSql += ` AND (p.title ILIKE $${idx} OR p.variety ILIKE $${idx} OR p."subVariety" ILIKE $${idx} OR p.description ILIKE $${idx} OR c.name ILIKE $${idx})`;
     }
 
     const rawLimit = Number.parseInt(req.query.limit, 10);
@@ -325,6 +334,7 @@ router.post("/bulk", async (req, res) => {
     }
 
     const { products } = req.body || {};
+    const replaceMode = req.query.mode === "replace";
     if (!Array.isArray(products) || products.length === 0) {
       return res.status(400).json({ error: "No products provided" });
     }
@@ -335,7 +345,14 @@ router.post("/bulk", async (req, res) => {
     existingCategories.forEach((c) => categoryCache.set(normalize(c.name), c));
 
     const toCreate = [];
+    const toUpdate = [];
     const errors = [];
+    const existingProducts = replaceMode
+      ? await Product.findAll({ attributes: ["id", "title"] })
+      : [];
+    const existingProductMap = new Map(
+      existingProducts.map((product) => [normalize(product.title), product])
+    );
 
     for (const [index, raw] of products.entries()) {
       const title = raw?.title?.trim();
@@ -356,7 +373,7 @@ router.post("/bulk", async (req, res) => {
         categoryId = cat.id;
       }
 
-      toCreate.push({
+      const payload = {
         title,
         price,
         unit: raw.unit || null,
@@ -365,15 +382,42 @@ router.post("/bulk", async (req, res) => {
         subVariety: raw.subVariety || null,
         CategoryId: categoryId || null,
         status: "approved",
-      });
+      };
+
+      if (replaceMode) {
+        const existingProduct = existingProductMap.get(normalize(title));
+        if (existingProduct) {
+          toUpdate.push({ id: existingProduct.id, ...payload });
+          continue;
+        }
+      }
+
+      toCreate.push(payload);
     }
 
-    if (toCreate.length === 0) {
+    if (toCreate.length === 0 && toUpdate.length === 0) {
       return res.status(400).json({ error: "No valid products to create", errors: errors.length });
     }
 
-    const created = await Product.bulkCreate(toCreate, { validate: true });
-    res.json({ created: created.length, errors: errors.length, errorDetails: errors });
+    let created = [];
+    if (toCreate.length > 0) {
+      created = await Product.bulkCreate(toCreate, { validate: true });
+    }
+
+    let updated = 0;
+    for (const payload of toUpdate) {
+      const { id, ...updateData } = payload;
+      await Product.update(updateData, { where: { id } });
+      updated += 1;
+    }
+
+    res.json({
+      created: created.length,
+      updated,
+      errors: errors.length,
+      mode: replaceMode ? "replace" : "append",
+      errorDetails: errors,
+    });
   } catch (err) {
     console.error("Bulk upload error:", err);
     res.status(500).json({ error: "Bulk upload failed" });
