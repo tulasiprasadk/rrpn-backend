@@ -431,7 +431,6 @@ const PORT = process.env.PORT || 3000;
       console.log(`✓ All routes loaded and ready`);
     });
   }
-})();
 
 // Export the app for serverless environments (Vercel)
 export default app;

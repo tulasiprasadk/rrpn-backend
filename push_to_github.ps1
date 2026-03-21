@@ -20,14 +20,21 @@ Function Push-Repo {
             git init 
         }
         
-        # FIX: Remove nested .git folder in backend if present (prevents submodule issues)
+        # FIX: Aggressively cleanup git submodule references
         if (Test-Path "backend\.git") {
-            Write-Host "Found nested .git in backend. Removing to fix Vercel submodule error..." -ForegroundColor Yellow
+            Write-Host "Removing nested .git folder..." -ForegroundColor Yellow
             Remove-Item -Path "backend\.git" -Recurse -Force
-            # Remove backend from git index if it was added as a submodule
-            git rm --cached backend -r 2>$null
-            git rm --cached backend 2>$null
         }
+        if (Test-Path ".gitmodules") {
+            Write-Host "Removing .gitmodules file..." -ForegroundColor Yellow
+            Remove-Item -Path ".gitmodules" -Force
+        }
+
+        # CRITICAL: Remove 'backend' from the git index specifically. 
+        # If git thinks it's a submodule, this command untracks that reference so we can add the files normally.
+        Write-Host "Clearing submodule references from git index..."
+        git rm --cached backend -r 2>$null
+        git rm --cached backend 2>$null
 
         Write-Host "Configuring remote..."
         git remote remove origin 2>$null
