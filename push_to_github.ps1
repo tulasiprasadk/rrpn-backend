@@ -46,6 +46,8 @@ Function Push-Repo {
         Write-Host "Adding files..."
         git add .
         git add api/index.js -f
+        # Verify file exists before push
+        if (Test-Path "api/index.js") { Write-Host "Verified api/index.js exists." } else { Write-Host "WARNING: api/index.js missing!" -ForegroundColor Red }
         
         Write-Host "Committing..."
         git commit -m "Initial commit of $name"
