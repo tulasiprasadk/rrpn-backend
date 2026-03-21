@@ -2,12 +2,18 @@
   "type": "module",
   "name": "rrnagar-backend",
   "version": "0.1.0",
-  "main": "api/index.js",
+  "main": "backend/index.js",
   "license": "MIT",
   "scripts": {
     "start": "node backend/index.js",
     "migrate": "node migrate.js",
-    "dev": "nodemon backend/index.js"
+    "dev": "nodemon backend/index.js",
+    "migrate:add-active": "node backend/scripts/migrate_add_active_and_audit.js",
+    "activation:worker": "node backend/services/activationWorker.js",
+    "import:batch": "node backend/scripts/import_batch.js",
+    "add-order-columns": "node backend/scripts/add-order-columns.js",
+    "check-order-table": "node backend/scripts/check-order-table.js",
+    "update-zero-prices": "node backend/scripts/update-zero-prices.js"
   },
   "dependencies": {
     "@vitalets/google-translate-api": "^9.2.1",
@@ -29,12 +35,15 @@
     "passport-google-oauth20": "^2.0.0",
     "pg": "^8.16.3",
     "pg-hstore": "^2.3.4",
+    "qrcode": "^1.5.4",
+    "razorpay": "^2.9.2",
     "sequelize": "^6.37.7",
     "serverless-http": "^4.0.0",
     "sharp": "^0.34.5",
     "sqlite3": "^5.1.7",
     "twilio": "^5.10.7",
-    "uuid": "^13.0.0"
+    "uuid": "^13.0.0",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "nodemon": "^3.1.11"

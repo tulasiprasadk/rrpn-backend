@@ -44,7 +44,7 @@ $backendDir = Join-Path $repoRoot 'backend'
 Write-Host "Starting backend from: $backendDir"
 
 # Start node server in a detached process so this script can continue
-$proc = Start-Process -FilePath node -ArgumentList 'api/index.js' -WorkingDirectory $backendDir -PassThru
+$proc = Start-Process -FilePath node -ArgumentList 'index.js' -WorkingDirectory $backendDir -PassThru
 Write-Host "Started node with PID $($proc.Id)"
 
 # Wait for health endpoint
