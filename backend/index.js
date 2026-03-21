@@ -405,6 +405,10 @@ const PORT = process.env.PORT || 3000;
     const routes = (await import("./routes/index.js")).default;
     app.use("/api", routes);
     console.log("✓ Routes loaded");
+    // Log a few registered paths to confirm
+    app._router.stack.forEach(r => {
+      if (r.route && r.route.path) console.log(`  - ${r.route.path}`);
+    });
   } catch (err) {
     console.error("⚠ Routes load error:", err.message);
     console.error("Stack:", err.stack);
