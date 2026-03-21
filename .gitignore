@@ -9,3 +9,6 @@ logs/
 
 # Ignore temp folders
 *-temp/
+
+# Exclude frontend (it has its own repo)
+frontend/

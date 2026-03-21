@@ -32,7 +32,7 @@ Function Push-Repo {
         
         Write-Host "Pushing to main..."
         git branch -M main
-        git push -u origin main
+        git push -u origin main --force
         Write-Host "Done with $name!" -ForegroundColor Green
     } else {
         Write-Host "Could not find folder for $name" -ForegroundColor Yellow
