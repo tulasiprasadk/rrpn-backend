@@ -26,6 +26,7 @@ Function Push-Repo {
         
         Write-Host "Adding files..."
         git add .
+        git add api/index.js -f
         
         Write-Host "Committing..."
         git commit -m "Initial commit of $name"
