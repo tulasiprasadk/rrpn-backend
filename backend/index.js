@@ -1,22 +1,19 @@
-import express from "express";
-import cors from "cors";
+/**
+ * Local Development Server Entry Point
+ * This file imports the Express app and starts a local server.
+ * It is NOT used for Vercel deployment.
+ */
+import 'dotenv/config';
+import { app } from './api/express-app.js'; // Note: named import
+import { initDatabase } from './config/database.js';
 
-const app = express();
+const PORT = process.env.PORT || 3000;
 
-// Middleware
-app.use(cors());
-app.use(express.json());
-
-// Health Route
-app.get("/", (req, res) => res.json({ message: "Backend is running!", env: process.env.NODE_ENV }));
-app.get("/api/health", (req, res) => res.json({ status: "ok" }));
-
-// Start server locally (but NOT on Vercel, where serverless-http handles it)
-if (process.env.VERCEL !== "1") {
-  const PORT = process.env.PORT || 3000;
+initDatabase().then(() => {
   app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+    console.log(`🚀 Local server running on http://localhost:${PORT}`);
   });
-}
-
-export default app;
+}).catch(err => {
+  console.error("Failed to start server:", err);
+  process.exit(1);
+});
