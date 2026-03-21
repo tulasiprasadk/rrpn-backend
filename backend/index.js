@@ -51,9 +51,10 @@ function getPool() {
   return pool;
 }
 
-// Initialize database and wait for it to be ready.
-// This is critical for serverless environments to prevent race conditions.
-const dbInitialized = initDatabase();
+// Initialize database connection in the background.
+// It's crucial NOT to `await` this at the top level in a serverless environment,
+// as it can cause cold start timeouts. Sequelize's pool will handle pending connections.
+initDatabase();
 
 // Trust proxy
 app.set("trust proxy", 1);
@@ -387,17 +388,9 @@ app.get("/api/auth/me", async (req, res) => {
  */
 const PORT = process.env.PORT || 3000;
 
-// Load Passport and Routes BEFORE starting server
-// This ensures routes are available immediately when server starts
-  try {
-    // Ensure DB is connected before loading things that depend on it (like Passport)
-    await dbInitialized;
-    console.log("✓ Database initialization complete.");
-  } catch (err) {
-    console.error("⚠ CRITICAL: Database failed to initialize. Routes will fail.", err.message);
-  }
-
-  try {
+// Load Passport and Routes. These will be initialized when the module is loaded.
+// The database connection will be established by the pool when the first query is made.
+try {
     const passport = (await import("./passport.js")).default;
     app.use(passport.initialize());
     app.use(passport.session());
