@@ -12,3 +12,5 @@ logs/
 
 # Exclude frontend (it has its own repo)
 frontend/
+.vercel
+.env*.local
