@@ -22,9 +22,15 @@ Function Push-Repo {
         
         # FIX: Aggressively cleanup git submodule references
         if (Test-Path "backend\.git") {
-            Write-Host "Removing nested .git folder..." -ForegroundColor Yellow
-            Remove-Item -Path "backend\.git" -Recurse -Force
+            Write-Host "Removing nested .git folder in backend..." -ForegroundColor Yellow
+            # Use cmd for robust deletion of hidden/readonly .git files
+            cmd /c "rmdir /s /q backend\.git"
         }
+        if (Test-Path "frontend\.git") {
+            Write-Host "Removing nested .git folder in frontend..." -ForegroundColor Yellow
+            cmd /c "rmdir /s /q frontend\.git"
+        }
+
         if (Test-Path ".gitmodules") {
             Write-Host "Removing .gitmodules file..." -ForegroundColor Yellow
             Remove-Item -Path ".gitmodules" -Force
@@ -35,6 +41,8 @@ Function Push-Repo {
         Write-Host "Clearing submodule references from git index..."
         git rm --cached backend -r 2>$null
         git rm --cached backend 2>$null
+        git rm --cached frontend -r 2>$null
+        git rm --cached frontend 2>$null
 
         Write-Host "Configuring remote..."
         git remote remove origin 2>$null
