@@ -51,10 +51,9 @@ function getPool() {
   return pool;
 }
 
-// Initialize database (non-blocking)
-initDatabase().catch(err => {
-  console.error("Database init error:", err.message);
-});
+// Initialize database and wait for it to be ready.
+// This is critical for serverless environments to prevent race conditions.
+const dbInitialized = initDatabase();
 
 // Trust proxy
 app.set("trust proxy", 1);
@@ -384,12 +383,20 @@ app.get("/api/auth/me", async (req, res) => {
 /**
  * REQUIRED FOR CLOUD RUN:
  * Default local dev port is 3000 (can be overridden with PORT env)
- * Load routes BEFORE starting server to ensure they're available immediately
+ * Load routes BEFORE starting server to ensure they're available immediately.
  */
 const PORT = process.env.PORT || 3000;
 
 // Load Passport and Routes BEFORE starting server
 // This ensures routes are available immediately when server starts
+  try {
+    // Ensure DB is connected before loading things that depend on it (like Passport)
+    await dbInitialized;
+    console.log("✓ Database initialization complete.");
+  } catch (err) {
+    console.error("⚠ CRITICAL: Database failed to initialize. Routes will fail.", err.message);
+  }
+
   try {
     const passport = (await import("./passport.js")).default;
     app.use(passport.initialize());
