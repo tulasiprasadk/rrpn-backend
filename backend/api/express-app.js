@@ -107,4 +107,7 @@ app.use((req, res) => {
   res.status(404).json({ error: "Not found", path: req.path });
 });
 
+// Export the raw app for local development (named export)
+export { app };
+
 export default serverless(app);
