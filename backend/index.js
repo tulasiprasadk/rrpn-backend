@@ -4,7 +4,7 @@
  * It is NOT used for Vercel deployment.
  */
 import 'dotenv/config';
-import { app } from './api/express-app.js'; // Note: named import
+import app from './api/express-app.js';
 import { initDatabase } from './config/database.js';
 
 const PORT = process.env.PORT || 3000;

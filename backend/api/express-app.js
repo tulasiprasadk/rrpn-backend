@@ -2,7 +2,6 @@ import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import session from "express-session";
-import serverless from "serverless-http";
 import passport from "../passport.js";
 import routes from "../routes/index.js";
 
@@ -110,4 +109,4 @@ app.use((req, res) => {
 // Export the raw app for local development (named export)
 export { app };
 
-export default serverless(app);
+export default app;
