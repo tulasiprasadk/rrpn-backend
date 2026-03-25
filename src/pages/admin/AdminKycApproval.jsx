@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import api from "../../api/client";
 import { BACKEND_BASE } from "../../config/api";
 import "./AdminKycApproval.css";
 
@@ -18,13 +18,23 @@ export default function AdminKycApproval() {
   const fetchPendingSuppliers = async () => {
     try {
       setLoading(true);
-      const response = await axios.get("/api/admin/suppliers/pending");
+      const response = await api.get("/admin/suppliers");
       const data = response.data;
-      const list = Array.isArray(data) ? data : data?.suppliers || [];
-      setSuppliers(list);
+      const list = Array.isArray(data)
+        ? data
+        : Array.isArray(data?.suppliers)
+          ? data.suppliers
+          : [];
+      setSuppliers(list.filter((supplier) => supplier?.status === "kyc_submitted"));
+      setError("");
     } catch (err) {
       console.error("Error fetching suppliers:", err);
-      setError("Failed to load pending suppliers");
+      const status = err?.response?.status;
+      if (status === 401 || status === 403) {
+        setError("You do not have permission to view pending suppliers.");
+      } else {
+        setError("Failed to load pending suppliers");
+      }
     } finally {
       setLoading(false);
     }
@@ -35,7 +45,7 @@ export default function AdminKycApproval() {
 
     try {
       setActionLoading(true);
-      await axios.post(`/api/admin/suppliers/${supplierId}/approve`);
+      await api.post(`/admin/suppliers/${supplierId}/approve`);
       alert("Supplier approved successfully!");
       setSelectedSupplier(null);
       fetchPendingSuppliers();
@@ -57,7 +67,7 @@ export default function AdminKycApproval() {
 
     try {
       setActionLoading(true);
-      await axios.post(`/api/admin/suppliers/${supplierId}/reject`, {
+      await api.post(`/admin/suppliers/${supplierId}/reject`, {
         reason: rejectionReason
       });
       alert("Supplier rejected successfully!");
