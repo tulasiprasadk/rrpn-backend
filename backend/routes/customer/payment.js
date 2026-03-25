@@ -5,6 +5,7 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 import { models } from "../../config/database.js";
+import { ensureWritableDir } from "../../utils/uploadPaths.js";
 const { Order } = models;
 const router = express.Router();
 
@@ -20,8 +21,7 @@ function requireLogin(req, res, next) {
 =========================================================== */
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    const dir = "uploads/payments/";
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    const dir = ensureWritableDir("uploads", "payments");
     cb(null, dir);
   },
   filename: function (req, file, cb) {
@@ -57,7 +57,8 @@ router.post(
 
       const inputPath = req.file.path;
       const outputFilename = "wm_" + req.file.filename;
-      const outputPath = "uploads/payments/" + outputFilename;
+      const outputDir = ensureWritableDir("uploads", "payments");
+      const outputPath = path.join(outputDir, outputFilename);
 
       // ------------------------------
       // GENERATE TEXT WATERMARK AS PNG

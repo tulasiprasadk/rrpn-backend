@@ -6,12 +6,12 @@ import fs from "fs";
 import jwt from "jsonwebtoken";
 import { models } from "../config/database.js";
 import { calculateOrderTotal } from "../utils/commissionCalculator.js";
+import { ensureWritableDir } from "../utils/uploadPaths.js";
 const { Order, Product, Supplier, Address, Notification } = models;
 const router = express.Router();
 
 // Configure multer for payment screenshots
-const paymentUploadDir = path.join(path.resolve(), "uploads", "payment");
-fs.mkdirSync(paymentUploadDir, { recursive: true });
+const paymentUploadDir = ensureWritableDir("uploads", "payment");
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, paymentUploadDir);

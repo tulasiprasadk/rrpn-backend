@@ -1,12 +1,10 @@
 
 import express from "express";
 import multer from "multer";
-import fs from "fs";
-import path from "path";
+import { ensureWritableDir } from "../utils/uploadPaths.js";
 const router = express.Router();
 // Ensure directory exists
-const uploadDir = path.join(path.resolve(), "uploads", "payment");
-fs.mkdirSync(uploadDir, { recursive: true });
+const uploadDir = ensureWritableDir("uploads", "payment");
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, uploadDir),
   filename: (req, file, cb) => 

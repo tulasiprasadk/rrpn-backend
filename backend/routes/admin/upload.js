@@ -1,14 +1,12 @@
 import express from 'express';
 import multer from 'multer';
-import fs from 'fs';
-import path from 'path';
 import { requireAdmin } from './middleware.js';
+import { ensureWritableDir } from '../../utils/uploadPaths.js';
 
 const router = express.Router();
 router.use(requireAdmin);
 
-const uploadDir = path.join(path.resolve(), 'uploads', 'ads');
-fs.mkdirSync(uploadDir, { recursive: true });
+const uploadDir = ensureWritableDir('uploads', 'ads');
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, uploadDir),
   filename: (req, file, cb) => cb(null, Date.now() + '-' + file.originalname),
