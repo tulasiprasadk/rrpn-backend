@@ -5,7 +5,9 @@ import { initDatabase } from "../config/database.js";
 const dbInitialized = initDatabase().catch((err) => {
   console.error("Background DB init failed:", err);
 });
-const handler = serverless(app);
+const handler = serverless(app, {
+  callbackWaitsForEmptyEventLoop: false,
+});
 
 export default async function vercelHandler(req, res) {
   void dbInitialized;
