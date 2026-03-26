@@ -1,9 +1,8 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useAdminAuth } from "../../../context/AdminAuthContext";
+import api from "../../../api/client";
 
 const AdminCategoryForm = ({ mode }) => {
-  const { adminToken } = useAdminAuth();
   const { id } = useParams();
   const navigate = useNavigate();
 
@@ -11,37 +10,26 @@ const AdminCategoryForm = ({ mode }) => {
 
   useEffect(() => {
     if (mode === "edit") {
-      fetch(`/api/admin/categories/${id}`, {
-        headers: { Authorization: `Bearer ${adminToken}` },
-      })
-        .then((res) => res.json())
-        .then((data) => setName(data.name))
+      api
+        .get(`/admin/categories/${id}`)
+        .then((res) => setName(res.data?.name || ""))
         .catch((err) => console.error("Failed to load category", err));
     }
   }, [mode, id]);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async (event) => {
+    event.preventDefault();
 
-    const method = mode === "edit" ? "PUT" : "POST";
-    const url =
-      mode === "edit"
-        ? `/api/admin/categories/${id}`
-        : "/api/admin/categories";
-
-    const res = await fetch(url, {
-      method,
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${adminToken}`,
-      },
-      body: JSON.stringify({ name }),
-    });
-
-    if (res.ok) {
+    try {
+      if (mode === "edit") {
+        await api.put(`/admin/categories/${id}`, { name });
+      } else {
+        await api.post("/admin/categories", { name });
+      }
       navigate("/admin/categories");
-    } else {
-      alert("Failed to save category");
+    } catch (err) {
+      console.error("Failed to save category", err);
+      alert(err.response?.data?.error || "Failed to save category");
     }
   };
 
@@ -57,7 +45,7 @@ const AdminCategoryForm = ({ mode }) => {
           placeholder="Category Name"
           className="border p-2"
           value={name}
-          onChange={(e) => setName(e.target.value)}
+          onChange={(event) => setName(event.target.value)}
           required
         />
 
@@ -70,6 +58,3 @@ const AdminCategoryForm = ({ mode }) => {
 };
 
 export default AdminCategoryForm;
-
-
-

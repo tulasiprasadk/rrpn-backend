@@ -17,8 +17,8 @@ const AdminProductsList = () => {
   const loadProducts = async () => {
     try {
       setLoading(true);
-      const res = await api.get("/products");
-      const list = Array.isArray(res.data) ? res.data : [];
+      const res = await api.get("/admin/products");
+      const list = Array.isArray(res.data) ? res.data : res.data?.products || [];
       setProducts(list);
       setPriceDrafts(
         list.reduce((acc, product) => {

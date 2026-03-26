@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import api from "../../api/client";
 
 export default function AdminAdmins() {
   const [admins, setAdmins] = useState([]);
@@ -15,11 +15,13 @@ export default function AdminAdmins() {
   async function loadAdmins() {
     try {
       setLoading(true);
-      const res = await axios.get(`/api/admin/admins`);
-      setAdmins(res.data || []);
+      const res = await api.get("/admin/admins");
+      setAdmins(Array.isArray(res.data) ? res.data : []);
+      setError("");
     } catch (err) {
       console.error("Failed to load admins", err);
-      setError("Failed to load admins");
+      setAdmins([]);
+      setError(err.response?.data?.error || "Failed to load admins");
     } finally {
       setLoading(false);
     }
@@ -30,7 +32,7 @@ export default function AdminAdmins() {
     setSaving(true);
     setError("");
     try {
-      await axios.post(`/api/admin/admins`, {
+      await api.post("/admin/admins", {
         name: form.name,
         email: form.email || null,
         phone: form.phone || null,

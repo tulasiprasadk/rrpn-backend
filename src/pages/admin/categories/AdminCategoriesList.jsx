@@ -1,24 +1,19 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { useAdminAuth } from "../../../context/AdminAuthContext";
+import api from "../../../api/client";
 
 const AdminCategoriesList = () => {
-  const { adminToken } = useAdminAuth();
   const [categories, setCategories] = useState([]);
 
-  const loadCategories = () => {
-    fetch("/api/admin/categories", {
-      headers: { Authorization: `Bearer ${adminToken}` },
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        const list = Array.isArray(data) ? data : data?.categories || [];
-        setCategories(list);
-      })
-      .catch((err) => {
-        console.error("Failed to load categories", err);
-        setCategories([]);
-      });
+  const loadCategories = async () => {
+    try {
+      const res = await api.get("/admin/categories");
+      const list = Array.isArray(res.data) ? res.data : res.data?.categories || [];
+      setCategories(list);
+    } catch (err) {
+      console.error("Failed to load categories", err);
+      setCategories([]);
+    }
   };
 
   useEffect(() => {
@@ -28,17 +23,11 @@ const AdminCategoriesList = () => {
   const deleteCategory = async (id) => {
     if (!window.confirm("Delete this category?")) return;
 
-    const res = await fetch(
-      `/api/admin/categories/${id}`,
-      {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${adminToken}` },
-      }
-    );
-
-    if (res.ok) {
+    try {
+      await api.delete(`/admin/categories/${id}`);
       loadCategories();
-    } else {
+    } catch (err) {
+      console.error("Delete category failed", err);
       alert("Failed to delete category");
     }
   };
@@ -51,7 +40,7 @@ const AdminCategoriesList = () => {
         to="/admin/categories/new"
         className="bg-blue-600 text-white px-4 py-2 rounded inline-block mb-4"
       >
-        ➕ Add Category
+        Add Category
       </Link>
 
       <table className="w-full border">
@@ -63,19 +52,19 @@ const AdminCategoriesList = () => {
           </tr>
         </thead>
         <tbody>
-          {categories.map((c) => (
-            <tr key={c.id}>
-              <td className="border p-2">{c.id}</td>
-              <td className="border p-2">{c.name}</td>
+          {categories.map((category) => (
+            <tr key={category.id}>
+              <td className="border p-2">{category.id}</td>
+              <td className="border p-2">{category.name}</td>
               <td className="border p-2">
                 <Link
-                  to={`/admin/categories/${c.id}/edit`}
+                  to={`/admin/categories/${category.id}/edit`}
                   className="text-blue-600 mr-3"
                 >
                   Edit
                 </Link>
                 <button
-                  onClick={() => deleteCategory(c.id)}
+                  onClick={() => deleteCategory(category.id)}
                   className="text-red-600"
                 >
                   Delete
@@ -98,6 +87,3 @@ const AdminCategoriesList = () => {
 };
 
 export default AdminCategoriesList;
-
-
-

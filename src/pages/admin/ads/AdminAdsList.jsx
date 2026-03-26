@@ -1,16 +1,17 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import axios from "axios";
+import api from "../../../api/client";
 
 const AdminAdsList = () => {
   const [ads, setAds] = useState([]);
 
   const loadAds = async () => {
     try {
-      const res = await axios.get("/api/admin/ads", { withCredentials: true });
-      setAds(res.data);
+      const res = await api.get("/admin/ads");
+      setAds(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.error("Failed loading ads:", err);
+      setAds([]);
     }
   };
 
@@ -18,15 +19,14 @@ const AdminAdsList = () => {
     loadAds();
   }, []);
 
-  // Delete ad
   const deleteAd = async (id) => {
     if (!window.confirm("Are you sure you want to delete this ad?")) return;
 
     try {
-      await axios.delete(`/api/admin/ads/${id}`, { withCredentials: true });
+      await api.delete(`/admin/ads/${id}`);
       loadAds();
     } catch (err) {
-      console.error('Delete ad failed', err);
+      console.error("Delete ad failed", err);
       alert("Failed to delete ad");
     }
   };
@@ -39,7 +39,7 @@ const AdminAdsList = () => {
         to="/admin/ads/new"
         className="bg-blue-600 text-white px-4 py-2 rounded inline-block mb-5"
       >
-        ➕ Create New Ad
+        Create New Ad
       </Link>
 
       <table className="w-full border">
@@ -55,27 +55,32 @@ const AdminAdsList = () => {
 
         <tbody>
           {ads.map((ad) => (
-            <tr key={ad.id}>
+            <tr key={`${ad.source || "ad"}-${ad.id}`}>
               <td className="border p-2">{ad.id}</td>
-              <td className="border p-2">{ad.title}</td>
+              <td className="border p-2">{ad.title || "Untitled"}</td>
               <td className="border p-2">
-                {(ad.image_url || ad.image || ad.url || ad.src) ? (
+                {(ad.imageUrl || ad.image_url || ad.image || ad.url || ad.src) ? (
                   <img
-                    src={ad.image_url || ad.image || ad.url || ad.src}
+                    src={ad.imageUrl || ad.image_url || ad.image || ad.url || ad.src}
                     alt={ad.title || "ad"}
                     className="w-32 rounded"
                   />
                 ) : (
-                  "—"
+                  "-"
                 )}
               </td>
               <td className="border p-2">
-                {ad.link ? (
-                  <a href={ad.link} target="_blank" rel="noreferrer" className="text-blue-600 underline">
+                {(ad.targetUrl || ad.link) ? (
+                  <a
+                    href={ad.targetUrl || ad.link}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-blue-600 underline"
+                  >
                     Visit
                   </a>
                 ) : (
-                  "—"
+                  "-"
                 )}
               </td>
               <td className="border p-2">
@@ -95,6 +100,14 @@ const AdminAdsList = () => {
               </td>
             </tr>
           ))}
+
+          {ads.length === 0 && (
+            <tr>
+              <td className="border p-2 text-center" colSpan={5}>
+                No advertisements found.
+              </td>
+            </tr>
+          )}
         </tbody>
       </table>
     </div>
@@ -102,6 +115,3 @@ const AdminAdsList = () => {
 };
 
 export default AdminAdsList;
-
-
-
