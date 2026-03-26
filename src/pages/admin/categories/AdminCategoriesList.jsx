@@ -11,70 +11,54 @@ const fallbackCategories = [
   { id: 6, name: "Crackers" }
 ];
 
+const mergeUniqueCategories = (...sources) => {
+  const categoryMap = new Map();
+
+  sources.flat().forEach((category) => {
+    if (!category?.name) return;
+    const key = String(category.name).trim().toLowerCase();
+    if (!categoryMap.has(key)) {
+      categoryMap.set(key, {
+        id: category.id || category.name,
+        name: category.name
+      });
+    }
+  });
+
+  return Array.from(categoryMap.values()).sort((a, b) => a.name.localeCompare(b.name));
+};
+
 const AdminCategoriesList = () => {
   const [categories, setCategories] = useState([]);
 
   const deriveCategoriesFromProducts = async () => {
     const productRes = await api.get("/products?limit=50000");
     const products = Array.isArray(productRes.data) ? productRes.data : [];
-    const categoryMap = new Map();
 
-    products.forEach((product) => {
-      const categoryId = product.Category?.id || product.categoryId || product.CategoryId;
-      const categoryName = product.Category?.name || product.categoryName || product.category;
-      if (!categoryName) return;
-
-      const key = String(categoryId || categoryName).toLowerCase();
-      if (!categoryMap.has(key)) {
-        categoryMap.set(key, {
-          id: categoryId || categoryName,
-          name: categoryName
-        });
-      }
-    });
-
-    return Array.from(categoryMap.values());
+    return products
+      .map((product) => ({
+        id: product.Category?.id || product.categoryId || product.CategoryId || product.Category?.name || product.categoryName || product.category,
+        name: product.Category?.name || product.categoryName || product.category
+      }))
+      .filter((category) => category.name);
   };
 
   const loadCategories = async () => {
     try {
-      const res = await api.get("/admin/categories");
-      let list = Array.isArray(res.data) ? res.data : res.data?.categories || [];
+      const [adminRes, publicRes, derivedFromProducts] = await Promise.all([
+        api.get("/admin/categories").catch(() => ({ data: [] })),
+        api.get("/categories").catch(() => ({ data: [] })),
+        deriveCategoriesFromProducts().catch(() => [])
+      ]);
 
-      if (list.length === 0) {
-        const fallback = await api.get("/categories");
-        list = Array.isArray(fallback.data) ? fallback.data : [];
-      }
-      if (list.length === 0) {
-        list = await deriveCategoriesFromProducts();
-      }
-      if (list.length === 0) {
-        list = fallbackCategories;
-      }
+      const adminCategories = Array.isArray(adminRes.data) ? adminRes.data : adminRes.data?.categories || [];
+      const publicCategories = Array.isArray(publicRes.data) ? publicRes.data : [];
+      const merged = mergeUniqueCategories(adminCategories, publicCategories, derivedFromProducts, fallbackCategories);
 
-      setCategories(list);
+      setCategories(merged);
     } catch (err) {
       console.error("Failed to load categories", err);
-      try {
-        const fallback = await api.get("/categories");
-        let list = Array.isArray(fallback.data) ? fallback.data : [];
-        if (list.length === 0) {
-          list = await deriveCategoriesFromProducts();
-        }
-        if (list.length === 0) {
-          list = fallbackCategories;
-        }
-        setCategories(list);
-      } catch (fallbackErr) {
-        console.error("Fallback category load failed", fallbackErr);
-        try {
-          const derived = await deriveCategoriesFromProducts();
-          setCategories(derived.length > 0 ? derived : fallbackCategories);
-        } catch (derivedErr) {
-          console.error("Derived category load failed", derivedErr);
-          setCategories(fallbackCategories);
-        }
-      }
+      setCategories(fallbackCategories);
     }
   };
 

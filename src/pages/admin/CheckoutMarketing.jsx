@@ -3,6 +3,7 @@ import api from "../../api/client";
 
 export default function CheckoutMarketing() {
   const [offersText, setOffersText] = useState("[]");
+  const [offersPreview, setOffersPreview] = useState([]);
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -12,18 +13,22 @@ export default function CheckoutMarketing() {
 
   const loadOffers = async () => {
     try {
-      const offersRes = await api.get("/admin/config/checkout_offers");
-      setOffersText(JSON.stringify(offersRes.data?.value || [], null, 2));
-      setMessage("");
+      const [adminConfigRes, publicOffersRes] = await Promise.all([
+        api.get("/admin/config/checkout_offers").catch(() => ({ data: { value: [] } })),
+        api.get("/cms/checkout-offers").catch(() => ({ data: [] }))
+      ]);
+
+      const adminOffers = Array.isArray(adminConfigRes.data?.value) ? adminConfigRes.data.value : [];
+      const publicOffers = Array.isArray(publicOffersRes.data) ? publicOffersRes.data : [];
+      const mergedOffers = adminOffers.length > 0 ? adminOffers : publicOffers;
+
+      setOffersPreview(mergedOffers);
+      setOffersText(JSON.stringify(mergedOffers, null, 2));
+      setMessage(mergedOffers.length > 0 ? "" : "Create offers and click Save.");
     } catch (err) {
-      try {
-        const offersRes = await api.get("/cms/checkout-offers");
-        setOffersText(JSON.stringify(offersRes.data || [], null, 2));
-        setMessage("Viewing public offer data. Login to edit.");
-      } catch (fallbackErr) {
-        setOffersText("[]");
-        setMessage("Create offers and click Save.");
-      }
+      setOffersPreview([]);
+      setOffersText("[]");
+      setMessage("Create offers and click Save.");
     }
   };
 
@@ -44,6 +49,7 @@ export default function CheckoutMarketing() {
         type: "json",
         category: "cms"
       });
+      setOffersPreview(Array.isArray(parsed) ? parsed : []);
       setMessage("Offers saved successfully.");
     } catch (err) {
       setMessage(err.response?.data?.error || "Failed to save offers.");
@@ -67,6 +73,20 @@ export default function CheckoutMarketing() {
 
       <section style={{ background: "#fff", padding: 16, borderRadius: 8, border: "1px solid #eee" }}>
         <h2 style={{ marginTop: 0 }}>Offers</h2>
+        {offersPreview.length > 0 && (
+          <div style={{ marginBottom: 16, display: "grid", gap: 10 }}>
+            {offersPreview.map((offer, index) => (
+              <div key={`${offer.code || offer.title || "offer"}-${index}`} style={{ padding: 12, background: "#f8f9fa", borderRadius: 8 }}>
+                <strong>{offer.title || `Offer ${index + 1}`}</strong>
+                {offer.description && <div style={{ marginTop: 4 }}>{offer.description}</div>}
+                <div style={{ marginTop: 4, fontSize: 13, color: "#555" }}>
+                  {offer.code ? `Code: ${offer.code} | ` : ""}
+                  {offer.type || "percent"} {offer.value ?? 0}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
         <p style={{ fontSize: 12, color: "#666" }}>
           JSON array: [{"{"}"title","description","code","type","value"{"}"}]. Type can be "percent" or "flat".
         </p>

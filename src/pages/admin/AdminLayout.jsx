@@ -1,12 +1,10 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Outlet, Link } from "react-router-dom";
-import { useEffect, useState } from "react";
 import api from "../../api/client";
 import { API_BASE } from "../../config/api";
 import { translate, isKannadaEnabled } from "../../utils/kannadaTranslator";
 import "./AdminLayout.css";
 
-// ================== ADMIN NOTIFICATION BELL ==================
 function AdminNotifications() {
   const [list, setList] = useState([]);
   const [open, setOpen] = useState(false);
@@ -33,9 +31,7 @@ function AdminNotifications() {
 
     const startPolling = () => {
       if (!mounted) return;
-      // Immediately load once
       load().catch(() => {});
-      // Poll every 15s while backend is available
       notifyTimer = setInterval(() => {
         load().catch(() => {});
       }, 15000);
@@ -46,7 +42,6 @@ function AdminNotifications() {
         clearInterval(notifyTimer);
         notifyTimer = null;
       }
-      // Poll health every 30s to re-enable notifications when backend returns
       retryTimer = setInterval(async () => {
         try {
           const controller = new AbortController();
@@ -58,13 +53,12 @@ function AdminNotifications() {
             retryTimer = null;
             startPolling();
           }
-        } catch (e) {
-          // still offline
+        } catch (_err) {
+          // backend still unavailable
         }
       }, 30000);
     };
 
-    // Do an initial health check then start polling if OK
     (async () => {
       try {
         const controller = new AbortController();
@@ -76,7 +70,7 @@ function AdminNotifications() {
         } else {
           stopPollingAndRetry();
         }
-      } catch (e) {
+      } catch (_err) {
         stopPollingAndRetry();
       }
     })();
@@ -121,7 +115,6 @@ function AdminNotifications() {
         )}
       </button>
 
-      {/* DROPDOWN */}
       {open && (
         <div
           style={{
@@ -140,26 +133,26 @@ function AdminNotifications() {
 
           {list.length === 0 && <p>No new alerts</p>}
 
-          {list.map((n) => (
+          {list.map((item) => (
             <div
-              key={n.id}
+              key={item.id}
               style={{
                 padding: "8px 0",
                 borderBottom: "1px solid #eee",
-                cursor: n.type === 'supplier_registration' ? 'pointer' : 'default'
+                cursor: item.type === "supplier_registration" ? "pointer" : "default"
               }}
               onClick={() => {
-                if (n.type === 'supplier_registration') {
+                if (item.type === "supplier_registration") {
                   setOpen(false);
-                  window.location.href = '/admin/suppliers';
+                  window.location.href = "/admin/suppliers";
                 }
               }}
             >
-              <strong>{n.title}</strong>
-              <p style={{ margin: "3px 0", fontSize: 13 }}>{n.message}</p>
-              {n.type === 'supplier_registration' && (
+              <strong>{item.title}</strong>
+              <p style={{ margin: "3px 0", fontSize: 13 }}>{item.message}</p>
+              {item.type === "supplier_registration" && (
                 <p style={{ margin: "3px 0", fontSize: 12, color: "#007bff" }}>
-                  → Click to view and approve
+                  Click to view and approve
                 </p>
               )}
             </div>
@@ -193,8 +186,6 @@ function AdminNotifications() {
   );
 }
 
-// ================== ADMIN LAYOUT ==================
-
 export default function AdminLayout() {
   const [kannadaEnabled, setKannadaEnabled] = useState(isKannadaEnabled());
   const [navOpen, setNavOpen] = useState(false);
@@ -208,37 +199,44 @@ export default function AdminLayout() {
     }
   };
 
+  const navItems = [
+    { to: "/admin", label: "Dashboard", icon: "📊" },
+    { to: "/admin/orders", label: "Orders", icon: "📦" },
+    { to: "/admin/suppliers", label: "Suppliers", icon: "🏪" },
+    { to: "/admin/products", label: "Products", icon: "📦" },
+    { to: "/admin/translator", label: "Translator", icon: "🌐" },
+    { to: "/admin/analytics", label: "Analytics", icon: "📈" },
+    { to: "/admin/config", label: "Platform Config", icon: "⚙️" },
+    { to: "/admin/checkout-marketing", label: "Offers", icon: "💸" },
+    { to: "/admin/admins", label: "Admins", icon: "👥" },
+    { to: "/admin/categories", label: "Categories", icon: "📂" },
+    { to: "/admin/varieties", label: "Varieties", icon: "🌾" },
+    { to: "/admin/ads", label: "Advertisements", icon: "📢" },
+    { to: "/admin/change-password", label: "Change Password", icon: "🔐" }
+  ];
+
   return (
     <div className="admin-layout">
-      
-      {/* LEFT SIDEBAR */}
       <aside className={`admin-sidebar ${navOpen ? "open" : ""}`}>
         <Link to="/" className="admin-logo" style={{ textDecoration: "none", color: "white" }}>
           🎯 RR Nagar Admin
           <div style={{ fontSize: 11, marginTop: 5, opacity: 0.8 }}>← Click to go to main site</div>
         </Link>
-        <nav className="admin-nav">
 
-          <Link to="/admin" className="admin-nav-link" onClick={() => setNavOpen(false)}>📊 {translate("Dashboard", kannadaEnabled)}</Link>
-          <Link to="/admin/orders" className="admin-nav-link" onClick={() => setNavOpen(false)}>📦 {translate("Orders", kannadaEnabled)}</Link>
-          <Link to="/admin/suppliers" className="admin-nav-link" onClick={() => setNavOpen(false)}>🏪 {translate("Suppliers", kannadaEnabled)}</Link>
-          <Link to="/admin/products" className="admin-nav-link" onClick={() => setNavOpen(false)}>📦 {translate("Products", kannadaEnabled)}</Link>
-          <Link to="/admin/translator" className="admin-nav-link" onClick={() => setNavOpen(false)}>🌐 {translate("Translator", kannadaEnabled)}</Link>
-          <Link to="/admin/config" className="admin-nav-link" onClick={() => setNavOpen(false)}>⚙️ {translate("Platform Config", kannadaEnabled)}</Link>
-          <Link to="/admin/checkout-marketing" className="admin-nav-link" onClick={() => setNavOpen(false)}>💸 {translate("Offers", kannadaEnabled)}</Link>
-          <Link to="/admin/admins" className="admin-nav-link" onClick={() => setNavOpen(false)}>👥 {translate("Admins", kannadaEnabled)}</Link>
-          <Link to="/admin/categories" className="admin-nav-link" onClick={() => setNavOpen(false)}>📂 {translate("Categories", kannadaEnabled)}</Link>
-          <Link to="/admin/varieties" className="admin-nav-link" onClick={() => setNavOpen(false)}>🌾 {translate("Varieties", kannadaEnabled)}</Link>
-          <Link to="/admin/ads" className="admin-nav-link" onClick={() => setNavOpen(false)}>📢 {translate("Advertisements", kannadaEnabled)}</Link>
-          <Link to="/admin/change-password" className="admin-nav-link" onClick={() => setNavOpen(false)}>🔐 {translate("Change Password", kannadaEnabled)}</Link>
-          
-          <button 
-            onClick={handleLogout} 
-            className="admin-nav-link" 
-            style={{ 
-              background: "#dc3545", 
-              color: "white", 
-              border: "none", 
+        <nav className="admin-nav">
+          {navItems.map((item) => (
+            <Link key={item.to} to={item.to} className="admin-nav-link" onClick={() => setNavOpen(false)}>
+              {item.icon} {translate(item.label, kannadaEnabled)}
+            </Link>
+          ))}
+
+          <button
+            onClick={handleLogout}
+            className="admin-nav-link"
+            style={{
+              background: "#dc3545",
+              color: "white",
+              border: "none",
               cursor: "pointer",
               marginTop: "auto",
               textAlign: "left"
@@ -248,12 +246,10 @@ export default function AdminLayout() {
           </button>
         </nav>
       </aside>
+
       {navOpen && <div className="admin-sidebar-backdrop" onClick={() => setNavOpen(false)} />}
 
-      {/* MAIN AREA */}
       <div className="admin-main">
-        
-        {/* HEADER */}
         <header className="admin-topbar">
           <div className="admin-topbar-left">
             <button
@@ -263,14 +259,15 @@ export default function AdminLayout() {
             >
               ☰
             </button>
-            <Link to="/" className="admin-nav-link" style={{ 
-              textDecoration: "none", 
-              color: "#e31e24", 
-              fontWeight: "bold"
-            }}>
+            <Link
+              to="/"
+              className="admin-nav-link"
+              style={{ textDecoration: "none", color: "#e31e24", fontWeight: "bold" }}
+            >
               ← Back to Home
             </Link>
           </div>
+
           <button
             onClick={() => {
               const next = !kannadaEnabled;
@@ -294,10 +291,10 @@ export default function AdminLayout() {
           >
             {kannadaEnabled ? "English" : "Kannada"}
           </button>
+
           <AdminNotifications />
         </header>
 
-        {/* PAGE CONTENT */}
         <main className="admin-content" style={{ padding: 20 }}>
           <Outlet />
         </main>
@@ -305,6 +302,3 @@ export default function AdminLayout() {
     </div>
   );
 }
-
-
-
