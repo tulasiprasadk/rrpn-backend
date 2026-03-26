@@ -588,9 +588,14 @@ router.post("/submit-payment", upload.single("paymentScreenshot"), async (req, r
       await Notification.create({
         type: "payment_submitted",
         title: "Payment Submitted",
-        message: `Order #${order.id} payment submitted. ${customerInfo}. UNR: ${order.paymentUNR || 'N/A'}. Approve in Admin → Payments.`,
+        message: `Order #${order.id} payment submitted. ${customerInfo}. UNR: ${order.paymentUNR || 'N/A'}. Approve in Admin -> Orders.`,
         isRead: false,
-        audience: "admin"
+        audience: "admin",
+        meta: JSON.stringify({
+          orderId: order.id,
+          route: `/admin/orders/${order.id}`,
+          action: "approve_payment"
+        })
       });
     } catch (notifErr) {
       console.error("Payment notification creation failed:", notifErr);
