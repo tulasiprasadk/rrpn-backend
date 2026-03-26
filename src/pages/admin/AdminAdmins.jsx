@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from "react";
 import api from "../../api/client";
+import { useAdminAuth } from "../../context/AdminAuthContext";
 
 export default function AdminAdmins() {
+  const { admin } = useAdminAuth();
   const [admins, setAdmins] = useState([]);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState({ name: "", email: "", phone: "", password: "", role: "admin", autoApprove: false });
@@ -16,12 +18,30 @@ export default function AdminAdmins() {
     try {
       setLoading(true);
       const res = await api.get("/admin/admins");
-      setAdmins(Array.isArray(res.data) ? res.data : []);
+      const list = Array.isArray(res.data) ? res.data : [];
+      if (list.length > 0) {
+        setAdmins(list);
+        setError("");
+        return;
+      }
+
+      if (admin) {
+        setAdmins([{ ...admin, isApproved: true }]);
+        setError("");
+        return;
+      }
+
+      setAdmins([]);
       setError("");
     } catch (err) {
       console.error("Failed to load admins", err);
-      setAdmins([]);
-      setError(err.response?.data?.error || "Failed to load admins");
+      if (admin) {
+        setAdmins([{ ...admin, isApproved: true }]);
+        setError("Showing current admin only");
+      } else {
+        setAdmins([]);
+        setError(err.response?.data?.error || "Failed to load admins");
+      }
     } finally {
       setLoading(false);
     }

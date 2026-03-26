@@ -8,11 +8,21 @@ const AdminCategoriesList = () => {
   const loadCategories = async () => {
     try {
       const res = await api.get("/admin/categories");
-      const list = Array.isArray(res.data) ? res.data : res.data?.categories || [];
+      let list = Array.isArray(res.data) ? res.data : res.data?.categories || [];
+      if (list.length === 0) {
+        const fallback = await api.get("/categories");
+        list = Array.isArray(fallback.data) ? fallback.data : [];
+      }
       setCategories(list);
     } catch (err) {
       console.error("Failed to load categories", err);
-      setCategories([]);
+      try {
+        const fallback = await api.get("/categories");
+        setCategories(Array.isArray(fallback.data) ? fallback.data : []);
+      } catch (fallbackErr) {
+        console.error("Fallback category load failed", fallbackErr);
+        setCategories([]);
+      }
     }
   };
 

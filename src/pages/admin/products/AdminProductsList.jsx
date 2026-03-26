@@ -18,7 +18,11 @@ const AdminProductsList = () => {
     try {
       setLoading(true);
       const res = await api.get("/admin/products");
-      const list = Array.isArray(res.data) ? res.data : res.data?.products || [];
+      let list = Array.isArray(res.data) ? res.data : res.data?.products || [];
+      if (list.length === 0) {
+        const fallback = await api.get("/products?limit=50000");
+        list = Array.isArray(fallback.data) ? fallback.data : [];
+      }
       setProducts(list);
       setPriceDrafts(
         list.reduce((acc, product) => {
@@ -28,7 +32,20 @@ const AdminProductsList = () => {
       );
     } catch (err) {
       console.error("Failed to load products", err);
-      alert("Failed to load products");
+      try {
+        const fallback = await api.get("/products?limit=50000");
+        const list = Array.isArray(fallback.data) ? fallback.data : [];
+        setProducts(list);
+        setPriceDrafts(
+          list.reduce((acc, product) => {
+            acc[product.id] = product.price ?? "";
+            return acc;
+          }, {})
+        );
+      } catch (fallbackErr) {
+        console.error("Fallback product load failed", fallbackErr);
+        alert("Failed to load products");
+      }
     } finally {
       setLoading(false);
     }

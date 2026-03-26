@@ -225,7 +225,7 @@ export default function AdminLayout() {
           <Link to="/admin/products" className="admin-nav-link" onClick={() => setNavOpen(false)}>📦 {translate("Products", kannadaEnabled)}</Link>
           <Link to="/admin/translator" className="admin-nav-link" onClick={() => setNavOpen(false)}>🌐 {translate("Translator", kannadaEnabled)}</Link>
           <Link to="/admin/config" className="admin-nav-link" onClick={() => setNavOpen(false)}>⚙️ {translate("Platform Config", kannadaEnabled)}</Link>
-          <Link to="/admin/checkout-marketing" className="admin-nav-link" onClick={() => setNavOpen(false)}>💸 {translate("Offers & Ads", kannadaEnabled)}</Link>
+          <Link to="/admin/checkout-marketing" className="admin-nav-link" onClick={() => setNavOpen(false)}>💸 {translate("Offers", kannadaEnabled)}</Link>
           <Link to="/admin/admins" className="admin-nav-link" onClick={() => setNavOpen(false)}>👥 {translate("Admins", kannadaEnabled)}</Link>
           <Link to="/admin/categories" className="admin-nav-link" onClick={() => setNavOpen(false)}>📂 {translate("Categories", kannadaEnabled)}</Link>
           <Link to="/admin/varieties" className="admin-nav-link" onClick={() => setNavOpen(false)}>🌾 {translate("Varieties", kannadaEnabled)}</Link>

@@ -8,10 +8,21 @@ const AdminAdsList = () => {
   const loadAds = async () => {
     try {
       const res = await api.get("/admin/ads");
-      setAds(Array.isArray(res.data) ? res.data : []);
+      let list = Array.isArray(res.data) ? res.data : [];
+      if (list.length === 0) {
+        const fallback = await api.get("/ads");
+        list = Array.isArray(fallback.data) ? fallback.data : [];
+      }
+      setAds(list);
     } catch (err) {
       console.error("Failed loading ads:", err);
-      setAds([]);
+      try {
+        const fallback = await api.get("/ads");
+        setAds(Array.isArray(fallback.data) ? fallback.data : []);
+      } catch (fallbackErr) {
+        console.error("Fallback ads load failed", fallbackErr);
+        setAds([]);
+      }
     }
   };
 
