@@ -10,6 +10,13 @@ import { ensureWritableDir } from "../utils/uploadPaths.js";
 const { Order, Product, Supplier, Address, Notification } = models;
 const router = express.Router();
 
+const SUBSCRIPTION_DISCOUNTS = {
+  monthly: 5,
+  quarterly: 7,
+  half_yearly: 9,
+  yearly: 12
+};
+
 // Configure multer for payment screenshots
 const paymentUploadDir = ensureWritableDir("uploads", "payment");
 const storage = multer.diskStorage({
@@ -171,23 +178,18 @@ router.post("/create", requireLogin, async (req, res) => {
 
     // Notify customer about subscription option (if applicable)
     try {
-      if (req.session.customerId && (product.hasMonthlyPackage || product.hasYearlyPackage)) {
-        const options = [];
-        if (product.hasMonthlyPackage) options.push("monthly");
-        if (product.hasYearlyPackage) options.push("yearly");
-        const message = options.length === 2
-          ? `Subscribe to ${product.title} monthly or yearly for automatic deliveries.`
-          : `Subscribe to ${product.title} on a ${options[0]} plan for automatic deliveries.`;
+      if (req.session.customerId && Number(product.price || 0) > 0) {
         await Notification.create({
           type: "subscription_prompt",
           title: "Subscribe & Save",
-          message,
+          message: `Subscribe to ${product.title} for recurring delivery and save 5% monthly, 7% for 3 months, 9% for 6 months, or 12% yearly.`,
           isRead: false,
           audience: "customer",
           customerId: req.session.customerId,
           meta: JSON.stringify({
             productId: product.id,
-            options
+            options: Object.keys(SUBSCRIPTION_DISCOUNTS),
+            discounts: SUBSCRIPTION_DISCOUNTS
           })
         });
       }

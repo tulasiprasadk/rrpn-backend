@@ -5,6 +5,35 @@ import { models } from "../config/database.js";
 const { Product, Subscription, Category } = models;
 const router = express.Router();
 
+const SUBSCRIPTION_PLANS = {
+  monthly: { label: "Monthly", months: 1, discountPercent: 5 },
+  quarterly: { label: "3 Months", months: 3, discountPercent: 7 },
+  half_yearly: { label: "6 Months", months: 6, discountPercent: 9 },
+  yearly: { label: "Yearly", months: 12, discountPercent: 12 }
+};
+
+function buildPlanForProduct(product, period) {
+  const config = SUBSCRIPTION_PLANS[period];
+  const basePrice = Number(product?.price || 0);
+  if (!config || basePrice <= 0) {
+    return null;
+  }
+
+  const cycleBase = basePrice * config.months;
+  const discountedPrice = Number((cycleBase * (1 - config.discountPercent / 100)).toFixed(2));
+  const savings = Number((cycleBase - discountedPrice).toFixed(2));
+
+  return {
+    period,
+    label: config.label,
+    months: config.months,
+    discountPercent: config.discountPercent,
+    baseCyclePrice: Number(cycleBase.toFixed(2)),
+    discountedPrice,
+    savings
+  };
+}
+
 function requireLogin(req, res, next) {
   if (req.session?.customerId) return next();
 
@@ -38,35 +67,41 @@ router.get("/plans", async (req, res) => {
       order: [["id", "ASC"]]
     });
 
-    const eligible = products.filter(
-      (p) => p.hasMonthlyPackage || p.hasYearlyPackage
-    );
+    const eligible = products.filter((p) => Number(p.price || 0) > 0);
+    const grouped = Object.keys(SUBSCRIPTION_PLANS).reduce((acc, period) => {
+      acc[period] = [];
+      return acc;
+    }, {});
 
-    const monthly = eligible
-      .filter((p) => p.hasMonthlyPackage)
-      .map((p) => ({
-        id: p.id,
-        title: p.title,
-        price: p.price,
-        monthlyPrice: p.monthlyPrice,
-        unit: p.unit,
-        variety: p.variety,
-        category: p.Category ? { id: p.Category.id, name: p.Category.name } : null
-      }));
+    const plans = eligible.map((product) => {
+      const productPlans = Object.keys(SUBSCRIPTION_PLANS)
+        .map((period) => buildPlanForProduct(product, period))
+        .filter(Boolean);
 
-    const yearly = eligible
-      .filter((p) => p.hasYearlyPackage)
-      .map((p) => ({
-        id: p.id,
-        title: p.title,
-        price: p.price,
-        yearlyPrice: p.yearlyPrice,
-        unit: p.unit,
-        variety: p.variety,
-        category: p.Category ? { id: p.Category.id, name: p.Category.name } : null
-      }));
+      productPlans.forEach((plan) => {
+        grouped[plan.period].push({
+          id: product.id,
+          title: product.title,
+          price: Number(product.price),
+          unit: product.unit,
+          variety: product.variety,
+          category: product.Category ? { id: product.Category.id, name: product.Category.name } : null,
+          ...plan
+        });
+      });
 
-    res.json({ monthly, yearly });
+      return {
+        id: product.id,
+        title: product.title,
+        price: Number(product.price),
+        unit: product.unit,
+        variety: product.variety,
+        category: product.Category ? { id: product.Category.id, name: product.Category.name } : null,
+        plans: productPlans
+      };
+    });
+
+    res.json({ plans, ...grouped });
   } catch (err) {
     console.error("Subscription plans error:", err);
     res.status(500).json({ error: "Failed to load subscription plans" });
@@ -100,31 +135,14 @@ router.post("/", requireLogin, async (req, res) => {
     }
 
     const normalizedPeriod = String(period).toLowerCase();
-    const isMonthly = normalizedPeriod === "monthly";
-    const isYearly = normalizedPeriod === "yearly";
-    if (!isMonthly && !isYearly) {
+    const selectedPlan = buildPlanForProduct(product, normalizedPeriod);
+    if (!selectedPlan) {
       return res.status(400).json({ error: "Invalid period" });
-    }
-
-    if (isMonthly && !product.hasMonthlyPackage) {
-      return res.status(400).json({ error: "Monthly subscription not available" });
-    }
-    if (isYearly && !product.hasYearlyPackage) {
-      return res.status(400).json({ error: "Yearly subscription not available" });
-    }
-
-    const price = isMonthly ? product.monthlyPrice : product.yearlyPrice;
-    if (!price || Number(price) <= 0) {
-      return res.status(400).json({ error: "Subscription price not configured" });
     }
 
     const startDate = new Date();
     const endDate = new Date(startDate);
-    if (isMonthly) {
-      endDate.setMonth(endDate.getMonth() + 1);
-    } else {
-      endDate.setFullYear(endDate.getFullYear() + 1);
-    }
+    endDate.setMonth(endDate.getMonth() + selectedPlan.months);
 
     const subscription = await Subscription.create({
       customerId: req.session.customerId,
@@ -133,10 +151,14 @@ router.post("/", requireLogin, async (req, res) => {
       status: "active",
       startDate,
       endDate,
-      price
+      price: selectedPlan.discountedPrice
     });
 
-    res.json({ success: true, subscription });
+    res.json({
+      success: true,
+      subscription,
+      plan: selectedPlan
+    });
   } catch (err) {
     console.error("Subscription create error:", err);
     res.status(500).json({ error: "Failed to create subscription" });

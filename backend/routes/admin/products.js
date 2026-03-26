@@ -6,6 +6,11 @@ import { translateToKannada } from '../../services/translator.js';
 const { Product, Supplier, ProductSupplier, Category } = models;
 const router = express.Router();
 
+const parseMoney = (value) => {
+  const amount = Number.parseFloat(value);
+  return Number.isFinite(amount) && amount >= 0 ? amount : null;
+};
+
 // POST /api/admin/products/translate - Translate selected products to Kannada
 router.post('/translate', requireAdmin, async (req, res) => {
   try {
@@ -106,6 +111,61 @@ router.put('/save-english', requireAdmin, async (req, res) => {
   }
 });
 
+// POST /api/admin/products/prices/bulk - Bulk update only prices
+router.post('/prices/bulk', requireAdmin, async (req, res) => {
+  try {
+    const updates = Array.isArray(req.body?.updates) ? req.body.updates : [];
+    if (updates.length === 0) {
+      return res.status(400).json({ error: 'updates array required' });
+    }
+
+    let updated = 0;
+    const errors = [];
+
+    for (const entry of updates) {
+      const nextPrice = parseMoney(entry?.price);
+      if (nextPrice === null) {
+        errors.push({
+          reference: entry?.id || entry?.title || 'unknown',
+          error: 'Valid non-negative price required'
+        });
+        continue;
+      }
+
+      const where = entry?.id
+        ? { id: entry.id }
+        : entry?.title
+          ? { title: entry.title }
+          : null;
+
+      if (!where) {
+        errors.push({
+          reference: 'unknown',
+          error: 'Each row needs id or title'
+        });
+        continue;
+      }
+
+      const product = await Product.findOne({ where });
+      if (!product) {
+        errors.push({
+          reference: entry?.id || entry?.title || 'unknown',
+          error: 'Product not found'
+        });
+        continue;
+      }
+
+      await product.update({ price: nextPrice });
+      updated += 1;
+    }
+
+    res.json({ success: true, updated, errors });
+  } catch (error) {
+    console.error('Bulk price update error:', error);
+    res.status(500).json({ error: 'Failed to bulk update prices' });
+  }
+});
+
 // GET /api/admin/products/:id - Get single product for editing
 router.get('/:id', requireAdmin, async (req, res) => {
   try {
@@ -119,6 +179,27 @@ router.get('/:id', requireAdmin, async (req, res) => {
   } catch (error) {
     console.error('Error fetching product:', error);
     res.status(500).json({ error: 'Failed to fetch product' });
+  }
+});
+
+// PATCH /api/admin/products/:id/price - Update only product price
+router.patch('/:id/price', requireAdmin, async (req, res) => {
+  try {
+    const product = await Product.findByPk(req.params.id);
+    if (!product) {
+      return res.status(404).json({ error: 'Product not found' });
+    }
+
+    const price = parseMoney(req.body?.price);
+    if (price === null) {
+      return res.status(400).json({ error: 'Valid non-negative price required' });
+    }
+
+    await product.update({ price });
+    res.json({ success: true, product });
+  } catch (error) {
+    console.error('Error updating product price:', error);
+    res.status(500).json({ error: 'Failed to update product price' });
   }
 });
 
