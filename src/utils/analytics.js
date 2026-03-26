@@ -34,3 +34,11 @@ export function trackPageView(path) {
     page_title: document.title,
   });
 }
+
+export function trackEvent(eventName, params = {}) {
+  if (!measurementId || typeof window === "undefined" || !window.gtag) {
+    return;
+  }
+
+  window.gtag("event", eventName, params);
+}

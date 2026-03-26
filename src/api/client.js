@@ -1,6 +1,23 @@
 import axios from "axios";
 import { API_BASE, resolveApiRequestUrl, sanitizeBase64DataUrl } from "../config/api";
 
+function getTokenForRequest(url = "") {
+  const normalizedUrl = String(url || "");
+  const customerToken = localStorage.getItem("token");
+  const adminToken = localStorage.getItem("adminToken");
+  const supplierToken = localStorage.getItem("supplierToken");
+
+  if (normalizedUrl.includes("/admin")) {
+    return adminToken || customerToken || supplierToken;
+  }
+
+  if (normalizedUrl.includes("/supplier")) {
+    return supplierToken || customerToken || adminToken;
+  }
+
+  return customerToken || adminToken || supplierToken;
+}
+
 // Create axios instance
 const api = axios.create({
   baseURL: API_BASE,
@@ -15,10 +32,7 @@ api.interceptors.request.use(
     if (nextUrl) {
       config.url = nextUrl;
     }
-    const token =
-      localStorage.getItem("adminToken") ||
-      localStorage.getItem("supplierToken") ||
-      localStorage.getItem("token");
+    const token = getTokenForRequest(config.url || "");
     if (token) {
       config.headers = config.headers || {};
       config.headers.Authorization = `Bearer ${token}`;

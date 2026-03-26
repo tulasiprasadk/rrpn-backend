@@ -13,27 +13,6 @@ import CartPanel from "../components/CartPanel";
 import CategoryIcon from "../components/CategoryIcon";
 import { useCrackerCart } from "../context/CrackerCartContext";
 
-/* ================= ANALYTICS (GA4) ================= */
-const GA_MEASUREMENT_ID = "G-XXXXXXXXXX";
-
-function useGoogleAnalytics() {
-  useEffect(() => {
-    if (window.gtag) return;
-    const script = document.createElement("script");
-    script.async = true;
-    script.src = `https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`;
-    document.head.appendChild(script);
-
-    window.dataLayer = window.dataLayer || [];
-    function gtag() {
-      window.dataLayer.push(arguments);
-    }
-    window.gtag = gtag;
-    gtag("js", new Date());
-    gtag("config", GA_MEASUREMENT_ID);
-  }, []);
-}
-
 /* ================= HERO IMAGES ================= */
 import hero1_400 from "../assets/hero-1-400.jpg";
 import hero1_800 from "../assets/hero-1-800.jpg";
@@ -75,7 +54,6 @@ const defaultCategories = [
 ];
 
 export default function Home() {
-  useGoogleAnalytics();
   const navigate = useNavigate();
 
   /* ================= HERO SLIDER ================= */

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import api from "../api/client";
+import { trackEvent } from "../utils/analytics";
 import "./CheckoutReview.mobile.css";
 
 export default function CheckoutReview() {
@@ -119,6 +120,16 @@ export default function CheckoutReview() {
         .join(", ")
     : "";
 
+  useEffect(() => {
+    if (!loading && cart.length > 0) {
+      trackEvent("begin_checkout", {
+        currency: "INR",
+        value: totalAfterDiscount,
+        items: cart.length
+      });
+    }
+  }, [loading, cart.length, totalAfterDiscount]);
+
   const placeOrder = async () => {
     if (!selectedAddress && !isGuest) {
       alert("Please select a delivery address or checkout as guest");
@@ -157,6 +168,11 @@ export default function CheckoutReview() {
           discount: discount || 0,
         };
         const res = await api.post("/orders/create", order);
+        trackEvent("add_shipping_info", {
+          method: "saved_address",
+          city: selectedAddress?.city || "",
+          value: totalAfterDiscount
+        });
         // Clear bag
         localStorage.setItem("bag", JSON.stringify([]));
         localStorage.setItem("cart", JSON.stringify([]));
@@ -199,6 +215,11 @@ export default function CheckoutReview() {
       }
 
       const gres = await api.post("/orders/create-guest", guestOrder);
+      trackEvent("add_shipping_info", {
+        method: guestSave ? "guest_saved_session" : "guest",
+        city: guestCity || "",
+        value: totalAfterDiscount
+      });
       localStorage.setItem("bag", JSON.stringify([]));
       localStorage.setItem("cart", JSON.stringify([]));
       navigate("/payment", { state: { orderId: gres.data.orderId, orderDetails: gres.data } });
@@ -289,15 +310,36 @@ export default function CheckoutReview() {
                           const resp = await api.post('/customer/address', payload);
                           if (resp.data && resp.data.address) {
                             setDefaultAddress(resp.data.address);
+                            trackEvent("add_shipping_info", {
+                              method: "saved_address",
+                              city: resp.data.address.city || payload.city || "",
+                              value: totalAfterDiscount
+                            });
                             alert('Address saved');
                           } else if (resp.data && resp.data.ok) {
                             // Some backends return ok:true and address in different shape
                             setDefaultAddress(resp.data);
+                            trackEvent("add_shipping_info", {
+                              method: "saved_address",
+                              city: resp.data.city || payload.city || "",
+                              value: totalAfterDiscount
+                            });
+                            alert('Address saved');
+                          } else {
+                            setDefaultAddress(payload);
+                            trackEvent("add_shipping_info", {
+                              method: "saved_address",
+                              city: payload.city || "",
+                              value: totalAfterDiscount
+                            });
                             alert('Address saved');
                           }
                         } catch (e) {
                           console.error('Save address error:', e);
-                          alert('Failed to save address');
+                          trackEvent("address_save_failed", {
+                            reason: e.response?.data?.error || e.message || "unknown"
+                          });
+                          alert(`Failed to save address: ${e.response?.data?.error || e.message}`);
                         }
                       }} style={{ padding: '8px 12px' }}>Save & Use</button>
                       <button className="inline-manage-btn" onClick={() => navigate('/address')} style={{ padding: '8px 12px' }}>Manage Addresses</button>
