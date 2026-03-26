@@ -312,7 +312,7 @@ router.post('/admins/:id/approve', requireSuperAdmin, async (req, res) => {
 });
 
 // Get all admins
-router.get('/admins', requireSuperAdmin, async (req, res) => {
+router.get('/admins', requireAdmin, async (req, res) => {
   try {
     const admins = await Admin.findAll({
       attributes: ['id', 'name', 'email', 'phone', 'role', 'isActive', 'isApproved', 'approvedAt', 'lastLogin', 'createdAt'],
@@ -739,14 +739,79 @@ router.get('/charts/orders', async (req, res) => {
    CATEGORIES & ADS
 ====================================================== */
 
-router.post('/categories', async (req, res) => {
-  const cat = await Category.create({ name: req.body.name });
-  res.json(cat);
+router.get('/categories', requireAdmin, async (req, res) => {
+  try {
+    const categories = await Category.findAll({
+      order: [['id', 'ASC']]
+    });
+    res.json(categories);
+  } catch (err) {
+    console.error('Get categories error:', err);
+    res.status(500).json({ error: 'Failed to load categories' });
+  }
 });
 
-router.post('/ads', async (req, res) => {
-  const ad = await Ad.create(req.body);
-  res.json(ad);
+router.get('/categories/:id', requireAdmin, async (req, res) => {
+  try {
+    const category = await Category.findByPk(req.params.id);
+    if (!category) {
+      return res.status(404).json({ error: 'Category not found' });
+    }
+    res.json(category);
+  } catch (err) {
+    console.error('Get category error:', err);
+    res.status(500).json({ error: 'Failed to load category' });
+  }
+});
+
+router.post('/categories', requireAdmin, async (req, res) => {
+  try {
+    const cat = await Category.create({ name: req.body.name, icon: req.body.icon || null });
+    res.json(cat);
+  } catch (err) {
+    console.error('Create category error:', err);
+    res.status(500).json({ error: 'Failed to create category' });
+  }
+});
+
+router.put('/categories/:id', requireAdmin, async (req, res) => {
+  try {
+    const category = await Category.findByPk(req.params.id);
+    if (!category) {
+      return res.status(404).json({ error: 'Category not found' });
+    }
+    await category.update({
+      name: req.body.name ?? category.name,
+      icon: req.body.icon ?? category.icon
+    });
+    res.json(category);
+  } catch (err) {
+    console.error('Update category error:', err);
+    res.status(500).json({ error: 'Failed to update category' });
+  }
+});
+
+router.delete('/categories/:id', requireAdmin, async (req, res) => {
+  try {
+    const deleted = await Category.destroy({ where: { id: req.params.id } });
+    if (!deleted) {
+      return res.status(404).json({ error: 'Category not found' });
+    }
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Delete category error:', err);
+    res.status(500).json({ error: 'Failed to delete category' });
+  }
+});
+
+router.post('/ads', requireAdmin, async (req, res) => {
+  try {
+    const ad = await Ad.create(req.body);
+    res.json(ad);
+  } catch (err) {
+    console.error('Create ad error:', err);
+    res.status(500).json({ error: 'Failed to create ad' });
+  }
 });
 
 /* ======================================================

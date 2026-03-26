@@ -5,7 +5,7 @@ import { requireAdmin } from './middleware.js';
 import { ensureWritableDir } from '../../utils/uploadPaths.js';
 
 const router = express.Router();
-const { FeaturedAd } = models;
+const { FeaturedAd, Ad } = models;
 
 // setup multer to accept image uploads for admin ads
 const uploadDir = ensureWritableDir('uploads', 'ads');
@@ -19,10 +19,50 @@ router.use(requireAdmin);
 
 router.get('/', async (req, res) => {
   try {
-    const rows = await FeaturedAd.findAll({ order: [['type','ASC'], ['weight','DESC'], ['id','DESC']] });
-    res.json(rows);
+    const featuredRows = FeaturedAd
+      ? await FeaturedAd.findAll({ order: [['type','ASC'], ['weight','DESC'], ['id','DESC']] })
+      : [];
+    const legacyRows = Ad ? await Ad.findAll({ order: [['id', 'DESC']] }) : [];
+
+    const normalizedLegacy = legacyRows.map((row) => {
+      const data = row.toJSON ? row.toJSON() : row;
+      return {
+        ...data,
+        source: 'legacy',
+        imageUrl: data.imageUrl,
+        targetUrl: data.link || null,
+        type: data.position || 'legacy'
+      };
+    });
+
+    const normalizedFeatured = featuredRows.map((row) => {
+      const data = row.toJSON ? row.toJSON() : row;
+      return {
+        ...data,
+        source: 'featured'
+      };
+    });
+
+    res.json([...normalizedFeatured, ...normalizedLegacy]);
   } catch (err) {
     console.error('Admin: list featured ads', err);
+    res.status(500).json({ error: 'Failed' });
+  }
+});
+
+router.get('/:id', async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    let row = FeaturedAd ? await FeaturedAd.findByPk(id) : null;
+    if (!row && Ad) {
+      row = await Ad.findByPk(id);
+    }
+    if (!row) {
+      return res.status(404).json({ error: 'Not found' });
+    }
+    res.json(row);
+  } catch (err) {
+    console.error('Admin: get ad', err);
     res.status(500).json({ error: 'Failed' });
   }
 });

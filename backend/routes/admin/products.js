@@ -111,6 +111,20 @@ router.put('/save-english', requireAdmin, async (req, res) => {
   }
 });
 
+// GET /api/admin/products - List products for admin catalog management
+router.get('/', requireAdmin, async (req, res) => {
+  try {
+    const products = await Product.findAll({
+      include: [{ model: Category, attributes: ['id', 'name', 'icon'] }],
+      order: [['id', 'DESC']]
+    });
+    res.json(products);
+  } catch (error) {
+    console.error('Error fetching admin products:', error);
+    res.status(500).json({ error: 'Failed to fetch products' });
+  }
+});
+
 // POST /api/admin/products/prices/bulk - Bulk update only prices
 router.post('/prices/bulk', requireAdmin, async (req, res) => {
   try {
