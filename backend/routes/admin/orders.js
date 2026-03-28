@@ -1,14 +1,14 @@
 
 import express from "express";
 import { models } from "../../config/database.js";
-const { Order, Product, Supplier, Address } = models;
-import notifyCustomer from "../../services/notificationService.js";
+import { requireAdmin } from "./middleware.js";
+const { Order, Product, Supplier, Address, Notification } = models;
 const router = express.Router();
 
 /* ===========================================================
    LIST ALL ORDERS (Admin)
 =========================================================== */
-router.get("/", async (req, res) => {
+router.get("/", requireAdmin, async (req, res) => {
   try {
     const orders = await Order.findAll({
       include: [
@@ -31,7 +31,7 @@ router.get("/", async (req, res) => {
 /* ===========================================================
    GET SINGLE ORDER
 =========================================================== */
-router.get("/:id", async (req, res) => {
+router.get("/:id", requireAdmin, async (req, res) => {
   try {
     const order = await Order.findOne({
       where: { id: req.params.id },
@@ -56,7 +56,7 @@ router.get("/:id", async (req, res) => {
 /* ===========================================================
    APPROVE PAYMENT
 =========================================================== */
-router.put("/:id/approve", async (req, res) => {
+router.put("/:id/approve", requireAdmin, async (req, res) => {
   try {
     const id = req.params.id;
 
@@ -73,14 +73,20 @@ router.put("/:id/approve", async (req, res) => {
       }
     );
 
-    // Send notifications
-    notifyCustomer({
-      email: order.customerEmail,
-      phone: order.customerPhone,
-      pushToken: order.customerPushToken,
-      title: "Payment Approved",
-      message: `Your payment for order #${id} is approved. Delivery will be scheduled soon.`,
-    });
+    if (order.CustomerId) {
+      await Notification.create({
+        type: "payment_approved",
+        title: "Payment Approved",
+        message: `Your payment for order #${id} is approved. Delivery will be scheduled soon.`,
+        isRead: false,
+        audience: "customer",
+        customerId: order.CustomerId,
+        meta: JSON.stringify({
+          orderId: order.id,
+          route: `/my-orders/${order.id}`,
+        }),
+      });
+    }
 
     res.json({ success: true, message: "Payment approved" });
 
@@ -94,7 +100,7 @@ router.put("/:id/approve", async (req, res) => {
 /* ===========================================================
    REJECT PAYMENT
 =========================================================== */
-router.put("/:id/reject", async (req, res) => {
+router.put("/:id/reject", requireAdmin, async (req, res) => {
   try {
     const id = req.params.id;
 
@@ -111,14 +117,20 @@ router.put("/:id/reject", async (req, res) => {
       }
     );
 
-    // Send notifications
-    notifyCustomer({
-      email: order.customerEmail,
-      phone: order.customerPhone,
-      pushToken: order.customerPushToken,
-      title: "Payment Rejected",
-      message: `Your payment for order #${id} could not be verified. Please re-upload screenshot or correct UNR.`,
-    });
+    if (order.CustomerId) {
+      await Notification.create({
+        type: "payment_rejected",
+        title: "Payment Rejected",
+        message: `Your payment for order #${id} could not be verified. Please re-upload screenshot or correct UNR.`,
+        isRead: false,
+        audience: "customer",
+        customerId: order.CustomerId,
+        meta: JSON.stringify({
+          orderId: order.id,
+          route: `/my-orders/${order.id}`,
+        }),
+      });
+    }
 
     res.json({ success: true, message: "Payment rejected" });
 
