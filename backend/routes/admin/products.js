@@ -11,6 +11,8 @@ const parseMoney = (value) => {
   return Number.isFinite(amount) && amount >= 0 ? amount : null;
 };
 
+const normalizeText = (value) => (value || "").toString().trim().toLowerCase();
+
 // POST /api/admin/products/translate - Translate selected products to Kannada
 router.post('/translate', requireAdmin, async (req, res) => {
   try {
@@ -122,6 +124,101 @@ router.get('/', requireAdmin, async (req, res) => {
   } catch (error) {
     console.error('Error fetching admin products:', error);
     res.status(500).json({ error: 'Failed to fetch products' });
+  }
+});
+
+// POST /api/admin/products/bulk - Bulk create or replace products from CSV payload
+router.post('/bulk', requireAdmin, async (req, res) => {
+  try {
+    const products = Array.isArray(req.body?.products) ? req.body.products : [];
+    const replaceMode = req.query.mode === 'replace';
+
+    if (products.length === 0) {
+      return res.status(400).json({ error: 'No products provided' });
+    }
+
+    const categoryCache = new Map();
+    const existingCategories = await Category.findAll();
+    existingCategories.forEach((category) => {
+      categoryCache.set(normalizeText(category.name), category);
+    });
+
+    const existingProducts = replaceMode
+      ? await Product.findAll({ attributes: ['id', 'title'] })
+      : [];
+    const existingProductMap = new Map(
+      existingProducts.map((product) => [normalizeText(product.title), product])
+    );
+
+    const toCreate = [];
+    const toUpdate = [];
+    const errors = [];
+
+    for (const [index, raw] of products.entries()) {
+      const title = raw?.title?.trim();
+      const price = parseMoney(raw?.price);
+
+      if (!title || price === null) {
+        errors.push({ index, error: 'Missing title or valid price' });
+        continue;
+      }
+
+      let categoryId = raw.CategoryId || raw.categoryId || null;
+      if (!categoryId && raw.categoryName) {
+        const key = normalizeText(raw.categoryName);
+        let category = categoryCache.get(key);
+        if (!category) {
+          category = await Category.create({ name: raw.categoryName });
+          categoryCache.set(key, category);
+        }
+        categoryId = category.id;
+      }
+
+      const payload = {
+        title,
+        price,
+        unit: raw.unit || null,
+        description: raw.description || null,
+        variety: raw.variety || null,
+        subVariety: raw.subVariety || null,
+        CategoryId: categoryId || null,
+        status: 'approved',
+      };
+
+      if (replaceMode) {
+        const existingProduct = existingProductMap.get(normalizeText(title));
+        if (existingProduct) {
+          toUpdate.push({ id: existingProduct.id, ...payload });
+          continue;
+        }
+      }
+
+      toCreate.push(payload);
+    }
+
+    let created = [];
+    if (toCreate.length > 0) {
+      created = await Product.bulkCreate(toCreate, { validate: true });
+    }
+
+    let updated = 0;
+    for (const payload of toUpdate) {
+      const { id, ...updateData } = payload;
+      await Product.update(updateData, { where: { id } });
+      updated += 1;
+    }
+
+    res.json({
+      success: true,
+      created: created.length,
+      updated,
+      errors: errors.length,
+      errorDetails: errors,
+      mode: replaceMode ? 'replace' : 'append',
+    });
+  } catch (error) {
+    console.error('Admin bulk upload error:', error);
+    res.status(500).json({ error: error.message || 'Bulk upload failed' });
   }
 });
 
