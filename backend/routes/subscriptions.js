@@ -96,7 +96,7 @@ router.get("/", requireLogin, async (req, res) => {
 
 router.post("/", requireLogin, async (req, res) => {
   try {
-    const { productId, period } = req.body || {};
+    const { productId, period, renewExisting = false } = req.body || {};
     if (!productId || !period) {
       return res.status(400).json({ error: "productId and period required" });
     }
@@ -110,6 +110,12 @@ router.post("/", requireLogin, async (req, res) => {
     const selectedPlan = buildPlanForProduct(product, normalizedPeriod);
     if (!selectedPlan) {
       return res.status(400).json({ error: "Invalid period" });
+    }
+
+    if (!renewExisting) {
+      return res.status(400).json({
+        error: "Subscriptions now start only through payment approval. Please continue through the payment flow."
+      });
     }
 
     const startDate = new Date();
