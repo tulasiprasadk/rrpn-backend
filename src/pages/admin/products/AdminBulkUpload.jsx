@@ -3,8 +3,8 @@ import api from "../../../api/client";
 import "./AdminBulkUpload.css";
 
 const catalogSample = `title,variety,subVariety,price,unit,description,categoryId,categoryName
-Red Roses Bouquet,Bouquets,Small Bouquet,150,piece,Beautiful small red roses bouquet perfect for gifting,4,Flowers
-Marigold Garland,Garlands,Large Garland,200,piece,Colorful marigold garland for decoration,4,Flowers
+Red Roses Bouquet,Bouquets,Small Bouquet,150,piece,Beautiful small red roses bouquet perfect for gifting,,Flowers
+Marigold Garland,Garlands,Large Garland,200,piece,Colorful marigold garland for decoration,,Flowers
 `;
 
 const priceSample = `id,price
