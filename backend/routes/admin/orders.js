@@ -2,6 +2,7 @@
 import express from "express";
 import { models } from "../../config/database.js";
 import { requireAdmin } from "./middleware.js";
+import { activateSubscriptionForOrder } from "../../utils/activateSubscriptionForOrder.js";
 const { Order, Product, Supplier, Address, Notification } = models;
 const router = express.Router();
 
@@ -72,6 +73,7 @@ router.put("/:id/approve", requireAdmin, async (req, res) => {
         where: { id }
       }
     );
+    await activateSubscriptionForOrder(models, order);
 
     if (order.CustomerId) {
       await Notification.create({

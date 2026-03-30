@@ -3,6 +3,7 @@ import { models } from "../config/database.js";
 import { requireAdmin } from "./admin/middleware.js";
 import adminNotify from "../services/adminNotify.js";
 import { sendNotificationToSupplier, sendNotificationToCustomer } from "../utils/notify.js";
+import { activateSubscriptionForOrder } from "../utils/activateSubscriptionForOrder.js";
 
 const { Order, Product, Supplier, Notification } = models;
 const router = express.Router();
@@ -36,6 +37,7 @@ async function approveOrderPaymentById(id) {
   order.paymentStatus = "approved";
   order.status = "paid";
   await order.save();
+  await activateSubscriptionForOrder(models, order);
 
   await adminNotify(
     "payment_approved",

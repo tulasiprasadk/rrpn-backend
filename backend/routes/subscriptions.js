@@ -1,38 +1,10 @@
 import express from "express";
 import jwt from "jsonwebtoken";
 import { models } from "../config/database.js";
+import { SUBSCRIPTION_PLANS, buildPlanForProduct } from "../utils/subscriptionPlans.js";
 
 const { Product, Subscription, Category } = models;
 const router = express.Router();
-
-const SUBSCRIPTION_PLANS = {
-  monthly: { label: "Monthly", months: 1, discountPercent: 5 },
-  quarterly: { label: "3 Months", months: 3, discountPercent: 7 },
-  half_yearly: { label: "6 Months", months: 6, discountPercent: 9 },
-  yearly: { label: "Yearly", months: 12, discountPercent: 12 }
-};
-
-function buildPlanForProduct(product, period) {
-  const config = SUBSCRIPTION_PLANS[period];
-  const basePrice = Number(product?.price || 0);
-  if (!config || basePrice <= 0) {
-    return null;
-  }
-
-  const cycleBase = basePrice * config.months;
-  const discountedPrice = Number((cycleBase * (1 - config.discountPercent / 100)).toFixed(2));
-  const savings = Number((cycleBase - discountedPrice).toFixed(2));
-
-  return {
-    period,
-    label: config.label,
-    months: config.months,
-    discountPercent: config.discountPercent,
-    baseCyclePrice: Number(cycleBase.toFixed(2)),
-    discountedPrice,
-    savings
-  };
-}
 
 function requireLogin(req, res, next) {
   if (req.session?.customerId) return next();

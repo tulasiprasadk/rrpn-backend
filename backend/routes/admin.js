@@ -2,6 +2,7 @@ import express from 'express';
 import bcrypt from 'bcrypt';
 import { Op } from 'sequelize';
 import { models, sequelize } from "../config/database.js";
+import { activateSubscriptionForOrder } from "../utils/activateSubscriptionForOrder.js";
 
 const { Category, Ad, AnalyticsVisit, Product, Admin, Supplier, Order, Customer, Notification } = models;
 
@@ -676,6 +677,7 @@ router.put('/orders/:id/approve', requireAdmin, async (req, res) => {
       paymentStatus: 'approved',
       status: 'paid'
     });
+    await activateSubscriptionForOrder(models, order);
 
     if (order.CustomerId) {
       await Notification.create({
@@ -759,6 +761,7 @@ router.post('/payments/:id/approve', requireAdmin, async (req, res) => {
       paymentStatus: 'approved',
       status: 'paid'
     });
+    await activateSubscriptionForOrder(models, order);
 
     res.json({ ok: true, order });
   } catch (err) {
@@ -807,6 +810,7 @@ router.post('/payments/notifications/:notificationId/approve', requireAdmin, asy
       paymentStatus: 'approved',
       status: 'paid'
     });
+    await activateSubscriptionForOrder(models, order);
     await notification.update({ isRead: true });
 
     res.json({ ok: true, order });

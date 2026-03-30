@@ -7,6 +7,7 @@ import jwt from "jsonwebtoken";
 import { models } from "../config/database.js";
 import { calculateOrderTotal } from "../utils/commissionCalculator.js";
 import { ensureWritableDir } from "../utils/uploadPaths.js";
+import { buildPlanForBasePrice } from "../utils/subscriptionPlans.js";
 const { Order, Product, Supplier, Address, Notification } = models;
 const router = express.Router();
 
@@ -566,6 +567,31 @@ router.post("/submit-payment", upload.single("paymentScreenshot"), async (req, r
       });
     }
 
+    let paymentInfo = order.paymentInfo && typeof order.paymentInfo === "object"
+      ? { ...order.paymentInfo }
+      : {};
+    const requestedSubscriptionPeriod = req.body.subscriptionPeriod
+      ? String(req.body.subscriptionPeriod).toLowerCase()
+      : "";
+    if (requestedSubscriptionPeriod && order.productId) {
+      const basePrice = Number(req.body.subscriptionBasePrice || paymentInfo?.subscriptionSelection?.basePrice || 0);
+      const plan = buildPlanForBasePrice(basePrice, requestedSubscriptionPeriod);
+      if (!plan) {
+        return res.status(400).json({ msg: "Invalid subscription selection" });
+      }
+
+      paymentInfo.subscriptionSelection = {
+        productId: order.productId,
+        period: plan.period,
+        label: plan.label,
+        months: plan.months,
+        discountPercent: plan.discountPercent,
+        discountedPrice: plan.discountedPrice,
+        savings: plan.savings,
+        basePrice
+      };
+    }
+
     // update specific order info
     let screenshotPath = null;
     if (req.file) {
@@ -576,6 +602,9 @@ router.post("/submit-payment", upload.single("paymentScreenshot"), async (req, r
     order.paymentStatus = "pending";
     if (req.body.unr && req.body.unr.trim().length >= 6) {
       order.paymentUNR = req.body.unr.trim();
+    }
+    if (Object.keys(paymentInfo).length > 0) {
+      order.paymentInfo = paymentInfo;
     }
     await order.save();
 
@@ -588,13 +617,14 @@ router.post("/submit-payment", upload.single("paymentScreenshot"), async (req, r
       await Notification.create({
         type: "payment_submitted",
         title: "Payment Submitted",
-        message: `Order #${order.id} payment submitted. ${customerInfo}. UNR: ${order.paymentUNR || 'N/A'}. Approve in Admin -> Orders.`,
+        message: `Order #${order.id} payment submitted. ${customerInfo}. UNR: ${order.paymentUNR || 'N/A'}.${paymentInfo.subscriptionSelection ? ` Subscription selected: ${paymentInfo.subscriptionSelection.label}.` : ""} Approve in Admin -> Orders.`,
         isRead: false,
         audience: "admin",
         meta: JSON.stringify({
           orderId: order.id,
           route: `/admin/orders/${order.id}`,
-          action: "approve_payment"
+          action: "approve_payment",
+          subscriptionPeriod: paymentInfo.subscriptionSelection?.period || null
         })
       });
     } catch (notifErr) {
