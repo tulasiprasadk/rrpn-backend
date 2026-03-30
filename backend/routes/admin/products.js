@@ -13,6 +13,11 @@ const parseMoney = (value) => {
 
 const normalizeText = (value) => (value || "").toString().trim().toLowerCase();
 
+const parseOptionalId = (value) => {
+  const parsed = Number.parseInt(value, 10);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+};
+
 // POST /api/admin/products/translate - Translate selected products to Kannada
 router.post('/translate', requireAdmin, async (req, res) => {
   try {
@@ -138,9 +143,11 @@ router.post('/bulk', requireAdmin, async (req, res) => {
     }
 
     const categoryCache = new Map();
+    const categoryIdCache = new Map();
     const existingCategories = await Category.findAll();
     existingCategories.forEach((category) => {
       categoryCache.set(normalizeText(category.name), category);
+      categoryIdCache.set(Number(category.id), category);
     });
 
     const existingProducts = replaceMode
@@ -163,13 +170,37 @@ router.post('/bulk', requireAdmin, async (req, res) => {
         continue;
       }
 
-      let categoryId = raw.CategoryId || raw.categoryId || null;
-      if (!categoryId && raw.categoryName) {
-        const key = normalizeText(raw.categoryName);
+      let categoryId = null;
+      const requestedCategoryId = parseOptionalId(raw.CategoryId ?? raw.categoryId);
+      const requestedCategoryName = raw.categoryName?.trim() || "";
+
+      if (requestedCategoryId) {
+        const existingCategory = categoryIdCache.get(requestedCategoryId);
+        if (existingCategory) {
+          categoryId = existingCategory.id;
+        } else if (requestedCategoryName) {
+          const key = normalizeText(requestedCategoryName);
+          let category = categoryCache.get(key);
+          if (!category) {
+            category = await Category.create({ name: requestedCategoryName });
+            categoryCache.set(key, category);
+            categoryIdCache.set(Number(category.id), category);
+          }
+          categoryId = category.id;
+        } else {
+          errors.push({
+            index,
+            error: `Category ID ${requestedCategoryId} does not exist`
+          });
+          continue;
+        }
+      } else if (requestedCategoryName) {
+        const key = normalizeText(requestedCategoryName);
         let category = categoryCache.get(key);
         if (!category) {
-          category = await Category.create({ name: raw.categoryName });
+          category = await Category.create({ name: requestedCategoryName });
           categoryCache.set(key, category);
+          categoryIdCache.set(Number(category.id), category);
         }
         categoryId = category.id;
       }
