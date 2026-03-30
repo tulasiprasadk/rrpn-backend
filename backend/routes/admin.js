@@ -603,6 +603,250 @@ router.post('/suppliers/:id/reject', requireAdmin, async (req, res) => {
 });
 
 /* ======================================================
+   ORDER / PAYMENT COMPATIBILITY
+====================================================== */
+
+function getOrderIdFromAdminNotification(notification) {
+  if (!notification) return null;
+
+  try {
+    if (notification.meta) {
+      const meta = typeof notification.meta === 'string'
+        ? JSON.parse(notification.meta)
+        : notification.meta;
+      if (meta?.orderId) return Number(meta.orderId) || meta.orderId;
+    }
+  } catch (_err) {
+    // Ignore invalid JSON and fall back to message parsing.
+  }
+
+  const message = notification.message || '';
+  const match = message.match(/order\s*#(\d+)/i) || message.match(/\b#(\d+)\b/);
+  return match ? Number(match[1]) || match[1] : null;
+}
+
+router.get('/orders', requireAdmin, async (req, res) => {
+  try {
+    const orders = await Order.findAll({
+      include: [
+        { model: Product },
+        { model: Supplier },
+        { model: models.Address }
+      ],
+      order: [['createdAt', 'DESC']]
+    });
+
+    res.json(orders);
+  } catch (err) {
+    console.error('Admin compatibility orders fetch error:', err);
+    res.status(500).json({ error: 'Failed to load orders' });
+  }
+});
+
+router.get('/orders/:id', requireAdmin, async (req, res) => {
+  try {
+    const order = await Order.findOne({
+      where: { id: req.params.id },
+      include: [
+        { model: Product },
+        { model: Supplier },
+        { model: models.Address }
+      ]
+    });
+
+    if (!order) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+
+    res.json(order);
+  } catch (err) {
+    console.error('Admin compatibility order detail error:', err);
+    res.status(500).json({ error: 'Failed to load order details' });
+  }
+});
+
+router.put('/orders/:id/approve', requireAdmin, async (req, res) => {
+  try {
+    const order = await Order.findByPk(req.params.id);
+    if (!order) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+
+    await order.update({
+      paymentStatus: 'approved',
+      status: 'paid'
+    });
+
+    if (order.CustomerId) {
+      await Notification.create({
+        type: 'payment_approved',
+        title: 'Payment Approved',
+        message: `Your payment for order #${order.id} is approved. Delivery will be scheduled soon.`,
+        isRead: false,
+        audience: 'customer',
+        customerId: order.CustomerId,
+        meta: JSON.stringify({
+          orderId: order.id,
+          route: `/my-orders/${order.id}`
+        })
+      });
+    }
+
+    res.json({ success: true, message: 'Payment approved', order });
+  } catch (err) {
+    console.error('Admin compatibility approve error:', err);
+    res.status(500).json({ error: 'Failed to approve payment' });
+  }
+});
+
+router.put('/orders/:id/reject', requireAdmin, async (req, res) => {
+  try {
+    const order = await Order.findByPk(req.params.id);
+    if (!order) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+
+    await order.update({
+      paymentStatus: 'rejected',
+      status: 'payment_failed'
+    });
+
+    if (order.CustomerId) {
+      await Notification.create({
+        type: 'payment_rejected',
+        title: 'Payment Rejected',
+        message: `Your payment for order #${order.id} could not be verified. Please re-upload screenshot or correct UNR.`,
+        isRead: false,
+        audience: 'customer',
+        customerId: order.CustomerId,
+        meta: JSON.stringify({
+          orderId: order.id,
+          route: `/my-orders/${order.id}`
+        })
+      });
+    }
+
+    res.json({ success: true, message: 'Payment rejected', order });
+  } catch (err) {
+    console.error('Admin compatibility reject error:', err);
+    res.status(500).json({ error: 'Failed to reject payment' });
+  }
+});
+
+router.get('/payments', requireAdmin, async (req, res) => {
+  try {
+    const pending = await Order.findAll({
+      where: { paymentStatus: 'pending' },
+      include: [Product, Supplier],
+      order: [['id', 'DESC']]
+    });
+
+    res.json(pending);
+  } catch (err) {
+    console.error('Admin compatibility payments fetch error:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+router.post('/payments/:id/approve', requireAdmin, async (req, res) => {
+  try {
+    const order = await Order.findByPk(req.params.id);
+    if (!order) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+
+    await order.update({
+      paymentStatus: 'approved',
+      status: 'paid'
+    });
+
+    res.json({ ok: true, order });
+  } catch (err) {
+    console.error('Admin compatibility payment approve error:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+router.post('/payments/:id/reject', requireAdmin, async (req, res) => {
+  try {
+    const order = await Order.findByPk(req.params.id);
+    if (!order) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+
+    await order.update({
+      paymentStatus: 'rejected',
+      status: 'payment_failed'
+    });
+
+    res.json({ ok: true, order });
+  } catch (err) {
+    console.error('Admin compatibility payment reject error:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+router.post('/payments/notifications/:notificationId/approve', requireAdmin, async (req, res) => {
+  try {
+    const notification = await Notification.findByPk(req.params.notificationId);
+    if (!notification) {
+      return res.status(404).json({ error: 'Notification not found' });
+    }
+
+    const orderId = getOrderIdFromAdminNotification(notification);
+    if (!orderId) {
+      return res.status(404).json({ error: 'Order not found for this notification' });
+    }
+
+    const order = await Order.findByPk(orderId);
+    if (!order) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+
+    await order.update({
+      paymentStatus: 'approved',
+      status: 'paid'
+    });
+    await notification.update({ isRead: true });
+
+    res.json({ ok: true, order });
+  } catch (err) {
+    console.error('Admin compatibility notification approve error:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+router.post('/payments/notifications/:notificationId/reject', requireAdmin, async (req, res) => {
+  try {
+    const notification = await Notification.findByPk(req.params.notificationId);
+    if (!notification) {
+      return res.status(404).json({ error: 'Notification not found' });
+    }
+
+    const orderId = getOrderIdFromAdminNotification(notification);
+    if (!orderId) {
+      return res.status(404).json({ error: 'Order not found for this notification' });
+    }
+
+    const order = await Order.findByPk(orderId);
+    if (!order) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+
+    await order.update({
+      paymentStatus: 'rejected',
+      status: 'payment_failed'
+    });
+    await notification.update({ isRead: true });
+
+    res.json({ ok: true, order });
+  } catch (err) {
+    console.error('Admin compatibility notification reject error:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+/* ======================================================
    DASHBOARD
 ====================================================== */
 
