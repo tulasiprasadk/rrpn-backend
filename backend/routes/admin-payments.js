@@ -1,6 +1,7 @@
 
 import express from "express";
 import { models } from "../config/database.js";
+import { requireAdmin } from "./admin/middleware.js";
 const { Order, Product, Supplier } = models;
 import adminNotify from "../services/adminNotify.js";
 import { sendNotificationToSupplier, sendNotificationToCustomer } from "../utils/notify.js";
@@ -10,7 +11,7 @@ const router = express.Router();
    GET ALL PENDING PAYMENTS
    GET /api/admin/payments
 ============================================================ */
-router.get("/", async (req, res) => {
+router.get("/", requireAdmin, async (req, res) => {
   try {
     const pending = await Order.findAll({
       where: { paymentStatus: "pending" },
@@ -29,7 +30,7 @@ router.get("/", async (req, res) => {
   APPROVE PAYMENT
   POST /api/admin/payments/:id/approve
 ============================================================ */
-router.post("/:id/approve", async (req, res) => {
+router.post("/:id/approve", requireAdmin, async (req, res) => {
   try {
     const order = await Order.findByPk(req.params.id, {
       include: [Product, Supplier]
@@ -85,7 +86,7 @@ router.post("/:id/approve", async (req, res) => {
    REJECT PAYMENT
    POST /api/admin/payments/:id/reject
 ============================================================ */
-router.post("/:id/reject", async (req, res) => {
+router.post("/:id/reject", requireAdmin, async (req, res) => {
   try {
     const order = await Order.findByPk(req.params.id);
 
