@@ -80,7 +80,8 @@ export default function CustomerSubscriptionsPanel({ compact = false }) {
         },
         body: JSON.stringify({
           productId,
-          period: subscription.period
+          period: subscription.period,
+          renewExisting: true
         })
       });
       const data = await res.json();
