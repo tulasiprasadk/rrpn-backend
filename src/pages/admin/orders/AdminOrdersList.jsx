@@ -45,6 +45,14 @@ function buildOrdersFromNotifications(notifications) {
     });
 }
 
+function extractNotificationsPayload(payload) {
+  if (Array.isArray(payload)) return payload;
+  if (!payload || typeof payload !== "object") return [];
+  if (Array.isArray(payload.notifications)) return payload.notifications;
+  if (Array.isArray(payload.data)) return payload.data;
+  return [];
+}
+
 export default function AdminOrdersList() {
   const navigate = useNavigate();
 
@@ -78,6 +86,15 @@ export default function AdminOrdersList() {
     setLoading(true);
     setError("");
 
+    async function loadNotificationFallback() {
+      const notifyRes = await api.get("/admin/notifications");
+      const fallbackOrders = buildOrdersFromNotifications(
+        extractNotificationsPayload(notifyRes.data)
+      );
+      setOrders(fallbackOrders);
+      return fallbackOrders;
+    }
+
     try {
       const res = await api.get("/admin/orders", {
         params: {
@@ -92,20 +109,16 @@ export default function AdminOrdersList() {
       if (payload.length > 0) {
         setOrders(payload);
       } else {
-        const paymentRes = await api.get("/admin/payments");
-        const paymentOrders = extractOrdersPayload(paymentRes.data);
-        if (paymentOrders.length > 0) {
-          setOrders(paymentOrders);
-        } else {
-          const notifyRes = await api.get("/admin/notifications");
-          const fallbackOrders = buildOrdersFromNotifications(
-            Array.isArray(notifyRes.data)
-              ? notifyRes.data
-              : Array.isArray(notifyRes.data?.notifications)
-                ? notifyRes.data.notifications
-                : []
-          );
-          setOrders(fallbackOrders);
+        try {
+          const paymentRes = await api.get("/admin/payments");
+          const paymentOrders = extractOrdersPayload(paymentRes.data);
+          if (paymentOrders.length > 0) {
+            setOrders(paymentOrders);
+          } else {
+            await loadNotificationFallback();
+          }
+        } catch (_paymentErr) {
+          await loadNotificationFallback();
         }
       }
     } catch (err) {
@@ -113,20 +126,16 @@ export default function AdminOrdersList() {
       setError(err?.response?.data?.error || err?.message || "Failed to load orders");
 
       try {
-        const paymentRes = await api.get("/admin/payments");
-        const paymentOrders = extractOrdersPayload(paymentRes.data);
-        if (paymentOrders.length > 0) {
-          setOrders(paymentOrders);
-        } else {
-          const notifyRes = await api.get("/admin/notifications");
-          const fallbackOrders = buildOrdersFromNotifications(
-            Array.isArray(notifyRes.data)
-              ? notifyRes.data
-              : Array.isArray(notifyRes.data?.notifications)
-                ? notifyRes.data.notifications
-                : []
-          );
-          setOrders(fallbackOrders);
+        try {
+          const paymentRes = await api.get("/admin/payments");
+          const paymentOrders = extractOrdersPayload(paymentRes.data);
+          if (paymentOrders.length > 0) {
+            setOrders(paymentOrders);
+          } else {
+            await loadNotificationFallback();
+          }
+        } catch (_paymentErr) {
+          await loadNotificationFallback();
         }
       } catch (_fallbackErr) {
         setOrders([]);
