@@ -122,18 +122,41 @@ export default function SubscriptionPrompt({ initialCandidate = null, compact = 
     <div
       style={{
         marginBottom: compact ? 16 : 24,
-        padding: compact ? 14 : 18,
-        borderRadius: 14,
-        background: "#fff3b0",
+        padding: compact ? 16 : 22,
+        borderRadius: 20,
+        background: "linear-gradient(135deg, #fff8cc 0%, #ffe78a 52%, #ffd55c 100%)",
         color: "#5A3A00",
-        boxShadow: "0 4px 20px rgba(0,0,0,0.06)"
+        boxShadow: "0 14px 40px rgba(194, 120, 0, 0.16)",
+        border: "1px solid rgba(210, 140, 0, 0.2)"
       }}
     >
       <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "start" }}>
-        <div>
-          <strong>Subscribe and Save on {candidate.title || "this product"}</strong>
-          <div style={{ marginTop: 6, fontSize: 14 }}>
-            Get recurring delivery without reminders and unlock extra savings after your first purchase.
+        <div style={{ maxWidth: 760 }}>
+          <div
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 8,
+              padding: "6px 12px",
+              borderRadius: 999,
+              background: "rgba(255,255,255,0.7)",
+              fontSize: 12,
+              fontWeight: 800,
+              textTransform: "uppercase",
+              letterSpacing: 0.4,
+              color: "#9a3412"
+            }}
+          >
+            Smart Repeat Delivery
+          </div>
+          <div style={{ marginTop: 10, fontSize: compact ? 24 : 30, fontWeight: 900, lineHeight: 1.05 }}>
+            Subscribe and Forget
+          </div>
+          <div style={{ marginTop: 8, fontSize: compact ? 15 : 17, fontWeight: 700 }}>
+            We remind, we schedule, and we deliver {candidate.title || "your product"} on time.
+          </div>
+          <div style={{ marginTop: 8, fontSize: 14, color: "#6b3f00", lineHeight: 1.6 }}>
+            No last-minute reordering. No missed essentials. Just steady savings and one less thing to think about.
           </div>
         </div>
         <button
@@ -152,43 +175,93 @@ export default function SubscriptionPrompt({ initialCandidate = null, compact = 
         </button>
       </div>
 
+      <div
+        style={{
+          display: "flex",
+          gap: 10,
+          flexWrap: "wrap",
+          marginTop: 14,
+          marginBottom: 14
+        }}
+      >
+        {[
+          "Recurring delivery",
+          "We remind you before dispatch",
+          "Pause or renew later",
+          "Extra subscription savings"
+        ].map((point) => (
+          <div
+            key={point}
+            style={{
+              padding: "8px 12px",
+              borderRadius: 999,
+              background: "rgba(255,255,255,0.72)",
+              fontSize: 13,
+              fontWeight: 700,
+              color: "#6b3f00"
+            }}
+          >
+            {point}
+          </div>
+        ))}
+      </div>
+
       <div style={{ display: "grid", gap: 10, marginTop: 12 }}>
         {plans.map((plan) => (
           <div
             key={plan.period}
             style={{
-              background: "rgba(255,255,255,0.75)",
-              borderRadius: 12,
-              padding: 12,
+              background: "rgba(255,255,255,0.82)",
+              borderRadius: 16,
+              padding: compact ? 12 : 14,
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
               gap: 12,
-              flexWrap: "wrap"
+              flexWrap: "wrap",
+              border: "1px solid rgba(210, 140, 0, 0.14)"
             }}
           >
-            <div>
-              <div style={{ fontWeight: 700 }}>
-                {plan.label} subscription - {plan.discountPercent}% off
+            <div style={{ minWidth: 220 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                <div style={{ fontWeight: 800, fontSize: 18 }}>
+                  {plan.label} plan
+                </div>
+                <div
+                  style={{
+                    padding: "4px 10px",
+                    borderRadius: 999,
+                    background: "#fff1f2",
+                    color: "#be123c",
+                    fontWeight: 800,
+                    fontSize: 12
+                  }}
+                >
+                  Save {plan.discountPercent}%
+                </div>
               </div>
-              <div style={{ fontSize: 14 }}>
-                Pay Rs {plan.discountedPrice.toFixed(2)} and save Rs {plan.savings.toFixed(2)}
+              <div style={{ fontSize: 14, marginTop: 6, color: "#6b3f00" }}>
+                Pay Rs {plan.discountedPrice.toFixed(2)} for {plan.months} month{plan.months > 1 ? "s" : ""} and save Rs {plan.savings.toFixed(2)}
+              </div>
+              <div style={{ fontSize: 13, marginTop: 4, color: "#8b5e00" }}>
+                Best for customers who want zero reorder stress.
               </div>
             </div>
             <button
               onClick={() => subscribeNow(plan.period)}
               disabled={submitting}
               style={{
-                padding: "10px 16px",
-                background: "#C8102E",
+                padding: compact ? "10px 14px" : "12px 18px",
+                background: "linear-gradient(135deg, #C8102E 0%, #9f1239 100%)",
                 color: "white",
                 border: "none",
-                borderRadius: 8,
+                borderRadius: 12,
                 cursor: submitting ? "not-allowed" : "pointer",
-                fontWeight: 700
+                fontWeight: 800,
+                boxShadow: "0 8px 20px rgba(159, 18, 57, 0.2)"
               }}
             >
-              {submitting ? "Processing..." : `Choose ${PLAN_LABELS[plan.period]}`}
+              {submitting ? "Processing..." : `Subscribe ${PLAN_LABELS[plan.period]}`}
             </button>
           </div>
         ))}
