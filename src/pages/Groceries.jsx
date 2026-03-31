@@ -186,9 +186,11 @@ export default function Groceries() {
       style={{
         minHeight: "100vh",
         background: "#FFFDE7",
+        display: isCompactLayout ? "flex" : "grid",
+        gridTemplateColumns: isCompactLayout ? undefined : "160px minmax(0, 1fr) 320px",
         alignItems: "flex-start",
         gap: isCompactLayout ? 16 : 18,
-        flexDirection: isCompactLayout ? "column" : "row",
+        flexDirection: isCompactLayout ? "column" : undefined,
         padding: isCompactLayout ? "16px 12px 24px" : "0 16px",
       }}
     >
@@ -218,10 +220,8 @@ export default function Groceries() {
 
       <div
         style={{
-          flex: 1,
           minWidth: 0,
           width: "100%",
-          maxWidth: isCompactLayout ? "100%" : "calc(100% - 500px)",
           padding: isCompactLayout ? 0 : "24px 0",
         }}
       >
