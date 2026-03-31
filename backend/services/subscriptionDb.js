@@ -107,3 +107,28 @@ async function recommendFor(userId, payload) {
 }
 
 export { insertSubscription, updateSubscription, skipNextSchedule, recommendFor };
+async function getCategoryRules(category) {
+  if (!category) return null;
+  if (pool) {
+    const rows = await pgQuery('SELECT rules FROM category_rules WHERE category = $1 LIMIT 1', [category]);
+    if (rows && rows.length) {
+      try {
+        return rows[0].rules;
+      } catch (e) {
+        return rows[0].rules;
+      }
+    }
+    return null;
+  }
+
+  // sqlite fallback
+  try {
+    const row = await sqliteGet('SELECT rules FROM category_rules WHERE category = ? LIMIT 1', [category]);
+    if (row && row.rules) return JSON.parse(row.rules);
+  } catch (e) {
+    // ignore
+  }
+  return null;
+}
+
+export { getCategoryRules };
