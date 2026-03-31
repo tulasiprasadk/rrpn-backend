@@ -1,0 +1,12 @@
+version: '3.8'
+services:
+  subscription-backend:
+    build:
+      context: ./backend
+    ports:
+      - "4000:4000"
+    environment:
+      - PORT=4000
+    volumes:
+      - ./backend/src:/app/src
+      - ./db:/app/db

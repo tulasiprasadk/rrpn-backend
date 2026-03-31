@@ -1,0 +1,12 @@
+{
+  "user_id": 123,
+  "category": "flowers",
+  "plan_type": "Smart",
+  "frequency": 2,
+  "delivery_days": [1,4],
+  "items": [{ "id": "rose-bunch", "price": 10, "qty": 2 }],
+  "quantities": { "rose-bunch": 2 },
+  "pricing": { "priceBefore": 20, "priceAfter": 18, "discount": 0.1 },
+  "next_delivery_date": "2026-04-02T08:00:00.000Z",
+  "status": "active"
+}
