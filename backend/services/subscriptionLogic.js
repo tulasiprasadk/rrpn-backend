@@ -1,6 +1,7 @@
 import dayjs from 'dayjs';
+import { getCategoryRules } from './subscriptionDb.js';
 
-export function calculatePricing(payload) {
+export async function calculatePricing(payload) {
   const { category, plan_type, items = [], quantities = {} } = payload;
   let base = 0;
   items.forEach(it => {
@@ -8,20 +9,49 @@ export function calculatePricing(payload) {
     base += (it.price || 10) * qty;
   });
 
-  const discountMap = {
+  // Defaults
+  const defaultDiscountMap = {
     'flowers': { 'Starter': 0.05, 'Smart': 0.1, 'Value+': 0.15, 'Daily+': 0.2 },
     'fruits': { 'Starter': 0.05, 'Smart': 0.08, 'Value+': 0.12, 'Daily+': 0.18 },
     'vegetables': { 'Starter': 0.05, 'Smart': 0.09, 'Value+': 0.14, 'Daily+': 0.19 },
     'groceries': { 'Essential': 0.04, 'Family': 0.08, 'Plus': 0.12, 'Premium': 0.06 }
   };
 
-  const freqMap = { 'Starter':1, 'Smart':2, 'Value+':3, 'Daily+':7, 'Essential':14, 'Family':14, 'Plus':14, 'Premium':14 };
+  const defaultFreqMap = { 'Starter':1, 'Smart':2, 'Value+':3, 'Daily+':7, 'Essential':14, 'Family':14, 'Plus':14, 'Premium':14 };
 
-  const discount = (discountMap[category] && discountMap[category][plan_type]) || 0;
+  // Try loading dynamic rules from DB
+  let dynamicRules = null;
+  try {
+    dynamicRules = await getCategoryRules(category);
+  } catch (e) {
+    console.warn('Failed to load dynamic rules for', category, e?.message || e);
+  }
+
+  // Determine frequency and discount
+  let frequency = payload.frequency || 1;
+  let discount = 0;
+
+  if (dynamicRules && dynamicRules.plans && dynamicRules.plans[plan_type] !== undefined) {
+    // If plans map to numeric values, treat as frequency (weeks)
+    const val = dynamicRules.plans[plan_type];
+    if (typeof val === 'number') frequency = val;
+  }
+
+  if (dynamicRules && dynamicRules.discounts && dynamicRules.discounts[plan_type] !== undefined) {
+    discount = Number(dynamicRules.discounts[plan_type]) || 0;
+  } else {
+    discount = (defaultDiscountMap[category] && defaultDiscountMap[category][plan_type]) || 0;
+  }
+
+  // Fallback frequency from defaults
+  if (!frequency || frequency === 1) {
+    frequency = defaultFreqMap[plan_type] || payload.frequency || 1;
+  }
+
   const priceBefore = base;
   const priceAfter = +(base * (1 - discount)).toFixed(2);
 
-  return { priceBefore, priceAfter, discount, frequency: freqMap[plan_type] || payload.frequency || 1 };
+  return { priceBefore, priceAfter, discount, frequency };
 }
 
 export function computeNextDelivery(payload) {

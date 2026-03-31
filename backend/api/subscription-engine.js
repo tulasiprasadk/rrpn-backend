@@ -12,7 +12,7 @@ router.post('/create', async (req, res) => {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    const pricing = calculatePricing(payload);
+    const pricing = await calculatePricing(payload);
     const nextDelivery = computeNextDelivery(payload);
 
     const toInsert = {
