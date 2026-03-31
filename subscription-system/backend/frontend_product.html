@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <script type="module">import { injectIntoGlobalHook } from "/@react-refresh";
+injectIntoGlobalHook(window);
+window.$RefreshReg$ = () => {};
+window.$RefreshSig$ = () => (type) => type;</script>
+
+    <script type="module" src="/@vite/client"></script>
+
+    <meta charset="UTF-8" />
+
+    <!-- Icons -->
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <link rel="icon" href="/favicon.ico" />
+    <link rel="apple-touch-icon" href="/logo.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="theme-color" content="#0f172a" />
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- Google Fonts - Noto Sans Kannada -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+Kannada:wght@100;200;300;400;500;600;700;800;900&display=swap"
+      rel="stylesheet"
+    />
+
+    <title>ತಾಜಾ, ತ್ವರಿತ, ತೃಪ್ತಿಕರ | Fresh. Fast. Fulfillment. | RR Nagar - Shop Local, Support Local</title>
+    <meta name="description" content="ತಾಜಾ, ತ್ವರಿತ, ತೃಪ್ತಿಕರ | Fresh. Fast. Fulfillment. | RR Nagar - Your one-stop shop for flowers, crackers, groceries, pet supplies, local services, and consultancy. Shop local and support your community in RR Nagar, Bengaluru." />
+    <meta name="keywords" content="RR Nagar, shop local, flowers, crackers, groceries, pet supplies, local services, consultancy, Bengaluru" />
+    <meta property="og:title" content="RR Nagar - Shop Local, Support Local" />
+    <meta property="og:description" content="Your one-stop shop for flowers, crackers, groceries, pet supplies, local services, and consultancy in RR Nagar, Bengaluru." />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://rrnagar.com" />
+    <meta property="og:image" content="/images/og-image.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="RR Nagar - Shop Local, Support Local" />
+    <meta name="twitter:description" content="Your one-stop shop for flowers, crackers, groceries, pet supplies, local services, and consultancy in RR Nagar, Bengaluru." />
+    <meta name="twitter:image" content="/images/og-image.png" />
+  </head>
+
+  <!-- Inline mobile fallback CSS: enforce mobile-only layout and small scroller behavior -->
+  <style>
+    @media (max-width: 1024px) {
+      /* Hide desktop two-column mega layout if present in DOM */
+      .home .mega-column { display: none !important; }
+      /* Ensure mobile grid is visible (grid on tablet) */
+      .home .mega-grid { display: grid !important; }
+    }
+
+    /* Mobile-only: horizontal scroller with small tiles */
+    @media (max-width: 480px) {
+      .home .mega-column { display: none !important; }
+      .home .mega-grid { display: flex !important; overflow-x: auto !important; gap: 12px !important; padding-left: 12px !important; scroll-snap-type: x mandatory !important; -webkit-overflow-scrolling: touch !important; }
+
+      .home .mega-grid .mega-ad { flex: 0 0 160px !important; width: 160px !important; max-width: 160px !important; height: 120px !important; margin: 8px 6px !important; box-shadow: none !important; border-radius: 10px !important; scroll-snap-align: start !important; }
+
+      .home .mega-grid .mega-ad img { width: 100% !important; height: 100% !important; object-fit: cover !important; border-radius: 10px !important; }
+
+      /* Reduce overlap from floating chat widget if present */
+      .whatsapp-float, .wh-widget { z-index: 3 !important; }
+    }
+  </style>
+
+    <body>
+    <div id="root"></div>
+
+    <!-- Vite entry point -->
+    <script type="module" src="/src/main.jsx"></script>
+    <!-- Mobile/Tablet stylesheet cache-bust: appends a query param to the built CSS on small viewports so clients fetch updated CSS without needing a CDN purge -->
+    <script>
+      (function(){
+        function bustIfMobile() {
+          try {
+            var w = window.innerWidth || document.documentElement.clientWidth;
+            if (w && w <= 1024) { // tablet + mobile
+              var links = document.querySelectorAll('link[rel="stylesheet"]');
+              links.forEach(function(l){
+                if (l.href && /\/assets\/index-/.test(l.getAttribute('href')) && !/[?&]cb=/.test(l.href)) {
+                  l.href = l.href + (l.href.indexOf('?') !== -1 ? '&' : '?') + 'cb=' + Date.now();
+                }
+              });
+            }
+          } catch (e) { console.error('css-bust', e); }
+        }
+
+        if (document.readyState === 'complete' || document.readyState === 'interactive') {
+          setTimeout(bustIfMobile, 50);
+        } else {
+          window.addEventListener('DOMContentLoaded', bustIfMobile);
+        }
+
+        // also retry once after load in case styles are injected slightly later
+        window.addEventListener('load', function(){ setTimeout(bustIfMobile, 100); });
+      })();
+    </script>
+  </body>
+</html>

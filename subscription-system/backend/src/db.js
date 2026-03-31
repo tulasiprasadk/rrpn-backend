@@ -1,18 +1,66 @@
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
+const fs = require('fs');
+
 const dbPath = path.join(__dirname, '../../subscription_engine.sqlite');
+const schemaPath = path.join(__dirname, '../../db/schema.sql');
 const db = new sqlite3.Database(dbPath);
 
-function run(sql, params=[]) {
+// Ensure schema exists: if subscriptions table missing, execute schema.sql
+db.serialize(() => {
+  db.get("SELECT name FROM sqlite_master WHERE type='table' AND name='subscriptions'", (err, row) => {
+    if (err) {
+      console.error('DB check error', err);
+      return;
+    }
+    if (!row) {
+      try {
+        const schema = fs.readFileSync(schemaPath, 'utf8');
+        db.exec(schema, (execErr) => {
+          if (execErr) {
+            console.warn('Schema file not compatible with SQLite, applying fallback schema', execErr && execErr.message);
+            const sqliteSchema = `
+              CREATE TABLE IF NOT EXISTS subscriptions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER,
+                category TEXT NOT NULL,
+                plan_type TEXT NOT NULL,
+                frequency INTEGER,
+                delivery_days TEXT,
+                items TEXT NOT NULL,
+                quantities TEXT,
+                pricing TEXT,
+                next_delivery_date TEXT,
+                status TEXT NOT NULL DEFAULT 'active',
+                created_at DATETIME DEFAULT (datetime('now')),
+                updated_at DATETIME DEFAULT (datetime('now'))
+              );
+            `;
+            db.exec(sqliteSchema, (fbErr) => {
+              if (fbErr) console.error('Failed to initialize fallback sqlite schema', fbErr);
+              else console.log('Initialized minimal sqlite schema');
+            });
+          } else {
+            console.log('Initialized DB schema from', schemaPath);
+          }
+        });
+      } catch (fsErr) {
+        console.error('Failed to read schema file', fsErr);
+      }
+    }
+  });
+});
+
+function run(sql, params = []) {
   return new Promise((resolve, reject) => {
-    db.run(sql, params, function(err) {
+    db.run(sql, params, function (err) {
       if (err) return reject(err);
       resolve({ id: this.lastID, changes: this.changes });
     });
   });
 }
 
-function get(sql, params=[]) {
+function get(sql, params = []) {
   return new Promise((resolve, reject) => {
     db.get(sql, params, (err, row) => {
       if (err) return reject(err);
@@ -21,7 +69,7 @@ function get(sql, params=[]) {
   });
 }
 
-function all(sql, params=[]) {
+function all(sql, params = []) {
   return new Promise((resolve, reject) => {
     db.all(sql, params, (err, rows) => {
       if (err) return reject(err);
