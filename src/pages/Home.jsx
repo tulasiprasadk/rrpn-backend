@@ -182,8 +182,9 @@ export default function Home() {
     if (name.includes("cracker")) return navigate("/crackers");
     if (name.includes("groc")) return navigate("/groceries");
     if (name.includes("pet")) return navigate("/petservices");
-    if (name.includes("local")) return navigate("/localservices");
+    // prefer consulting match before local-services to avoid overlapping names
     if (name.includes("consult")) return navigate("/consultancy");
+    if (name.includes("local")) return navigate("/localservices");
 
     navigate(`/browse?categoryId=${id}`);
   }
