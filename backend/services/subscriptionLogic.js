@@ -1,21 +1,42 @@
 import dayjs from 'dayjs';
 import { getCategoryRules } from './subscriptionDb.js';
 
-export async function calculatePricing(payload) {
-  const { category, plan_type, items = [], quantities = {} } = payload;
-  let base = 0;
-  items.forEach(it => {
-    const qty = (quantities && quantities[it.id]) || it.qty || 1;
-    base += (it.price || 10) * qty;
-  });
+const GROCERY_BUNDLES = {
+  '3': [{ id: 'rice-5kg', qty: 1 }, { id: 'atta-5kg', qty: 1 }, { id: 'oil-1l', qty: 2 }],
+  '4': [{ id: 'rice-10kg', qty: 1 }, { id: 'atta-5kg', qty: 2 }, { id: 'oil-1l', qty: 3 }],
+  '5': [{ id: 'rice-10kg', qty: 1 }, { id: 'atta-10kg', qty: 1 }, { id: 'oil-5l', qty: 1 }],
+  'premium': [{ id: 'organic-rice-10kg', qty: 1 }, { id: 'cold-pressed-oil-5l', qty: 1 }]
+};
 
-  // Defaults
-  const defaultDiscountMap = {
-    'flowers': { 'Starter': 0.05, 'Smart': 0.1, 'Value+': 0.15, 'Daily+': 0.2 },
-    'fruits': { 'Starter': 0.05, 'Smart': 0.08, 'Value+': 0.12, 'Daily+': 0.18 },
-    'vegetables': { 'Starter': 0.05, 'Smart': 0.09, 'Value+': 0.14, 'Daily+': 0.19 },
-    'groceries': { 'Essential': 0.04, 'Family': 0.08, 'Plus': 0.12, 'Premium': 0.06 }
+export async function calculatePricing(payload) {
+  const { category, type, plan_name, family_size, items = [] } = payload;
+  let base = 0;
+
+  // For bundles, we might need to fetch product prices first
+  // Simplified base calculation for this logic pass
+  items.forEach(it => base += (it.price || 50) * (it.quantity || 1));
+
+  let discount = 0;
+  if (['flowers', 'fruits', 'vegetables'].includes(category)) {
+    // Per-frequency discount
+    const freqDiscounts = { 1: 0.05, 2: 0.10, 3: 0.15, 7: 0.25 };
+    discount = freqDiscounts[payload.frequency] || 0;
+  } else if (category === 'groceries') {
+    discount = 0.12; // Flat 12% for family bundles
+  } else if (category === 'services') {
+    const serviceDiscounts = { 'monthly': 0.05, 'quarterly': 0.15, 'yearly': 0.30 };
+    discount = serviceDiscounts[plan_name?.toLowerCase()] || 0;
+  }
+
+  // UPSELL LOGIC: If items > 1, add extra 2% loyalty discount
+  if (items.length > 1) discount += 0.02;
+
+  return {
+    basePrice: base,
+    finalPrice: +(base * (1 - discount)).toFixed(2),
+    discountApplied: (discount * 100) + '%'
   };
+}
 
   const defaultFreqMap = { 'Starter':1, 'Smart':2, 'Value+':3, 'Daily+':7, 'Essential':14, 'Family':14, 'Plus':14, 'Premium':14 };
 
@@ -82,7 +103,7 @@ export async function recommend(input) {
     }
   } else if (category === 'groceries') {
     recs.push({ id: 'essential-bundle', title: 'Essential Bundle', description: 'Rice, Atta, Oil, Pulses', savings: '8%' });
-  } else if (['consultancy','pet services','local services'].includes(category)) {
+  } else if (category === 'pet services') {
     recs.push({ id: 'time-plan', title: 'Flexible Time Plans', description: 'Monthly / Quarterly booking plans' });
   }
 

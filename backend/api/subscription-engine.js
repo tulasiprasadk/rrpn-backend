@@ -8,8 +8,13 @@ const router = express.Router();
 router.post('/create', async (req, res) => {
   try {
     const payload = req.body || {};
-    if (!payload.user_id || !payload.category || !payload.plan_type || !payload.items) {
+    if (!payload.user_id || !payload.category || !payload.type || !payload.items) {
       return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    const forbidden = ['crackers', 'consultancy', 'local services'];
+    if (forbidden.includes(payload.category?.toLowerCase())) {
+      return res.status(400).json({ error: 'Subscriptions are not supported for this category' });
     }
 
     const pricing = await calculatePricing(payload);
@@ -18,7 +23,9 @@ router.post('/create', async (req, res) => {
     const toInsert = {
       user_id: payload.user_id,
       category: payload.category,
-      plan_type: payload.plan_type,
+      type: payload.type, // 'frequency', 'bundle', 'service'
+      plan_name: payload.plan_name,
+      family_size: payload.family_size,
       frequency: pricing.frequency || payload.frequency || null,
       delivery_days: JSON.stringify(payload.delivery_days || []),
       items: JSON.stringify(payload.items),
@@ -77,4 +84,13 @@ router.get('/recommendations', async (req, res) => {
   }
 });
 
+router.post('/add-item', async (req, res) => {
+  try {
+    const { subscription_id, product_id, quantity } = req.body;
+    const item = await addItemToSubscription(subscription_id, product_id, quantity);
+    res.json({ success: true, item });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to add item' });
+  }
+});
 export default router;

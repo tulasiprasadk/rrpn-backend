@@ -39,27 +39,51 @@ function sqliteGet(sql, params=[]) {
 }
 
 async function insertSubscription(sub) {
+  const client = await pool.connect();
   if (pool) {
-    const q = `INSERT INTO subscriptions (user_id, category, plan_type, frequency, delivery_days, items, quantities, pricing, next_delivery_date, status, created_at, updated_at)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,now(),now()) RETURNING *`;
-    const params = [sub.user_id, sub.category, sub.plan_type, sub.frequency, sub.delivery_days ? JSON.parse(sub.delivery_days) : null, sub.items ? JSON.parse(sub.items) : null, sub.quantities ? JSON.parse(sub.quantities) : null, sub.pricing ? JSON.parse(sub.pricing) : null, sub.next_delivery_date, sub.status];
-    const rows = await pgQuery(q, params);
-    return rows[0];
-  }
+    try {
+      await client.query('BEGIN');
+      const q = `INSERT INTO subscriptions (user_id, category, type, plan_name, family_size, frequency, schedule, pricing_details, next_delivery_date, status)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *`;
+      const params = [
+        sub.user_id, sub.category, sub.type, sub.plan_name, sub.family_size, 
+        sub.frequency, JSON.stringify(sub.schedule), JSON.stringify(sub.pricing_details), 
+        sub.next_delivery_date, sub.status
+      ];
+      const subResult = await client.query(q, params);
+      const newSub = subResult.rows[0];
 
-  // sqlite fallback
-  const sql = `INSERT INTO subscriptions (user_id, category, plan_type, frequency, delivery_days, items, quantities, pricing, next_delivery_date, status, created_at, updated_at)
-    VALUES (?,?,?,?,?,?,?,?,?,?,datetime('now'),datetime('now'))`;
-  await sqliteRun(sql, [sub.user_id, sub.category, sub.plan_type, sub.frequency, sub.delivery_days, sub.items, sub.quantities, sub.pricing, sub.next_delivery_date, sub.status]);
-  const row = await sqliteGet('SELECT * FROM subscriptions ORDER BY id DESC LIMIT 1');
-  return row;
+      if (sub.items && Array.isArray(sub.items)) {
+        for (const item of sub.items) {
+          await client.query(
+            `INSERT INTO subscription_items (subscription_id, product_id, quantity) VALUES ($1, $2, $3)`,
+            [newSub.id, item.product_id, item.quantity]
+          );
+        }
+      }
+      await client.query('COMMIT');
+      return newSub;
+    } catch (e) {
+      await client.query('ROLLBACK');
+      throw e;
+    } finally {
+      client.release();
+    }
+  }
+}
+
+async function addItemToSubscription(subscriptionId, productId, quantity) {
+  const q = `INSERT INTO subscription_items (subscription_id, product_id, quantity) 
+             VALUES ($1, $2, $3) RETURNING *`;
+  const rows = await pgQuery(q, [subscriptionId, productId, quantity]);
+  return rows[0];
 }
 
 async function updateSubscription(id, changes) {
   if (pool) {
     const keys = Object.keys(changes);
     const sets = keys.map((k,i) => `${k} = $${i+1}`).join(', ');
-    const params = keys.map(k => typeof changes[k] === 'object' ? changes[k] : changes[k]);
+    const params = keys.map(k => typeof changes[k] === 'object' && changes[k] !== null ? JSON.stringify(changes[k]) : changes[k]);
     params.push(id);
     const q = `UPDATE subscriptions SET ${sets}, updated_at = now() WHERE id = $${params.length} RETURNING *`;
     const rows = await pgQuery(q, params);

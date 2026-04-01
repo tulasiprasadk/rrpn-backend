@@ -5,13 +5,12 @@
 
 
 import express from "express";
-import { models } from "../../config/database.js";
-const { Supplier } = models;
+import crypto from "crypto";
+import { models, sequelize } from "../../config/database.js";
+const { Supplier, OtpCode } = models;
 import { sendOTP } from "../../services/emailService.js";
 import jwt from "jsonwebtoken";
 const router = express.Router();
-
-const otpStore = {}; // Format: { email: { otp: "123456", expiresAt: timestamp } }
 
 /* =====================================================
    REQUEST EMAIL OTP (Supplier Login)
@@ -49,11 +48,16 @@ router.post("/request-email-otp", async (req, res) => {
     }
 
     // Generate 6-digit OTP
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otp = crypto.randomInt(100000, 999999).toString();
     
     // Store with 10 minute expiry
     const expiresAt = Date.now() + 10 * 60 * 1000;
-    otpStore[email] = { otp, expiresAt };
+    await OtpCode.upsert({
+      identifier: email,
+      otp,
+      expiresAt: new Date(expiresAt),
+      type: 'supplier'
+    });
 
     // Send OTP via email
     await sendOTP(email, otp);
@@ -81,21 +85,23 @@ router.post("/verify-email-otp", async (req, res) => {
     return res.status(400).json({ error: "Email and OTP required" });
   }
 
-  // Check if OTP exists and is valid
-  const stored = otpStore[email];
+  // Check if OTP exists in DB and is valid
+  const stored = await OtpCode.findOne({
+    where: { identifier: email, type: 'supplier' }
+  });
   
   if (!stored || stored.otp !== otp) {
     return res.status(401).json({ error: "Invalid OTP" });
   }
 
-  if (Date.now() > stored.expiresAt) {
-    delete otpStore[email];
+  if (new Date() > stored.expiresAt) {
+    await stored.destroy();
     return res.status(401).json({ error: "OTP expired" });
   }
 
   try {
-    // OTP valid → delete it
-    delete otpStore[email];
+    // OTP valid → remove from DB
+    await stored.destroy();
 
     // Find supplier
     const supplier = await Supplier.findOne({ where: { email } });

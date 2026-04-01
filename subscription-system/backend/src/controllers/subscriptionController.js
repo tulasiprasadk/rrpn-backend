@@ -12,6 +12,11 @@ async function create(req, res) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
+    const forbidden = ['crackers', 'consultancy', 'local services'];
+    if (forbidden.includes(payload.category?.toLowerCase())) {
+      return res.status(400).json({ error: 'Subscriptions are not supported for this category' });
+    }
+
     // compute pricing
     const pricingResult = pricing.calculate(payload);
 

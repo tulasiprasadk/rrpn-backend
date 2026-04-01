@@ -159,6 +159,8 @@ router.post("/create", requireLogin, async (req, res) => {
       paymentScreenshot,
       paymentStatus: "pending",
 
+      discountAmount: pricing.discount,
+      promoCode: promoCode,
       totalAmount: pricing.totalAmount,
       platformFee: pricing.platformFee,
       status: "created"
@@ -359,6 +361,8 @@ router.post("/create-guest", async (req, res) => {
       paymentStatus: "pending",
       totalAmount: Number(pricing.totalAmount),
       platformFee: Number(pricing.platformFee || 0),
+      discountAmount: Number(pricing.discount || 0),
+      promoCode: promoCode,
       status: "created",
       // Store service info in paymentInfo JSON field for services
       paymentInfo: isServiceOrder

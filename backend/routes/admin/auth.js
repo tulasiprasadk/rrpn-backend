@@ -5,6 +5,7 @@
 
 
 import express from "express";
+import crypto from "crypto";
 import { models, sequelize } from "../../config/database.js";
 
 // Ensure database connection is ready
@@ -26,17 +27,21 @@ async function ensureConnection() {
     }
   }
 }
-const { Admin } = models;
+
+const connectionMiddleware = async (req, res, next) => {
+  await ensureConnection();
+  next();
+};
+
+const { Admin, OtpCode } = models;
 import { sendOTP } from "../../services/emailService.js";
 const router = express.Router();
-
-const otpStore = {}; // Format: { email: { otp: "123456", expiresAt: timestamp } }
 
 /* =====================================================
    REQUEST EMAIL OTP (Admin Login)
    POST /api/admin/auth/request-email-otp
    ===================================================== */
-router.post("/request-email-otp", async (req, res) => {
+router.post("/request-email-otp", connectionMiddleware, async (req, res) => {
   const { email } = req.body;
 
   if (!email) {
@@ -57,11 +62,16 @@ router.post("/request-email-otp", async (req, res) => {
     }
 
     // Generate 6-digit OTP
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otp = crypto.randomInt(100000, 999999).toString();
     
     // Store with 10 minute expiry
     const expiresAt = Date.now() + 10 * 60 * 1000;
-    otpStore[email] = { otp, expiresAt };
+    await OtpCode.upsert({
+      identifier: email,
+      otp,
+      expiresAt: new Date(expiresAt),
+      type: 'admin'
+    });
 
     // Send OTP via email
     await sendOTP(email, otp);
@@ -82,28 +92,30 @@ router.post("/request-email-otp", async (req, res) => {
    VERIFY EMAIL OTP (Admin Login)
    POST /api/admin/auth/verify-email-otp
    ===================================================== */
-router.post("/verify-email-otp", async (req, res) => {
+router.post("/verify-email-otp", connectionMiddleware, async (req, res) => {
   const { email, otp } = req.body;
 
   if (!email || !otp) {
     return res.status(400).json({ error: "Email and OTP required" });
   }
 
-  // Check if OTP exists and is valid
-  const stored = otpStore[email];
+  // Check if OTP exists in DB and is valid
+  const stored = await OtpCode.findOne({ 
+    where: { identifier: email, type: 'admin' } 
+  });
   
   if (!stored || stored.otp !== otp) {
     return res.status(401).json({ error: "Invalid OTP" });
   }
 
-  if (Date.now() > stored.expiresAt) {
-    delete otpStore[email];
+  if (new Date() > stored.expiresAt) {
+    await stored.destroy();
     return res.status(401).json({ error: "OTP expired" });
   }
 
   try {
-    // OTP valid → delete it
-    delete otpStore[email];
+    // OTP valid → remove it from DB
+    await stored.destroy();
 
     // Find admin
     const admin = await Admin.findOne({ where: { email } });
