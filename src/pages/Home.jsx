@@ -180,6 +180,7 @@ export default function Home() {
     const name = category.name?.toLowerCase() || "";
     // TEMP LOG: help debug category routing clicks in production
     try { console.log("[debug] category click ->", { id, name, category }); } catch(e) {}
+    try { alert(`DEBUG: category click -> id=${id}, name=${category.name}`); } catch (e) {}
     if (name.includes("flower")) return navigate("/flowers");
     if (name.includes("cracker")) return navigate("/crackers");
     if (name.includes("groc")) return navigate("/groceries");
