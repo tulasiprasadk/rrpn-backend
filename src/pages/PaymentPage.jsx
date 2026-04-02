@@ -473,6 +473,36 @@ export default function PaymentPage() {
           <div style={{ margin: "12px 0", display: "flex", justifyContent: "center" }}>
             <img src="/UPI QR Code.jpeg" alt="UPI QR Code" style={{ width: 200, height: 200, borderRadius: 8, border: "1.5px solid #007bff", objectFit: "contain" }} />
           </div>
+          <div
+            style={{
+              marginTop: 14,
+              padding: "14px 16px",
+              background: "#fff",
+              borderRadius: 12,
+              border: "1px solid rgba(200, 16, 46, 0.16)"
+            }}
+          >
+            <div style={{ fontSize: 12, fontWeight: 800, textTransform: "uppercase", color: "#9a3412" }}>
+              Amount visible while scanning
+            </div>
+            <div style={{ marginTop: 6, fontSize: 30, fontWeight: 900, color: "#C8102E" }}>
+              Rs {Number(paymentSummary.payableNow || 0).toFixed(2)}
+            </div>
+            <div style={{ marginTop: 8, display: "grid", gap: 4, fontSize: 14, color: "#6b3f00" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
+                <span>Products selected</span>
+                <strong>Rs {Number(paymentSummary.orderAmount || 0).toFixed(2)}</strong>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
+                <span>Subscription added</span>
+                <strong>{hasSubscriptionAmount ? `Rs ${Number(paymentSummary.subscriptionAmount || 0).toFixed(2)}` : "No"}</strong>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", gap: 10, paddingTop: 6, borderTop: "1px dashed #f3c15e" }}>
+                <span>Total payment now</span>
+                <strong style={{ color: "#C8102E" }}>Rs {Number(paymentSummary.payableNow || 0).toFixed(2)}</strong>
+              </div>
+            </div>
+          </div>
           <div style={{ fontSize: 14, color: "#555", textAlign: "center" }}>
             Scan the QR code above to make payment. Then upload your payment screenshot and enter the UPI transaction ID below.
           </div>
@@ -505,6 +535,36 @@ export default function PaymentPage() {
           </div>
           <div style={{ margin: "12px 0", display: "flex", justifyContent: "center" }}>
             <img src="/Pi network QR code.jpg" alt="Pi Network QR Code" style={{ width: 200, height: 200, borderRadius: 8, border: "1.5px solid #007bff", objectFit: "contain" }} />
+          </div>
+          <div
+            style={{
+              marginTop: 14,
+              padding: "14px 16px",
+              background: "#fff",
+              borderRadius: 12,
+              border: "1px solid rgba(200, 16, 46, 0.16)"
+            }}
+          >
+            <div style={{ fontSize: 12, fontWeight: 800, textTransform: "uppercase", color: "#9a3412" }}>
+              Amount visible while paying
+            </div>
+            <div style={{ marginTop: 6, fontSize: 30, fontWeight: 900, color: "#C8102E" }}>
+              Rs {Number(paymentSummary.payableNow || 0).toFixed(2)}
+            </div>
+            <div style={{ marginTop: 8, display: "grid", gap: 4, fontSize: 14, color: "#6b3f00" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
+                <span>Products selected</span>
+                <strong>Rs {Number(paymentSummary.orderAmount || 0).toFixed(2)}</strong>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
+                <span>Subscription added</span>
+                <strong>{hasSubscriptionAmount ? `Rs ${Number(paymentSummary.subscriptionAmount || 0).toFixed(2)}` : "No"}</strong>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", gap: 10, paddingTop: 6, borderTop: "1px dashed #f3c15e" }}>
+                <span>Total payment now</span>
+                <strong style={{ color: "#C8102E" }}>Rs {Number(paymentSummary.payableNow || 0).toFixed(2)}</strong>
+              </div>
+            </div>
           </div>
           <div style={{ fontSize: 14, color: "#555", textAlign: "center" }}>
             Scan the QR code above with Pi Network app to make payment. Then upload your payment screenshot and enter the Pi transaction ID below.
@@ -848,6 +908,37 @@ export default function PaymentPage() {
         <p style={{ color: "#856404", margin: 0, fontSize: "14px" }}>
           <strong>Tip:</strong> Make sure your transaction ID is correct. You will receive confirmation once payment is verified{selectedSubscriptionPeriod ? ", and your subscription will activate with approval." : "."}
         </p>
+      </div>
+
+      <div
+        style={{
+          position: "sticky",
+          bottom: 12,
+          marginTop: 18,
+          background: "rgba(255, 249, 196, 0.96)",
+          border: "1px solid rgba(210, 140, 0, 0.25)",
+          borderRadius: 14,
+          boxShadow: "0 10px 25px rgba(0,0,0,0.08)",
+          padding: "12px 16px",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: 12,
+          zIndex: 5
+        }}
+      >
+        <div>
+          <div style={{ fontSize: 12, fontWeight: 800, textTransform: "uppercase", color: "#9a3412" }}>
+            Final payable amount
+          </div>
+          <div style={{ fontSize: 13, color: "#6b3f00", marginTop: 2 }}>
+            Products: Rs {Number(paymentSummary.orderAmount || 0).toFixed(2)}
+            {hasSubscriptionAmount ? ` | Subscription: Rs ${Number(paymentSummary.subscriptionAmount || 0).toFixed(2)}` : ""}
+          </div>
+        </div>
+        <div style={{ fontSize: 28, fontWeight: 900, color: "#C8102E", whiteSpace: "nowrap" }}>
+          Rs {Number(paymentSummary.payableNow || 0).toFixed(2)}
+        </div>
       </div>
     </div>
   );
