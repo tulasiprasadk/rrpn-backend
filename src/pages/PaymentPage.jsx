@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import api from "../api/client";
 import imageCompression from "browser-image-compression";
 import { useLocation, useNavigate } from "react-router-dom";
 import { savePendingSubscriptionCandidate } from "../components/SubscriptionPrompt";
+import { clearPendingSubscriptionDraft } from "../components/SubscriptionWidget";
 import "./PaymentPage.mobile.css";
 
 const PAYMENT_SUBSCRIPTION_PLANS = [
@@ -33,11 +34,109 @@ export default function PaymentPage() {
   const navigate = useNavigate();
 
   const orderId = state?.orderId;
+  const subscriptionDraft = state?.subscriptionDraft || null;
   const subscriptionCandidate = state?.subscriptionCandidate || null;
-  const subscriptionPlans = buildPaymentPlans(subscriptionCandidate?.basePrice);
   const [txnId, setTxnId] = useState("");
   const [file, setFile] = useState(null);
+  const [orderDetails, setOrderDetails] = useState(state?.orderDetails || null);
   const [selectedSubscriptionPeriod, setSelectedSubscriptionPeriod] = useState(state?.selectedSubscriptionPeriod || "");
+  const [subscriptionExpanded, setSubscriptionExpanded] = useState(Boolean(state?.selectedSubscriptionPeriod));
+  const [upsellExpanded, setUpsellExpanded] = useState(false);
+  const [upsellRecommendations, setUpsellRecommendations] = useState([]);
+  const [selectedUpsellIds, setSelectedUpsellIds] = useState([]);
+
+  const selectedUpsells = useMemo(
+    () => upsellRecommendations.filter((item) => selectedUpsellIds.includes(item.id)),
+    [upsellRecommendations, selectedUpsellIds]
+  );
+  const orderBaseAmount = Number(orderDetails?.totalAmount || state?.orderDetails?.totalAmount || 0);
+  const effectiveSubscriptionBasePrice = useMemo(() => {
+    const base = Number(subscriptionCandidate?.basePrice || 0);
+    const upsellTotal = selectedUpsells.reduce((sum, item) => sum + Number(item.price || 0), 0);
+    return Number((base + upsellTotal).toFixed(2));
+  }, [selectedUpsells, subscriptionCandidate?.basePrice]);
+  const subscriptionPlans = buildPaymentPlans(effectiveSubscriptionBasePrice);
+  const selectedSubscriptionPlan = useMemo(
+    () => subscriptionPlans.find((plan) => plan.period === selectedSubscriptionPeriod) || null,
+    [subscriptionPlans, selectedSubscriptionPeriod]
+  );
+  const paymentSummary = useMemo(() => {
+    if (subscriptionDraft?.pricing) {
+      return {
+        orderAmount: orderBaseAmount || Number(subscriptionDraft.pricing.totalPayable || 0),
+        subscriptionAmount: Number(subscriptionDraft.pricing.totalPayable || 0),
+        payableNow: Number(subscriptionDraft.pricing.totalPayable || 0),
+        mode: "draft"
+      };
+    }
+
+    if (selectedSubscriptionPlan) {
+      return {
+        orderAmount: orderBaseAmount || Number(subscriptionCandidate?.basePrice || 0),
+        subscriptionAmount: Number(selectedSubscriptionPlan.discountedPrice || 0),
+        payableNow: Number(selectedSubscriptionPlan.discountedPrice || 0),
+        mode: "selected_plan"
+      };
+    }
+
+    return {
+      orderAmount: orderBaseAmount || Number(subscriptionCandidate?.basePrice || 0),
+      subscriptionAmount: 0,
+      payableNow: orderBaseAmount || Number(subscriptionCandidate?.basePrice || 0),
+      mode: "order_only"
+    };
+  }, [orderBaseAmount, selectedSubscriptionPlan, subscriptionCandidate?.basePrice, subscriptionDraft?.pricing]);
+
+  useEffect(() => {
+    if (!orderId || orderDetails?.id) return;
+
+    let mounted = true;
+    api.get(`/orders/${orderId}`)
+      .then((res) => {
+        if (!mounted) return;
+        const nextOrder = res.data?.order || res.data || null;
+        setOrderDetails(nextOrder);
+      })
+      .catch(() => {
+        if (mounted) setOrderDetails(null);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, [orderDetails?.id, orderId]);
+
+  useEffect(() => {
+    if (!subscriptionCandidate?.productId || subscriptionDraft?.id) {
+      setUpsellRecommendations([]);
+      return;
+    }
+
+    let mounted = true;
+    api.get("/subscriptions/plans")
+      .then((res) => {
+        const plans = Array.isArray(res.data?.plans) ? res.data.plans : [];
+        const currentCategory = String(subscriptionCandidate?.category || "").toLowerCase();
+        const nextRows = plans
+          .filter((item) => Number(item.id) !== Number(subscriptionCandidate.productId))
+          .filter((item) => {
+            if (!currentCategory) return true;
+            const itemCategory = String(item.category?.name || item.category || "").toLowerCase();
+            return itemCategory === currentCategory;
+          })
+          .slice(0, 3);
+        if (mounted) {
+          setUpsellRecommendations(nextRows);
+        }
+      })
+      .catch(() => {
+        if (mounted) setUpsellRecommendations([]);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, [subscriptionCandidate?.productId, subscriptionCandidate?.category, subscriptionDraft?.id]);
 
   const compressImage = async (imageFile) => {
     const options = {
@@ -74,9 +173,35 @@ export default function PaymentPage() {
     if (txnId) {
       form.append("unr", txnId);
     }
-    if (selectedSubscriptionPeriod && subscriptionCandidate?.basePrice > 0) {
-      form.append("subscriptionPeriod", selectedSubscriptionPeriod);
-      form.append("subscriptionBasePrice", String(Number(subscriptionCandidate.basePrice || 0)));
+    if (subscriptionDraft?.id) {
+      form.append("subscriptionDraftId", String(subscriptionDraft.id));
+    } else if (selectedSubscriptionPeriod && effectiveSubscriptionBasePrice > 0) {
+      if (selectedUpsells.length > 0) {
+        const createRes = await api.post("/subscription/create", {
+          category: subscriptionCandidate?.category || "general",
+          primaryProductId: subscriptionCandidate?.productId,
+          duration: selectedSubscriptionPeriod,
+          source: "payment_upsell",
+          upsellAccepted: true,
+          recommendationIds: selectedUpsellIds,
+          items: [
+            {
+              productId: subscriptionCandidate?.productId,
+              quantity: Number(subscriptionCandidate?.quantity || 1),
+              unitPrice: Number(subscriptionCandidate?.basePrice || 0)
+            },
+            ...selectedUpsells.map((item) => ({
+              productId: item.id,
+              quantity: 1,
+              unitPrice: Number(item.price || 0)
+            }))
+          ]
+        });
+        form.append("subscriptionDraftId", String(createRes.data?.subscription?.id));
+      } else {
+        form.append("subscriptionPeriod", selectedSubscriptionPeriod);
+        form.append("subscriptionBasePrice", String(effectiveSubscriptionBasePrice));
+      }
     }
 
     try {
@@ -84,7 +209,9 @@ export default function PaymentPage() {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
-      if (!selectedSubscriptionPeriod && subscriptionCandidate?.productId) {
+      if (subscriptionDraft?.id) {
+        clearPendingSubscriptionDraft();
+      } else if (!selectedSubscriptionPeriod && subscriptionCandidate?.productId) {
         savePendingSubscriptionCandidate(subscriptionCandidate);
       }
 
@@ -94,6 +221,8 @@ export default function PaymentPage() {
           txnId,
           screenshot: file ? URL.createObjectURL(file) : "",
           paymentMethod: method,
+          orderDetails,
+          subscriptionDraft,
           subscriptionCandidate,
           selectedSubscriptionPeriod,
         }
@@ -124,6 +253,12 @@ export default function PaymentPage() {
     );
   }
 
+  const toggleUpsell = (id) => {
+    setSelectedUpsellIds((current) =>
+      current.includes(id) ? current.filter((itemId) => itemId !== id) : [...current, id]
+    );
+  };
+
   return (
     <div
       className="payment-page-root"
@@ -152,6 +287,100 @@ export default function PaymentPage() {
       >
         Complete Your Payment
       </h2>
+
+      <div
+        className="payment-card"
+        style={{
+          background: "#fffaf0",
+          padding: "20px",
+          borderRadius: "14px",
+          marginBottom: "24px",
+          border: "1px solid rgba(210, 140, 0, 0.18)",
+          boxShadow: "0 8px 22px rgba(194, 120, 0, 0.08)"
+        }}
+      >
+        <div style={{ fontSize: 13, fontWeight: 800, textTransform: "uppercase", letterSpacing: 0.4, color: "#9a3412" }}>
+          Payment Summary
+        </div>
+        <div style={{ marginTop: 10, display: "grid", gap: 10 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center", color: "#5A3A00" }}>
+            <div>
+              <div style={{ fontWeight: 800 }}>Selected product</div>
+              <div style={{ fontSize: 13, color: "#8b5e00" }}>
+                {subscriptionCandidate?.title || "Current order"}
+              </div>
+            </div>
+            <div style={{ fontWeight: 800 }}>
+              Rs {Number(paymentSummary.orderAmount || 0).toFixed(2)}
+            </div>
+          </div>
+
+          <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center", color: "#5A3A00" }}>
+            <div>
+              <div style={{ fontWeight: 800 }}>Subscription</div>
+              <div style={{ fontSize: 13, color: "#8b5e00" }}>
+                {subscriptionDraft?.pricing
+                  ? `${subscriptionDraft.pricing.durationLabel}${subscriptionDraft.pricing.frequencyLabel ? ` | ${subscriptionDraft.pricing.frequencyLabel}` : ""}${subscriptionDraft.pricing.planLabel ? ` | ${subscriptionDraft.pricing.planLabel}` : ""}`
+                  : selectedSubscriptionPlan
+                    ? `${selectedSubscriptionPlan.label} plan${selectedUpsells.length ? ` + ${selectedUpsells.length} add-on${selectedUpsells.length === 1 ? "" : "s"}` : ""}`
+                    : "Not added"}
+              </div>
+            </div>
+            <div style={{ fontWeight: 800, color: paymentSummary.subscriptionAmount > 0 ? "#9a3412" : "#6b7280" }}>
+              {paymentSummary.subscriptionAmount > 0
+                ? `Rs ${Number(paymentSummary.subscriptionAmount || 0).toFixed(2)}`
+                : "—"}
+            </div>
+          </div>
+
+          {(subscriptionDraft?.pricing?.items?.length || selectedUpsells.length) ? (
+            <details style={{ background: "#fff", borderRadius: 12, padding: "10px 12px", border: "1px solid #f1dfaa" }}>
+              <summary style={{ cursor: "pointer", fontWeight: 800, color: "#5A3A00" }}>
+                View included subscription items
+              </summary>
+              <div style={{ display: "grid", gap: 8, marginTop: 10 }}>
+                {(subscriptionDraft?.pricing?.items || []).map((item, index) => (
+                  <div key={`draft-item-${index}`} style={{ display: "flex", justifyContent: "space-between", gap: 12, fontSize: 14, color: "#6b3f00" }}>
+                    <span>{item.title || item.metadata?.title || `Item ${index + 1}`} x {item.quantity}</span>
+                    <span>Rs {Number(item.lineTotal || 0).toFixed(2)}</span>
+                  </div>
+                ))}
+                {!subscriptionDraft?.pricing?.items?.length && selectedUpsells.map((item) => (
+                  <div key={`upsell-${item.id}`} style={{ display: "flex", justifyContent: "space-between", gap: 12, fontSize: 14, color: "#6b3f00" }}>
+                    <span>{item.title} x 1</span>
+                    <span>Rs {Number(item.price || 0).toFixed(2)}</span>
+                  </div>
+                ))}
+              </div>
+            </details>
+          ) : null}
+
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              gap: 12,
+              paddingTop: 10,
+              borderTop: "1px dashed #e7c86f"
+            }}
+          >
+            <div>
+              <div style={{ fontWeight: 900, fontSize: 18, color: "#5A3A00" }}>Total payable now</div>
+              <div style={{ fontSize: 13, color: "#8b5e00" }}>
+                {paymentSummary.mode === "selected_plan"
+                  ? "The selected subscription amount becomes the payable amount for this payment."
+                  : paymentSummary.mode === "draft"
+                    ? "Your compact subscription setup is already included in this payable amount."
+                    : "This is the amount to be approved after payment verification."}
+              </div>
+            </div>
+            <div style={{ fontWeight: 900, fontSize: 24, color: "#C8102E" }}>
+              Rs {Number(paymentSummary.payableNow || 0).toFixed(2)}
+            </div>
+          </div>
+        </div>
+      </div>
 
       <div className="payment-methods" style={{ marginBottom: 24, background: "#FFF9C4", padding: "12px", borderRadius: "10px" }}>
         <label className="payment-method-label" style={{ fontWeight: 600, fontSize: 17, marginRight: 18 }}>
@@ -186,7 +415,44 @@ export default function PaymentPage() {
         </div>
       )}
 
-      {subscriptionPlans.length > 0 && (
+      {subscriptionDraft?.pricing ? (
+        <div
+          className="payment-card"
+          style={{
+            background: "linear-gradient(135deg, #fff8cc 0%, #ffe78a 52%, #ffd55c 100%)",
+            padding: "24px",
+            borderRadius: "16px",
+            marginBottom: "24px",
+            boxShadow: "0 10px 28px rgba(194, 120, 0, 0.12)",
+            border: "1px solid rgba(210, 140, 0, 0.2)"
+          }}
+        >
+          <div style={{ fontSize: 13, fontWeight: 800, textTransform: "uppercase", letterSpacing: 0.4, color: "#9a3412" }}>
+            Subscription included
+          </div>
+          <h3 style={{ margin: "8px 0 6px", fontSize: "28px", lineHeight: 1.05, color: "#5A3A00" }}>
+            Subscription locked into this payment
+          </h3>
+          <p style={{ margin: 0, color: "#6b3f00", lineHeight: 1.6 }}>
+            This payment covers your selected subscription setup. We will activate it only after payment approval.
+          </p>
+          <div style={{ display: "grid", gap: 10, marginTop: 16 }}>
+            <div style={{ background: "rgba(255,255,255,0.84)", borderRadius: 14, padding: 14 }}>
+              <div style={{ fontWeight: 800, color: "#5A3A00" }}>
+                {subscriptionDraft.pricing.durationLabel}
+                {subscriptionDraft.pricing.frequencyLabel ? ` | ${subscriptionDraft.pricing.frequencyLabel}` : ""}
+                {subscriptionDraft.pricing.planLabel ? ` | ${subscriptionDraft.pricing.planLabel}` : ""}
+              </div>
+              <div style={{ marginTop: 6, color: "#6b3f00" }}>
+                {subscriptionDraft.pricing.itemCount} item{subscriptionDraft.pricing.itemCount === 1 ? "" : "s"} included
+              </div>
+              <div style={{ marginTop: 6, fontWeight: 800, color: "#9a3412" }}>
+                Pay Rs {Number(subscriptionDraft.pricing.totalPayable || 0).toFixed(2)} now and save Rs {Number(subscriptionDraft.pricing.savings || 0).toFixed(2)}
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : subscriptionPlans.length > 0 && (
         <div
           className="payment-card"
           style={{
@@ -208,62 +474,146 @@ export default function PaymentPage() {
             Lock this into your payment now. We will remind you before every cycle and deliver on schedule, so you never have to reorder {subscriptionCandidate?.title || "this product"} manually again.
           </p>
 
-          <div style={{ display: "grid", gap: 12, marginTop: 18 }}>
-            {subscriptionPlans.map((plan) => {
-              const selected = selectedSubscriptionPeriod === plan.period;
-              return (
-                <label
-                  key={plan.period}
+          <button
+            type="button"
+            onClick={() => setSubscriptionExpanded((current) => !current)}
+            style={{
+              marginTop: 16,
+              width: "100%",
+              padding: "12px 14px",
+              borderRadius: 14,
+              border: "1px solid rgba(210, 140, 0, 0.2)",
+              background: "rgba(255,255,255,0.82)",
+              cursor: "pointer",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              fontWeight: 800,
+              color: "#5A3A00"
+            }}
+          >
+            <span>
+              {selectedSubscriptionPeriod
+                ? `Included: ${subscriptionPlans.find((plan) => plan.period === selectedSubscriptionPeriod)?.label || "Plan"}${selectedUpsells.length ? ` + ${selectedUpsells.length} add-on${selectedUpsells.length === 1 ? "" : "s"}` : ""}`
+                : "Choose subscription plan"}
+            </span>
+            <span>{subscriptionExpanded ? "▲" : "▼"}</span>
+          </button>
+
+          {subscriptionExpanded && (
+            <div style={{ display: "grid", gap: 12, marginTop: 14 }}>
+              <div
+                style={{
+                  background: "rgba(255,255,255,0.78)",
+                  borderRadius: 14,
+                  padding: "14px 16px",
+                  border: "1px solid rgba(210, 140, 0, 0.16)"
+                }}
+              >
+                <div style={{ fontSize: 13, fontWeight: 800, textTransform: "uppercase", color: "#9a3412", marginBottom: 8 }}>
+                  Step 1
+                </div>
+                <div style={{ fontWeight: 800, color: "#5A3A00", marginBottom: 8 }}>
+                  Select plan duration
+                </div>
+                <select
+                  value={selectedSubscriptionPeriod}
+                  onChange={(event) => setSelectedSubscriptionPeriod(event.target.value)}
                   style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    gap: 14,
-                    flexWrap: "wrap",
-                    padding: "14px 16px",
-                    borderRadius: 14,
-                    cursor: "pointer",
-                    background: selected ? "rgba(255,255,255,0.96)" : "rgba(255,255,255,0.78)",
-                    border: selected ? "2px solid #C8102E" : "1px solid rgba(210, 140, 0, 0.16)"
+                    width: "100%",
+                    padding: "12px 14px",
+                    borderRadius: 12,
+                    border: "1px solid rgba(210, 140, 0, 0.2)",
+                    fontWeight: 700
                   }}
                 >
-                  <div style={{ display: "flex", gap: 12, alignItems: "flex-start", flex: "1 1 320px" }}>
-                    <input
-                      type="radio"
-                      name="subscriptionPlan"
-                      checked={selected}
-                      onChange={() => setSelectedSubscriptionPeriod(plan.period)}
-                      style={{ marginTop: 6 }}
-                    />
-                    <div>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                        <div style={{ fontSize: 18, fontWeight: 800, color: "#5A3A00" }}>
-                          {plan.label} plan
-                        </div>
-                        <div style={{ padding: "4px 10px", borderRadius: 999, background: "#fff1f2", color: "#be123c", fontWeight: 800, fontSize: 12 }}>
-                          Save {plan.discountPercent}%
-                        </div>
-                        <div style={{ padding: "4px 10px", borderRadius: 999, background: "#ecfccb", color: "#3f6212", fontWeight: 800, fontSize: 12 }}>
-                          {plan.badge}
-                        </div>
-                      </div>
-                      <div style={{ marginTop: 6, fontSize: 14, color: "#6b3f00" }}>
-                        Pay Rs {plan.discountedPrice.toFixed(2)} now for {plan.months} month{plan.months > 1 ? "s" : ""} and save Rs {plan.savings.toFixed(2)}.
-                      </div>
-                      <div style={{ marginTop: 4, fontSize: 13, color: "#8b5e00" }}>
-                        One payment decision now. Recurring delivery stays handled.
-                      </div>
-                    </div>
+                  <option value="">No subscription</option>
+                  {subscriptionPlans.map((plan) => (
+                    <option key={plan.period} value={plan.period}>
+                      {plan.label} | Save {plan.discountPercent}% | Rs {plan.discountedPrice.toFixed(2)}
+                    </option>
+                  ))}
+                </select>
+                {selectedSubscriptionPeriod && (
+                  <div style={{ marginTop: 8, fontSize: 13, color: "#8b5e00" }}>
+                    {subscriptionPlans.find((plan) => plan.period === selectedSubscriptionPeriod)?.badge || "Value plan"} | Recurring delivery stays handled after approval.
                   </div>
-                  {selected && (
-                    <div style={{ fontWeight: 800, color: "#C8102E" }}>
-                      Included with payment
+                )}
+              </div>
+
+              {upsellRecommendations.length > 0 && selectedSubscriptionPeriod && (
+                <div
+                  style={{
+                    background: "rgba(255,255,255,0.78)",
+                    borderRadius: 14,
+                    padding: "14px 16px",
+                    border: "1px solid rgba(210, 140, 0, 0.16)"
+                  }}
+                >
+                  <button
+                    type="button"
+                    onClick={() => setUpsellExpanded((current) => !current)}
+                    style={{
+                      width: "100%",
+                      border: "none",
+                      background: "transparent",
+                      cursor: "pointer",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      padding: 0,
+                      color: "#5A3A00"
+                    }}
+                  >
+                    <span>
+                      <span style={{ display: "block", fontSize: 13, fontWeight: 800, textTransform: "uppercase", color: "#9a3412" }}>
+                        Step 2
+                      </span>
+                      <span style={{ display: "block", fontWeight: 800, marginTop: 4 }}>
+                        Add more products to this subscription
+                      </span>
+                    </span>
+                    <span>{upsellExpanded ? "▲" : "▼"}</span>
+                  </button>
+                  {upsellExpanded && (
+                    <div style={{ display: "grid", gap: 10, marginTop: 12 }}>
+                      {upsellRecommendations.map((item) => {
+                        const active = selectedUpsellIds.includes(item.id);
+                        return (
+                          <label
+                            key={item.id}
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: "center",
+                              gap: 12,
+                              background: active ? "#fff7d6" : "#fff",
+                              border: active ? "1px solid #C8102E" : "1px solid #eee",
+                              borderRadius: 12,
+                              padding: "12px 14px",
+                              cursor: "pointer"
+                            }}
+                          >
+                            <div>
+                              <div style={{ fontWeight: 800, color: "#5A3A00" }}>{item.title}</div>
+                              <div style={{ marginTop: 4, fontSize: 13, color: "#8b5e00" }}>
+                                Rs {Number(item.price || 0).toFixed(2)} {item.unit ? `| ${item.unit}` : ""}
+                              </div>
+                            </div>
+                            <input
+                              type="checkbox"
+                              checked={active}
+                              onChange={() => toggleUpsell(item.id)}
+                            />
+                          </label>
+                        );
+                      })}
                     </div>
                   )}
-                </label>
-              );
-            })}
-          </div>
+                </div>
+              )}
+            </div>
+          )}
 
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 14 }}>
             {[
@@ -288,21 +638,9 @@ export default function PaymentPage() {
           </div>
 
           {selectedSubscriptionPeriod && (
-            <button
-              type="button"
-              onClick={() => setSelectedSubscriptionPeriod("")}
-              style={{
-                marginTop: 14,
-                border: "none",
-                background: "transparent",
-                color: "#9a3412",
-                fontWeight: 700,
-                cursor: "pointer",
-                padding: 0
-              }}
-            >
-              Remove subscription from this payment
-            </button>
+            <div style={{ marginTop: 12, color: "#9a3412", fontWeight: 700 }}>
+              Total subscription payable: Rs {Number(subscriptionPlans.find((plan) => plan.period === selectedSubscriptionPeriod)?.discountedPrice || 0).toFixed(2)}
+            </div>
           )}
         </div>
       )}
