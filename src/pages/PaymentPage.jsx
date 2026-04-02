@@ -449,6 +449,27 @@ export default function PaymentPage() {
       {method === "upi" && (
         <div className="payment-card" style={{ background: "#FFF9C4", padding: 18, borderRadius: 10, marginBottom: 24, boxShadow: "0 1px 6px rgba(0,0,0,0.04)" }}>
           <h3 style={{ margin: 0, fontSize: 18 }}>Pay via UPI</h3>
+          <div
+            style={{
+              marginTop: 12,
+              marginBottom: 12,
+              padding: "12px 14px",
+              background: "#fffaf0",
+              borderRadius: 12,
+              border: "1px solid rgba(210, 140, 0, 0.18)"
+            }}
+          >
+            <div style={{ fontSize: 12, fontWeight: 800, textTransform: "uppercase", color: "#9a3412" }}>
+              Pay this amount
+            </div>
+            <div style={{ marginTop: 4, fontSize: 28, fontWeight: 900, color: "#C8102E" }}>
+              Rs {Number(paymentSummary.payableNow || 0).toFixed(2)}
+            </div>
+            <div style={{ marginTop: 4, fontSize: 13, color: "#7c5200" }}>
+              Order: Rs {Number(paymentSummary.orderAmount || 0).toFixed(2)}
+              {hasSubscriptionAmount ? ` | Subscription: Rs ${Number(paymentSummary.subscriptionAmount || 0).toFixed(2)}` : ""}
+            </div>
+          </div>
           <div style={{ margin: "12px 0", display: "flex", justifyContent: "center" }}>
             <img src="/UPI QR Code.jpeg" alt="UPI QR Code" style={{ width: 200, height: 200, borderRadius: 8, border: "1.5px solid #007bff", objectFit: "contain" }} />
           </div>
@@ -461,6 +482,27 @@ export default function PaymentPage() {
       {method === "pi" && (
         <div className="payment-card" style={{ background: "#FFF9C4", padding: 18, borderRadius: 10, marginBottom: 24, boxShadow: "0 1px 6px rgba(0,0,0,0.04)" }}>
           <h3 style={{ margin: 0, fontSize: 18 }}>Pay via Pi Network</h3>
+          <div
+            style={{
+              marginTop: 12,
+              marginBottom: 12,
+              padding: "12px 14px",
+              background: "#fffaf0",
+              borderRadius: 12,
+              border: "1px solid rgba(210, 140, 0, 0.18)"
+            }}
+          >
+            <div style={{ fontSize: 12, fontWeight: 800, textTransform: "uppercase", color: "#9a3412" }}>
+              Pay this amount
+            </div>
+            <div style={{ marginTop: 4, fontSize: 28, fontWeight: 900, color: "#C8102E" }}>
+              Rs {Number(paymentSummary.payableNow || 0).toFixed(2)}
+            </div>
+            <div style={{ marginTop: 4, fontSize: 13, color: "#7c5200" }}>
+              Order: Rs {Number(paymentSummary.orderAmount || 0).toFixed(2)}
+              {hasSubscriptionAmount ? ` | Subscription: Rs ${Number(paymentSummary.subscriptionAmount || 0).toFixed(2)}` : ""}
+            </div>
+          </div>
           <div style={{ margin: "12px 0", display: "flex", justifyContent: "center" }}>
             <img src="/Pi network QR code.jpg" alt="Pi Network QR Code" style={{ width: 200, height: 200, borderRadius: 8, border: "1.5px solid #007bff", objectFit: "contain" }} />
           </div>
@@ -694,7 +736,7 @@ export default function PaymentPage() {
 
           {selectedSubscriptionPeriod && (
             <div style={{ marginTop: 12, color: "#9a3412", fontWeight: 700 }}>
-              Total subscription payable: Rs {Number(subscriptionPlans.find((plan) => plan.period === selectedSubscriptionPeriod)?.discountedPrice || 0).toFixed(2)}
+              Subscription: Rs {Number(subscriptionPlans.find((plan) => plan.period === selectedSubscriptionPeriod)?.discountedPrice || 0).toFixed(2)} | Total payment now: Rs {Number(paymentSummary.payableNow || 0).toFixed(2)}
             </div>
           )}
         </div>
