@@ -86,6 +86,8 @@ export default function PaymentPage() {
       mode: "order_only"
     };
   }, [orderBaseAmount, selectedSubscriptionPlan, subscriptionCandidate?.basePrice, subscriptionDraft?.pricing]);
+  const hasSubscriptionAmount = Number(paymentSummary.subscriptionAmount || 0) > 0;
+  const hasOrderAmount = Number(paymentSummary.orderAmount || 0) > 0;
 
   useEffect(() => {
     if (!orderId || orderDetails?.id) return;
@@ -287,6 +289,59 @@ export default function PaymentPage() {
       >
         Complete Your Payment
       </h2>
+
+      <div
+        className="payment-card"
+        style={{
+          background: "linear-gradient(135deg, #fff7bf 0%, #ffe27a 100%)",
+          padding: "16px 18px",
+          borderRadius: "14px",
+          marginBottom: "18px",
+          border: "1px solid rgba(210, 140, 0, 0.24)",
+          boxShadow: "0 8px 18px rgba(194, 120, 0, 0.1)"
+        }}
+      >
+        <div style={{ fontSize: 12, fontWeight: 900, letterSpacing: 0.5, textTransform: "uppercase", color: "#9a3412" }}>
+          Payable Amount
+        </div>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr auto",
+            gap: 10,
+            alignItems: "center",
+            marginTop: 8
+          }}
+        >
+          <div>
+            <div style={{ fontSize: 22, fontWeight: 900, color: "#5A3A00" }}>
+              Rs {Number(paymentSummary.payableNow || 0).toFixed(2)}
+            </div>
+            <div style={{ fontSize: 13, color: "#7c5200", marginTop: 2 }}>
+              {hasSubscriptionAmount
+                ? `Includes subscription${hasOrderAmount ? " and current order" : ""}`
+                : "Current payment amount"}
+            </div>
+          </div>
+          <div
+            style={{
+              background: "rgba(255,255,255,0.78)",
+              borderRadius: 12,
+              padding: "10px 12px",
+              minWidth: 170
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 10, fontSize: 13, color: "#6b3f00" }}>
+              <span>Order</span>
+              <strong>Rs {Number(paymentSummary.orderAmount || 0).toFixed(2)}</strong>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 10, fontSize: 13, color: "#6b3f00", marginTop: 4 }}>
+              <span>Subscription</span>
+              <strong>{hasSubscriptionAmount ? `Rs ${Number(paymentSummary.subscriptionAmount || 0).toFixed(2)}` : "—"}</strong>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <div
         className="payment-card"
@@ -683,6 +738,27 @@ export default function PaymentPage() {
         }}
       >
         <h3 style={{ marginBottom: "15px", fontSize: "18px" }}>Step 2: Enter Transaction ID</h3>
+        <div
+          style={{
+            marginBottom: 14,
+            padding: "12px 14px",
+            borderRadius: 12,
+            background: "#fffaf0",
+            border: "1px solid rgba(210, 140, 0, 0.18)"
+          }}
+        >
+          <div style={{ fontSize: 12, fontWeight: 800, textTransform: "uppercase", color: "#9a3412" }}>
+            Final amount to verify
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center", marginTop: 6 }}>
+            <div style={{ color: "#6b3f00", fontSize: 14 }}>
+              Upload screenshot and enter the transaction ID for this exact amount.
+            </div>
+            <div style={{ fontSize: 24, fontWeight: 900, color: "#C8102E", whiteSpace: "nowrap" }}>
+              Rs {Number(paymentSummary.payableNow || 0).toFixed(2)}
+            </div>
+          </div>
+        </div>
         <input
           type="text"
           placeholder={method === "upi" ? "Enter UPI Transaction ID" : "Enter Pi Transaction ID"}
