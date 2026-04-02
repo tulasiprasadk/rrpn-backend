@@ -454,6 +454,23 @@ export default function PaymentPage() {
               marginTop: 12,
               marginBottom: 12,
               padding: "12px 14px",
+              borderRadius: 12,
+              background: "#fff",
+              border: "2px solid rgba(200, 16, 46, 0.16)"
+            }}
+          >
+            <div style={{ fontSize: 12, fontWeight: 800, textTransform: "uppercase", color: "#9a3412" }}>
+              Pay exactly this amount
+            </div>
+            <div style={{ marginTop: 4, fontSize: 32, fontWeight: 900, color: "#C8102E" }}>
+              Rs {Number(paymentSummary.payableNow || 0).toFixed(2)}
+            </div>
+          </div>
+          <div
+            style={{
+              marginTop: 12,
+              marginBottom: 12,
+              padding: "12px 14px",
               background: "#fffaf0",
               borderRadius: 12,
               border: "1px solid rgba(210, 140, 0, 0.18)"
@@ -512,6 +529,23 @@ export default function PaymentPage() {
       {method === "pi" && (
         <div className="payment-card" style={{ background: "#FFF9C4", padding: 18, borderRadius: 10, marginBottom: 24, boxShadow: "0 1px 6px rgba(0,0,0,0.04)" }}>
           <h3 style={{ margin: 0, fontSize: 18 }}>Pay via Pi Network</h3>
+          <div
+            style={{
+              marginTop: 12,
+              marginBottom: 12,
+              padding: "12px 14px",
+              borderRadius: 12,
+              background: "#fff",
+              border: "2px solid rgba(200, 16, 46, 0.16)"
+            }}
+          >
+            <div style={{ fontSize: 12, fontWeight: 800, textTransform: "uppercase", color: "#9a3412" }}>
+              Pay exactly this amount
+            </div>
+            <div style={{ marginTop: 4, fontSize: 32, fontWeight: 900, color: "#C8102E" }}>
+              Rs {Number(paymentSummary.payableNow || 0).toFixed(2)}
+            </div>
+          </div>
           <div
             style={{
               marginTop: 12,
@@ -630,6 +664,26 @@ export default function PaymentPage() {
           <p style={{ margin: 0, color: "#6b3f00", lineHeight: 1.6 }}>
             Lock this into your payment now. We will remind you before every cycle and deliver on schedule, so you never have to reorder {subscriptionCandidate?.title || "this product"} manually again.
           </p>
+          <div
+            style={{
+              marginTop: 14,
+              padding: "12px 14px",
+              borderRadius: 12,
+              background: "rgba(255,255,255,0.85)",
+              border: "1px solid rgba(200, 16, 46, 0.16)"
+            }}
+          >
+            <div style={{ fontSize: 12, fontWeight: 800, textTransform: "uppercase", color: "#9a3412" }}>
+              Total payment with current selection
+            </div>
+            <div style={{ marginTop: 4, fontSize: 26, fontWeight: 900, color: "#C8102E" }}>
+              Rs {Number(paymentSummary.payableNow || 0).toFixed(2)}
+            </div>
+            <div style={{ marginTop: 4, fontSize: 13, color: "#6b3f00" }}>
+              Products: Rs {Number(paymentSummary.orderAmount || 0).toFixed(2)}
+              {hasSubscriptionAmount ? ` | Subscription: Rs ${Number(paymentSummary.subscriptionAmount || 0).toFixed(2)}` : ""}
+            </div>
+          </div>
 
           <button
             type="button"
@@ -813,6 +867,27 @@ export default function PaymentPage() {
         }}
       >
         <h3 style={{ marginBottom: "15px", fontSize: "18px" }}>Step 1: Upload Payment Screenshot</h3>
+        <div
+          style={{
+            marginBottom: 14,
+            padding: "12px 14px",
+            borderRadius: 12,
+            background: "#fffaf0",
+            border: "1px solid rgba(210, 140, 0, 0.18)"
+          }}
+        >
+          <div style={{ fontSize: 12, fontWeight: 800, textTransform: "uppercase", color: "#9a3412" }}>
+            Amount you should have paid
+          </div>
+          <div style={{ marginTop: 4, fontSize: 28, fontWeight: 900, color: "#C8102E" }}>
+            Rs {Number(paymentSummary.payableNow || 0).toFixed(2)}
+          </div>
+          <div style={{ marginTop: 4, fontSize: 13, color: "#6b3f00" }}>
+            {hasSubscriptionAmount
+              ? `Includes order and subscription`
+              : `Order payment only`}
+          </div>
+        </div>
 
         <input
           type="file"
