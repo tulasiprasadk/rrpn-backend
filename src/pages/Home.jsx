@@ -173,21 +173,21 @@ export default function Home() {
     }
   }
 
-  function handleCategoryClick(id) {
+  function handleCategoryClick(id, providedName) {
     const category = categories.find((c) => c.id === id);
     if (!category) return;
 
-    const name = category.name?.toLowerCase() || "";
-    // TEMP LOG: help debug category routing clicks in production
+    // prefer the displayed/provided name if available (fixes mismatched backend id/name pairs)
+    const name = (providedName || category.name || "").toLowerCase();
     try { console.log("[debug] category click ->", { id, name, category }); } catch(e) {}
-    try { alert(`DEBUG: category click -> id=${id}, name=${category.name}`); } catch (e) {}
-    if (name.includes("flower")) return navigate("/flowers");
-    if (name.includes("cracker")) return navigate("/crackers");
-    if (name.includes("groc")) return navigate("/groceries");
-    if (name.includes("pet")) return navigate("/petservices");
+
     // prefer consulting match before local-services to avoid overlapping names
     if (name.includes("consult")) return navigate("/consultancy");
     if (name.includes("local")) return navigate("/localservices");
+    if (name.includes("pet")) return navigate("/petservices");
+    if (name.includes("groc")) return navigate("/groceries");
+    if (name.includes("cracker")) return navigate("/crackers");
+    if (name.includes("flower")) return navigate("/flowers");
 
     navigate(`/browse?categoryId=${id}`);
   }
@@ -345,7 +345,7 @@ export default function Home() {
               <div
                 key={cat.id}
                 className="cat-card"
-                onClick={() => handleCategoryClick(cat.id)}
+                onClick={() => handleCategoryClick(cat.id, cat.name)}
               >
                 <span className="icon"><CategoryIcon category={cat.name} size={40} /></span>
                 <span className="label">{cat.name}</span>

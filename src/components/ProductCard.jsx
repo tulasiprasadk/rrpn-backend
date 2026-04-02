@@ -63,6 +63,34 @@ export default function ProductCard({ product, onClick, variant, iconSize, style
       displayPrice = Number.isFinite(nAlt) ? nAlt : null;
     }
   }
+  // Try nested/variant fields commonly used by different data shapes
+  if (displayPrice === null) {
+    const nested = (
+      product.variants && product.variants[0]
+        ? [product.variants[0].price, product.variants[0].sellingPrice, product.variants[0].mrp]
+        : []
+    ).concat(
+      product.prices && product.prices[0] ? [product.prices[0].price, product.prices[0].sellingPrice] : []
+    ).concat([
+      product.pricing?.price,
+      product.sku?.price,
+      product.sku?.sellingPrice,
+      product.mrp,
+      product.selling_price,
+      product.listPrice,
+      product.sellingPrice,
+    ]);
+
+    for (const candidate of nested) {
+      if (candidate === null || candidate === undefined) continue;
+      const cleaned = ("" + candidate).replace(/[^0-9.\-]+/g, "");
+      const n = parseFloat(cleaned);
+      if (Number.isFinite(n)) {
+        displayPrice = n;
+        break;
+      }
+    }
+  }
   const displayKn = knDisplay || kn || titleKannada;
   const showKannada = Boolean(displayKn) && displayKn !== displayName;
   // Keep backward-compatibility: emoji prop still considered, otherwise use category/variety
