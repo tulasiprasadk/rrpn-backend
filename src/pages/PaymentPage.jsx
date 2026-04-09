@@ -3,7 +3,17 @@ import api from "../api/client";
 import imageCompression from "browser-image-compression";
 import { useLocation, useNavigate } from "react-router-dom";
 import { savePendingSubscriptionCandidate } from "../components/SubscriptionPrompt";
+import {
+  calculateSubscriptionPreview,
+  GROCERY_PLANS,
+  normalizeSubscriptionCategory
+} from "../components/subscription/subscriptionConfig";
 import "./PaymentPage.mobile.css";
+
+const SUBSCRIPTION_MODES = {
+  repeat_item: "repeat_item",
+  ration: "ration"
+};
 
 function clearPendingSubscriptionDraft() {
   localStorage.removeItem("pendingSubscriptionDraft");
@@ -31,6 +41,16 @@ function buildPaymentPlans(basePrice) {
   });
 }
 
+function uniqSubscriptionCandidates(rows = []) {
+  const seen = new Set();
+  return rows.filter((row) => {
+    const key = String(row.productId || row.id || "");
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 export default function PaymentPage() {
   const [method, setMethod] = useState("upi");
   const { state } = useLocation();
@@ -38,7 +58,8 @@ export default function PaymentPage() {
 
   const orderId = state?.orderId;
   const subscriptionDraft = state?.subscriptionDraft || null;
-  const subscriptionCandidate = state?.subscriptionCandidate || null;
+  const fallbackSubscriptionCandidate = state?.subscriptionCandidate || null;
+  const cartItems = Array.isArray(state?.cartItems) ? state.cartItems : [];
   const [txnId, setTxnId] = useState("");
   const [file, setFile] = useState(null);
   const [orderDetails, setOrderDetails] = useState(state?.orderDetails || null);
@@ -47,50 +68,213 @@ export default function PaymentPage() {
   const [upsellExpanded, setUpsellExpanded] = useState(false);
   const [upsellRecommendations, setUpsellRecommendations] = useState([]);
   const [selectedUpsellIds, setSelectedUpsellIds] = useState([]);
+  const [grocerySubscriptionMode, setGrocerySubscriptionMode] = useState(SUBSCRIPTION_MODES.repeat_item);
+  const [selectedGroceryPlan, setSelectedGroceryPlan] = useState(GROCERY_PLANS[0].value);
+
+  const subscriptionCandidates = useMemo(() => {
+    const rows =
+      Array.isArray(state?.subscriptionCandidates) && state.subscriptionCandidates.length
+        ? state.subscriptionCandidates
+        : fallbackSubscriptionCandidate
+          ? [fallbackSubscriptionCandidate]
+          : [];
+
+    return uniqSubscriptionCandidates(
+      rows.map((item) => ({
+        productId: Number(item.productId || item.id || 0),
+        title: item.title || item.productName || "Product",
+        category: normalizeSubscriptionCategory(item.category || item.categoryName || item.Category?.name || ""),
+        basePrice: Number(item.basePrice ?? item.price ?? 0),
+        quantity: Number(item.quantity || 1),
+        unit: item.unit || ""
+      }))
+    );
+  }, [fallbackSubscriptionCandidate, state?.subscriptionCandidates]);
+
+  const [selectedCandidateId, setSelectedCandidateId] = useState(
+    () => String(subscriptionCandidates[0]?.productId || "")
+  );
+
+  const activeSubscriptionCandidate = useMemo(
+    () =>
+      subscriptionCandidates.find((item) => String(item.productId) === String(selectedCandidateId)) ||
+      subscriptionCandidates[0] ||
+      null,
+    [selectedCandidateId, subscriptionCandidates]
+  );
+
+  const activeCategory = normalizeSubscriptionCategory(activeSubscriptionCandidate?.category || "");
+  const isRationMode = grocerySubscriptionMode === SUBSCRIPTION_MODES.ration;
 
   const selectedUpsells = useMemo(
     () => upsellRecommendations.filter((item) => selectedUpsellIds.includes(item.id)),
-    [upsellRecommendations, selectedUpsellIds]
+    [selectedUpsellIds, upsellRecommendations]
   );
-  const orderBaseAmount = Number(orderDetails?.totalAmount || state?.orderDetails?.totalAmount || 0);
+
+  const orderItemsTotal = useMemo(
+    () =>
+      cartItems.reduce((sum, item) => {
+        const quantity = Number(item.quantity || item.qty || 1);
+        const price = Number(item.price || item.basePrice || 0);
+        return sum + quantity * price;
+      }, 0),
+    [cartItems]
+  );
+
+  const orderBaseAmount = Number(
+    orderItemsTotal ||
+      orderDetails?.cartTotal ||
+      orderDetails?.totalAmount ||
+      state?.orderDetails?.totalAmount ||
+      activeSubscriptionCandidate?.basePrice ||
+      0
+  );
+
   const effectiveSubscriptionBasePrice = useMemo(() => {
-    const base = Number(subscriptionCandidate?.basePrice || 0);
+    const base = Number(activeSubscriptionCandidate?.basePrice || 0);
     const upsellTotal = selectedUpsells.reduce((sum, item) => sum + Number(item.price || 0), 0);
     return Number((base + upsellTotal).toFixed(2));
-  }, [selectedUpsells, subscriptionCandidate?.basePrice]);
-  const subscriptionPlans = buildPaymentPlans(effectiveSubscriptionBasePrice);
-  const selectedSubscriptionPlan = useMemo(
-    () => subscriptionPlans.find((plan) => plan.period === selectedSubscriptionPeriod) || null,
-    [subscriptionPlans, selectedSubscriptionPeriod]
+  }, [activeSubscriptionCandidate?.basePrice, selectedUpsells]);
+
+  const subscriptionPlans = useMemo(
+    () => buildPaymentPlans(effectiveSubscriptionBasePrice),
+    [effectiveSubscriptionBasePrice]
   );
-  const paymentSummary = useMemo(() => {
+
+  const rationDurationPlans = useMemo(
+    () =>
+      PAYMENT_SUBSCRIPTION_PLANS.map((plan) => {
+        const preview = calculateSubscriptionPreview({
+          category: "groceries",
+          duration: plan.period,
+          planType: selectedGroceryPlan,
+          items: groceryPlanItems
+        });
+        return {
+          ...plan,
+          discountedPrice: Number(preview.totalPayable || 0),
+          savings: Number(preview.savings || 0)
+        };
+      }),
+    [groceryPlanItems, selectedGroceryPlan]
+  );
+
+  const visibleSubscriptionPlans = isRationMode ? rationDurationPlans : subscriptionPlans;
+
+  const selectedSubscriptionPlan = useMemo(
+    () => visibleSubscriptionPlans.find((plan) => plan.period === selectedSubscriptionPeriod) || null,
+    [selectedSubscriptionPeriod, visibleSubscriptionPlans]
+  );
+
+  const groceryPlanTemplate = useMemo(
+    () => GROCERY_PLANS.find((plan) => plan.value === selectedGroceryPlan) || GROCERY_PLANS[0],
+    [selectedGroceryPlan]
+  );
+
+  const groceryPlanItems = useMemo(
+    () =>
+      (groceryPlanTemplate?.items || []).map((item) => ({
+        title: item.title,
+        quantity: Number(item.quantity || 1),
+        unitPrice: Number(item.unitPrice || 0),
+        unit: item.unit || "",
+        metadata: {
+          source: "grocery_plan",
+          key: item.key,
+          title: item.title,
+          unit: item.unit || ""
+        }
+      })),
+    [groceryPlanTemplate]
+  );
+
+  const grocerySubscriptionPreview = useMemo(() => {
+    if (!isRationMode || !selectedSubscriptionPeriod) {
+      return null;
+    }
+    return calculateSubscriptionPreview({
+      category: "groceries",
+      duration: selectedSubscriptionPeriod,
+      planType: selectedGroceryPlan,
+      items: groceryPlanItems
+    });
+  }, [
+    groceryPlanItems,
+    isRationMode,
+    selectedGroceryPlan,
+    selectedSubscriptionPeriod
+  ]);
+
+  const effectiveSubscriptionSelection = useMemo(() => {
     if (subscriptionDraft?.pricing) {
       return {
-        orderAmount: orderBaseAmount || Number(subscriptionDraft.pricing.totalPayable || 0),
-        subscriptionAmount: Number(subscriptionDraft.pricing.totalPayable || 0),
-        payableNow: Number(subscriptionDraft.pricing.totalPayable || 0),
-        mode: "draft"
+        mode: "draft",
+        amount: Number(subscriptionDraft.pricing.totalPayable || 0),
+        label:
+          `${subscriptionDraft.pricing.durationLabel || ""}` +
+          `${subscriptionDraft.pricing.frequencyLabel ? ` | ${subscriptionDraft.pricing.frequencyLabel}` : ""}` +
+          `${subscriptionDraft.pricing.planLabel ? ` | ${subscriptionDraft.pricing.planLabel}` : ""}`,
+        items: subscriptionDraft.pricing.items || []
+      };
+    }
+
+    if (!selectedSubscriptionPeriod) {
+      return { mode: "none", amount: 0, label: "No subscription selected", items: [] };
+    }
+
+    if (grocerySubscriptionPreview) {
+      return {
+        mode: "ration",
+        amount: Number(grocerySubscriptionPreview.totalPayable || 0),
+        label: `${grocerySubscriptionPreview.durationLabel} | ${grocerySubscriptionPreview.planLabel}`,
+        items: grocerySubscriptionPreview.items || []
       };
     }
 
     if (selectedSubscriptionPlan) {
       return {
-        orderAmount: orderBaseAmount || Number(subscriptionCandidate?.basePrice || 0),
-        subscriptionAmount: Number(selectedSubscriptionPlan.discountedPrice || 0),
-        payableNow: Number(selectedSubscriptionPlan.discountedPrice || 0),
-        mode: "selected_plan"
+        mode: "repeat",
+        amount: Number(selectedSubscriptionPlan.discountedPrice || 0),
+        label: `${selectedSubscriptionPlan.label}${selectedUpsells.length ? ` | ${selectedUpsells.length} add-on${selectedUpsells.length === 1 ? "" : "s"}` : ""}`,
+        items: [
+          {
+            title: activeSubscriptionCandidate?.title || "Product",
+            quantity: Number(activeSubscriptionCandidate?.quantity || 1),
+            lineTotal: Number(activeSubscriptionCandidate?.basePrice || 0)
+          },
+          ...selectedUpsells.map((item) => ({
+            title: item.title,
+            quantity: 1,
+            lineTotal: Number(item.price || 0)
+          }))
+        ]
       };
     }
 
+    return { mode: "none", amount: 0, label: "No subscription selected", items: [] };
+  }, [
+    activeSubscriptionCandidate?.basePrice,
+    activeSubscriptionCandidate?.quantity,
+    activeSubscriptionCandidate?.title,
+    grocerySubscriptionPreview,
+    selectedSubscriptionPeriod,
+    selectedSubscriptionPlan,
+    selectedUpsells,
+    subscriptionDraft?.pricing
+  ]);
+
+  const paymentSummary = useMemo(() => {
+    const subscriptionAmount = Number(effectiveSubscriptionSelection.amount || 0);
     return {
-      orderAmount: orderBaseAmount || Number(subscriptionCandidate?.basePrice || 0),
-      subscriptionAmount: 0,
-      payableNow: orderBaseAmount || Number(subscriptionCandidate?.basePrice || 0),
-      mode: "order_only"
+      orderAmount: Number(orderBaseAmount || 0),
+      subscriptionAmount,
+      payableNow: Number((Number(orderBaseAmount || 0) + subscriptionAmount).toFixed(2)),
+      label: effectiveSubscriptionSelection.label,
+      items: effectiveSubscriptionSelection.items || []
     };
-  }, [orderBaseAmount, selectedSubscriptionPlan, subscriptionCandidate?.basePrice, subscriptionDraft?.pricing]);
+  }, [effectiveSubscriptionSelection.amount, effectiveSubscriptionSelection.items, effectiveSubscriptionSelection.label, orderBaseAmount]);
+
   const hasSubscriptionAmount = Number(paymentSummary.subscriptionAmount || 0) > 0;
-  const hasOrderAmount = Number(paymentSummary.orderAmount || 0) > 0;
 
   useEffect(() => {
     if (!orderId || orderDetails?.id) return;
@@ -112,7 +296,19 @@ export default function PaymentPage() {
   }, [orderDetails?.id, orderId]);
 
   useEffect(() => {
-    if (!subscriptionCandidate?.productId || subscriptionDraft?.id) {
+    if (!activeSubscriptionCandidate?.productId) return;
+    setSelectedUpsellIds([]);
+    setUpsellExpanded(false);
+    setGrocerySubscriptionMode(SUBSCRIPTION_MODES.repeat_item);
+  }, [activeSubscriptionCandidate?.productId]);
+
+  useEffect(() => {
+    if (!activeSubscriptionCandidate?.productId || subscriptionDraft?.id) {
+      setUpsellRecommendations([]);
+      return;
+    }
+
+    if (!["flowers", "pet_services", "groceries"].includes(activeCategory)) {
       setUpsellRecommendations([]);
       return;
     }
@@ -121,13 +317,20 @@ export default function PaymentPage() {
     api.get("/subscriptions/plans")
       .then((res) => {
         const plans = Array.isArray(res.data?.plans) ? res.data.plans : [];
-        const currentCategory = String(subscriptionCandidate?.category || "").toLowerCase();
+        const cartProductIds = new Set(
+          cartItems
+            .map((item) => Number(item.id || item.productId || 0))
+            .filter(Boolean)
+        );
         const nextRows = plans
-          .filter((item) => Number(item.id) !== Number(subscriptionCandidate.productId))
-          .filter((item) => {
-            if (!currentCategory) return true;
-            const itemCategory = String(item.category?.name || item.category || "").toLowerCase();
-            return itemCategory === currentCategory;
+          .filter((item) => Number(item.id) !== Number(activeSubscriptionCandidate.productId))
+          .filter((item) => !cartProductIds.has(Number(item.id)))
+          .sort((left, right) => {
+            const leftCategory = normalizeSubscriptionCategory(left.category?.name || left.category || "");
+            const rightCategory = normalizeSubscriptionCategory(right.category?.name || right.category || "");
+            const leftScore = leftCategory === activeCategory ? 1 : 0;
+            const rightScore = rightCategory === activeCategory ? 1 : 0;
+            return rightScore - leftScore;
           })
           .slice(0, 3);
         if (mounted) {
@@ -141,7 +344,7 @@ export default function PaymentPage() {
     return () => {
       mounted = false;
     };
-  }, [subscriptionCandidate?.productId, subscriptionCandidate?.category, subscriptionDraft?.id]);
+  }, [activeCategory, activeSubscriptionCandidate?.productId, cartItems, subscriptionDraft?.id]);
 
   const compressImage = async (imageFile) => {
     const options = {
@@ -178,35 +381,45 @@ export default function PaymentPage() {
     if (txnId) {
       form.append("unr", txnId);
     }
-    if (subscriptionDraft?.id) {
-      form.append("subscriptionDraftId", String(subscriptionDraft.id));
-    } else if (selectedSubscriptionPeriod && effectiveSubscriptionBasePrice > 0) {
-      if (selectedUpsells.length > 0) {
-        const createRes = await api.post("/subscription/create", {
-          category: subscriptionCandidate?.category || "general",
-          primaryProductId: subscriptionCandidate?.productId,
-          duration: selectedSubscriptionPeriod,
-          source: "payment_upsell",
-          upsellAccepted: true,
-          recommendationIds: selectedUpsellIds,
-          items: [
-            {
-              productId: subscriptionCandidate?.productId,
-              quantity: Number(subscriptionCandidate?.quantity || 1),
-              unitPrice: Number(subscriptionCandidate?.basePrice || 0)
-            },
-            ...selectedUpsells.map((item) => ({
-              productId: item.id,
-              quantity: 1,
-              unitPrice: Number(item.price || 0)
-            }))
-          ]
-        });
-        form.append("subscriptionDraftId", String(createRes.data?.subscription?.id));
-      } else {
-        form.append("subscriptionPeriod", selectedSubscriptionPeriod);
-        form.append("subscriptionBasePrice", String(effectiveSubscriptionBasePrice));
-      }
+    let draftId = subscriptionDraft?.id || null;
+    if (!draftId && selectedSubscriptionPeriod && activeSubscriptionCandidate?.productId) {
+      const createPayload =
+        isRationMode
+          ? {
+              category: "groceries",
+              primaryProductId: activeSubscriptionCandidate.productId,
+              duration: selectedSubscriptionPeriod,
+              planType: selectedGroceryPlan,
+              source: "payment_ration",
+              items: groceryPlanItems
+            }
+          : {
+              category: activeCategory || "general",
+              primaryProductId: activeSubscriptionCandidate.productId,
+              duration: selectedSubscriptionPeriod,
+              source: "payment_upsell",
+              upsellAccepted: selectedUpsells.length > 0,
+              recommendationIds: selectedUpsellIds,
+              items: [
+                {
+                  productId: activeSubscriptionCandidate.productId,
+                  quantity: Number(activeSubscriptionCandidate.quantity || 1),
+                  unitPrice: Number(activeSubscriptionCandidate.basePrice || 0)
+                },
+                ...selectedUpsells.map((item) => ({
+                  productId: item.id,
+                  quantity: 1,
+                  unitPrice: Number(item.price || 0)
+                }))
+              ]
+            };
+
+      const createRes = await api.post("/subscription/create", createPayload);
+      draftId = createRes.data?.subscription?.id || null;
+    }
+
+    if (draftId) {
+      form.append("subscriptionDraftId", String(draftId));
     }
 
     try {
@@ -214,10 +427,10 @@ export default function PaymentPage() {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
-      if (subscriptionDraft?.id) {
+      if (draftId) {
         clearPendingSubscriptionDraft();
-      } else if (!selectedSubscriptionPeriod && subscriptionCandidate?.productId) {
-        savePendingSubscriptionCandidate(subscriptionCandidate);
+      } else if (!selectedSubscriptionPeriod && activeSubscriptionCandidate?.productId) {
+        savePendingSubscriptionCandidate(activeSubscriptionCandidate);
       }
 
       navigate("/payment-success", {
@@ -228,7 +441,7 @@ export default function PaymentPage() {
           paymentMethod: method,
           orderDetails,
           subscriptionDraft,
-          subscriptionCandidate,
+          subscriptionCandidate: activeSubscriptionCandidate,
           selectedSubscriptionPeriod,
         }
       });
@@ -312,7 +525,9 @@ export default function PaymentPage() {
             <div>
               <div style={{ fontWeight: 800 }}>Selected product</div>
               <div style={{ fontSize: 13, color: "#8b5e00" }}>
-                {subscriptionCandidate?.title || "Current order"}
+                {cartItems.length > 1
+                  ? `${cartItems.length} items in this order`
+                  : activeSubscriptionCandidate?.title || "Current order"}
               </div>
             </div>
             <div style={{ fontWeight: 800 }}>
@@ -326,8 +541,8 @@ export default function PaymentPage() {
               <div style={{ fontSize: 13, color: "#8b5e00" }}>
                 {subscriptionDraft?.pricing
                   ? `${subscriptionDraft.pricing.durationLabel}${subscriptionDraft.pricing.frequencyLabel ? ` | ${subscriptionDraft.pricing.frequencyLabel}` : ""}${subscriptionDraft.pricing.planLabel ? ` | ${subscriptionDraft.pricing.planLabel}` : ""}`
-                  : selectedSubscriptionPlan
-                    ? `${selectedSubscriptionPlan.label} plan${selectedUpsells.length ? ` + ${selectedUpsells.length} add-on${selectedUpsells.length === 1 ? "" : "s"}` : ""}`
+                  : selectedSubscriptionPeriod
+                    ? effectiveSubscriptionSelection.label
                     : "Not added"}
               </div>
             </div>
@@ -338,7 +553,7 @@ export default function PaymentPage() {
             </div>
           </div>
 
-          {(subscriptionDraft?.pricing?.items?.length || selectedUpsells.length) ? (
+          {(subscriptionDraft?.pricing?.items?.length || effectiveSubscriptionSelection.items?.length) ? (
             <details style={{ background: "#fff", borderRadius: 12, padding: "10px 12px", border: "1px solid #f1dfaa" }}>
               <summary style={{ cursor: "pointer", fontWeight: 800, color: "#5A3A00" }}>
                 View included subscription items
@@ -350,10 +565,10 @@ export default function PaymentPage() {
                     <span>Rs {Number(item.lineTotal || 0).toFixed(2)}</span>
                   </div>
                 ))}
-                {!subscriptionDraft?.pricing?.items?.length && selectedUpsells.map((item) => (
-                  <div key={`upsell-${item.id}`} style={{ display: "flex", justifyContent: "space-between", gap: 12, fontSize: 14, color: "#6b3f00" }}>
-                    <span>{item.title} x 1</span>
-                    <span>Rs {Number(item.price || 0).toFixed(2)}</span>
+                {!subscriptionDraft?.pricing?.items?.length && (effectiveSubscriptionSelection.items || []).map((item, index) => (
+                  <div key={`selection-item-${index}`} style={{ display: "flex", justifyContent: "space-between", gap: 12, fontSize: 14, color: "#6b3f00" }}>
+                    <span>{item.title || item.metadata?.title || `Item ${index + 1}`} x {Number(item.quantity || 1)}</span>
+                    <span>Rs {Number(item.lineTotal || 0).toFixed(2)}</span>
                   </div>
                 ))}
               </div>
@@ -438,6 +653,53 @@ export default function PaymentPage() {
         </div>
       )}
 
+      <div
+        className="payment-card"
+        style={{
+          background: "linear-gradient(135deg, #fff3b0 0%, #ffe082 100%)",
+          padding: "18px 20px",
+          borderRadius: "14px",
+          marginBottom: "24px",
+          border: "2px solid rgba(200, 16, 46, 0.15)",
+          boxShadow: "0 8px 22px rgba(194, 120, 0, 0.12)"
+        }}
+      >
+        <div style={{ fontSize: 12, fontWeight: 800, textTransform: "uppercase", color: "#9a3412" }}>
+          Payable Now
+        </div>
+        <div
+          style={{
+            marginTop: 6,
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: 16,
+            flexWrap: "wrap"
+          }}
+        >
+          <div>
+            <div style={{ fontSize: 30, fontWeight: 900, color: "#C8102E", lineHeight: 1 }}>
+              Rs {Number(paymentSummary.payableNow || 0).toFixed(2)}
+            </div>
+            <div style={{ marginTop: 6, fontSize: 13, color: "#6b3f00" }}>
+              Products: Rs {Number(paymentSummary.orderAmount || 0).toFixed(2)}
+              {hasSubscriptionAmount ? ` | Subscription: Rs ${Number(paymentSummary.subscriptionAmount || 0).toFixed(2)}` : ""}
+            </div>
+          </div>
+          <div
+            style={{
+              padding: "8px 12px",
+              borderRadius: 999,
+              background: "rgba(255,255,255,0.9)",
+              color: "#5A3A00",
+              fontWeight: 800
+            }}
+          >
+            This is the amount to pay before upload
+          </div>
+        </div>
+      </div>
+
       {subscriptionDraft?.pricing ? (
         <div
           className="payment-card"
@@ -494,7 +756,7 @@ export default function PaymentPage() {
             Subscribe and Forget
           </h3>
           <p style={{ margin: 0, color: "#6b3f00", lineHeight: 1.6 }}>
-            Lock this into your payment now. We will remind you before every cycle and deliver on schedule, so you never have to reorder {subscriptionCandidate?.title || "this product"} manually again.
+            Lock this into your payment now. We will remind you before every cycle and deliver on schedule, so you never have to reorder {activeSubscriptionCandidate?.title || "this product"} manually again.
           </p>
           <div
             style={{
@@ -537,7 +799,7 @@ export default function PaymentPage() {
           >
             <span>
               {selectedSubscriptionPeriod
-                ? `Included: ${subscriptionPlans.find((plan) => plan.period === selectedSubscriptionPeriod)?.label || "Plan"}${selectedUpsells.length ? ` + ${selectedUpsells.length} add-on${selectedUpsells.length === 1 ? "" : "s"}` : ""}`
+                ? `Included: ${effectiveSubscriptionSelection.label || "Plan"}`
                 : "Choose subscription plan"}
             </span>
             <span>{subscriptionExpanded ? "▲" : "▼"}</span>
@@ -571,7 +833,7 @@ export default function PaymentPage() {
                   }}
                 >
                   <option value="">No subscription</option>
-                  {subscriptionPlans.map((plan) => (
+                  {visibleSubscriptionPlans.map((plan) => (
                     <option key={plan.period} value={plan.period}>
                       {plan.label} | Rs {plan.discountedPrice.toFixed(2)}
                     </option>
@@ -579,12 +841,133 @@ export default function PaymentPage() {
                 </select>
                 {selectedSubscriptionPeriod && (
                   <div style={{ marginTop: 8, fontSize: 13, color: "#8b5e00" }}>
-                    {subscriptionPlans.find((plan) => plan.period === selectedSubscriptionPeriod)?.badge || "Value plan"} | Recurring delivery stays handled after approval.
+                    {visibleSubscriptionPlans.find((plan) => plan.period === selectedSubscriptionPeriod)?.badge || "Value plan"} | Recurring delivery stays handled after approval.
                   </div>
                 )}
               </div>
 
-              {upsellRecommendations.length > 0 && selectedSubscriptionPeriod && (
+              {selectedSubscriptionPeriod && (
+                <div
+                  style={{
+                    background: "rgba(255,255,255,0.78)",
+                    borderRadius: 14,
+                    padding: "14px 16px",
+                    border: "1px solid rgba(210, 140, 0, 0.16)"
+                  }}
+                >
+                  <div style={{ fontSize: 13, fontWeight: 800, textTransform: "uppercase", color: "#9a3412", marginBottom: 8 }}>
+                    Step 2
+                  </div>
+                  <div style={{ fontWeight: 800, color: "#5A3A00", marginBottom: 10 }}>
+                    Choose subscription type
+                  </div>
+                  <div style={{ display: "grid", gap: 10 }}>
+                    {[
+                      {
+                        value: SUBSCRIPTION_MODES.repeat_item,
+                        title: "Repeat current item",
+                        description: `Keep ${activeSubscriptionCandidate?.title || "this product"} on recurring delivery`
+                      },
+                      {
+                        value: SUBSCRIPTION_MODES.ration,
+                        title: "Monthly ration",
+                        description: "Choose one of four household ration packages"
+                      }
+                    ].map((option) => {
+                      const active = grocerySubscriptionMode === option.value;
+                      return (
+                        <button
+                          key={option.value}
+                          type="button"
+                          onClick={() => setGrocerySubscriptionMode(option.value)}
+                          style={{
+                            textAlign: "left",
+                            borderRadius: 12,
+                            border: active ? "1px solid #C8102E" : "1px solid #eee",
+                            background: active ? "#fff7d6" : "#fff",
+                            padding: "12px 14px",
+                            cursor: "pointer"
+                          }}
+                        >
+                          <div style={{ fontWeight: 800, color: "#5A3A00" }}>{option.title}</div>
+                          <div style={{ marginTop: 4, fontSize: 13, color: "#8b5e00" }}>{option.description}</div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {selectedSubscriptionPeriod && isRationMode && (
+                <div
+                  style={{
+                    background: "rgba(255,255,255,0.78)",
+                    borderRadius: 14,
+                    padding: "14px 16px",
+                    border: "1px solid rgba(210, 140, 0, 0.16)"
+                  }}
+                >
+                  <div style={{ fontSize: 13, fontWeight: 800, textTransform: "uppercase", color: "#9a3412", marginBottom: 8 }}>
+                    Step 3
+                  </div>
+                  <div style={{ fontWeight: 800, color: "#5A3A00", marginBottom: 10 }}>
+                    Select monthly ration package
+                  </div>
+                  <div style={{ display: "grid", gap: 10 }}>
+                    {GROCERY_PLANS.map((plan) => {
+                      const active = selectedGroceryPlan === plan.value;
+                      const preview = calculateSubscriptionPreview({
+                        category: "groceries",
+                        duration: selectedSubscriptionPeriod,
+                        planType: plan.value,
+                        items: plan.items.map((item) => ({
+                          title: item.title,
+                          quantity: Number(item.quantity || 1),
+                          unitPrice: Number(item.unitPrice || 0),
+                          unit: item.unit || "",
+                          metadata: {
+                            source: "grocery_plan",
+                            key: item.key,
+                            title: item.title,
+                            unit: item.unit || ""
+                          }
+                        }))
+                      });
+
+                      return (
+                        <button
+                          key={plan.value}
+                          type="button"
+                          onClick={() => setSelectedGroceryPlan(plan.value)}
+                          style={{
+                            textAlign: "left",
+                            borderRadius: 12,
+                            border: active ? "1px solid #C8102E" : "1px solid #eee",
+                            background: active ? "#fff7d6" : "#fff",
+                            padding: "12px 14px",
+                            cursor: "pointer"
+                          }}
+                        >
+                          <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+                            <div>
+                              <div style={{ fontWeight: 800, color: "#5A3A00" }}>{plan.label}</div>
+                              <div style={{ marginTop: 4, fontSize: 13, color: "#8b5e00" }}>{plan.badge}</div>
+                            </div>
+                            <div style={{ fontWeight: 800, color: "#9a3412" }}>
+                              Rs {Number(preview.totalPayable || 0).toFixed(2)}
+                            </div>
+                          </div>
+                          <div style={{ marginTop: 8, fontSize: 13, color: "#6b3f00" }}>
+                            {plan.items.map((item) => `${item.title} ${item.quantity}${item.unit ? ` ${item.unit}` : ""}`).join(" | ")}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {grocerySubscriptionMode === SUBSCRIPTION_MODES.repeat_item && upsellRecommendations.length > 0 && selectedSubscriptionPeriod && (
                 <div
                   style={{
                     background: "rgba(255,255,255,0.78)",
@@ -610,7 +993,7 @@ export default function PaymentPage() {
                   >
                     <span>
                       <span style={{ display: "block", fontSize: 13, fontWeight: 800, textTransform: "uppercase", color: "#9a3412" }}>
-                        Step 2
+                        Step 3
                       </span>
                       <span style={{ display: "block", fontWeight: 800, marginTop: 4 }}>
                         Add more products to this subscription
@@ -682,7 +1065,7 @@ export default function PaymentPage() {
 
           {selectedSubscriptionPeriod && (
             <div style={{ marginTop: 12, color: "#9a3412", fontWeight: 700 }}>
-              Included subscription amount: Rs {Number(subscriptionPlans.find((plan) => plan.period === selectedSubscriptionPeriod)?.discountedPrice || 0).toFixed(2)}
+              Included subscription amount: Rs {Number(effectiveSubscriptionSelection.amount || 0).toFixed(2)}
             </div>
           )}
         </div>
