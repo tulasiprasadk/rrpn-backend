@@ -29,12 +29,23 @@ const placementLabels = {
 const AdminAdsList = () => {
   const [ads, setAds] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [hasSeededDefaults, setHasSeededDefaults] = useState(false);
 
   const loadAds = async () => {
     try {
       setLoading(true);
       const res = await api.get("/admin/ads");
-      setAds(normalizeAds(res.data, "advertisements"));
+      const normalized = normalizeAds(res.data, "advertisements");
+
+      if (normalized.length === 0 && !hasSeededDefaults) {
+        await api.post("/admin/ads/seed-defaults");
+        setHasSeededDefaults(true);
+        const retry = await api.get("/admin/ads");
+        setAds(normalizeAds(retry.data, "advertisements"));
+        return;
+      }
+
+      setAds(normalized);
     } catch (err) {
       console.error("Failed loading ads:", err);
       setAds([]);
@@ -45,7 +56,7 @@ const AdminAdsList = () => {
 
   useEffect(() => {
     loadAds();
-  }, []);
+  }, [hasSeededDefaults]);
 
   const deleteAd = async (id) => {
     if (!window.confirm("Are you sure you want to delete this ad?")) return;
