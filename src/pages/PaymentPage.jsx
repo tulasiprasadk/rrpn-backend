@@ -856,10 +856,10 @@ export default function PaymentPage() {
                   }}
                 >
                   <div style={{ fontSize: 13, fontWeight: 800, textTransform: "uppercase", color: "#9a3412", marginBottom: 8 }}>
-                    Step 2
+                    Subscription Type
                   </div>
                   <div style={{ fontWeight: 800, color: "#5A3A00", marginBottom: 10 }}>
-                    Choose subscription type
+                    Choose how you want to continue
                   </div>
                   <div style={{ display: "grid", gap: 10 }}>
                     {[
@@ -898,6 +898,85 @@ export default function PaymentPage() {
                 </div>
               )}
 
+              {upsellRecommendations.length > 0 && selectedSubscriptionPeriod && (
+                <div
+                  style={{
+                    background: "rgba(255,255,255,0.78)",
+                    borderRadius: 14,
+                    padding: "14px 16px",
+                    border: "1px solid rgba(210, 140, 0, 0.16)"
+                  }}
+                >
+                  <button
+                    type="button"
+                    onClick={() => setUpsellExpanded((current) => !current)}
+                    style={{
+                      width: "100%",
+                      border: "none",
+                      background: "transparent",
+                      cursor: "pointer",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      padding: 0,
+                      color: "#5A3A00"
+                    }}
+                  >
+                    <span>
+                      <span style={{ display: "block", fontSize: 13, fontWeight: 800, textTransform: "uppercase", color: "#9a3412" }}>
+                        Step 2
+                      </span>
+                      <span style={{ display: "block", fontWeight: 800, marginTop: 4 }}>
+                        Add more products to this subscription
+                      </span>
+                    </span>
+                    <span>{upsellExpanded ? "▲" : "▼"}</span>
+                  </button>
+                  {upsellExpanded && (
+                    <div style={{ display: "grid", gap: 10, marginTop: 12 }}>
+                      {isRationMode ? (
+                        <div style={{ fontSize: 13, color: "#8b5e00" }}>
+                          These add-ons are shown here for reference. They are applied when you use the repeat-item subscription.
+                        </div>
+                      ) : null}
+                      {upsellRecommendations.map((item) => {
+                        const active = selectedUpsellIds.includes(item.id);
+                        return (
+                          <label
+                            key={item.id}
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: "center",
+                              gap: 12,
+                              background: active ? "#fff7d6" : "#fff",
+                              border: active ? "1px solid #C8102E" : "1px solid #eee",
+                              borderRadius: 12,
+                              padding: "12px 14px",
+                              cursor: isRationMode ? "default" : "pointer",
+                              opacity: isRationMode ? 0.72 : 1
+                            }}
+                          >
+                            <div>
+                              <div style={{ fontWeight: 800, color: "#5A3A00" }}>{item.title}</div>
+                              <div style={{ marginTop: 4, fontSize: 13, color: "#8b5e00" }}>
+                                Rs {Number(item.price || 0).toFixed(2)} {item.unit ? `| ${item.unit}` : ""}
+                              </div>
+                            </div>
+                            <input
+                              type="checkbox"
+                              checked={active}
+                              disabled={isRationMode}
+                              onChange={() => toggleUpsell(item.id)}
+                            />
+                          </label>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+
               {selectedSubscriptionPeriod && isRationMode && (
                 <div
                   style={{
@@ -913,7 +992,15 @@ export default function PaymentPage() {
                   <div style={{ fontWeight: 800, color: "#5A3A00", marginBottom: 10 }}>
                     Select monthly ration package
                   </div>
-                  <div style={{ display: "grid", gap: 10 }}>
+                  <div
+                    style={{
+                      display: "grid",
+                      gap: 10,
+                      maxHeight: 280,
+                      overflowY: "auto",
+                      paddingRight: 4
+                    }}
+                  >
                     {GROCERY_PLANS.map((plan) => {
                       const active = selectedGroceryPlan === plan.value;
                       const preview = calculateSubscriptionPreview({
@@ -964,78 +1051,6 @@ export default function PaymentPage() {
                       );
                     })}
                   </div>
-                </div>
-              )}
-
-              {grocerySubscriptionMode === SUBSCRIPTION_MODES.repeat_item && upsellRecommendations.length > 0 && selectedSubscriptionPeriod && (
-                <div
-                  style={{
-                    background: "rgba(255,255,255,0.78)",
-                    borderRadius: 14,
-                    padding: "14px 16px",
-                    border: "1px solid rgba(210, 140, 0, 0.16)"
-                  }}
-                >
-                  <button
-                    type="button"
-                    onClick={() => setUpsellExpanded((current) => !current)}
-                    style={{
-                      width: "100%",
-                      border: "none",
-                      background: "transparent",
-                      cursor: "pointer",
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      padding: 0,
-                      color: "#5A3A00"
-                    }}
-                  >
-                    <span>
-                      <span style={{ display: "block", fontSize: 13, fontWeight: 800, textTransform: "uppercase", color: "#9a3412" }}>
-                        Step 3
-                      </span>
-                      <span style={{ display: "block", fontWeight: 800, marginTop: 4 }}>
-                        Add more products to this subscription
-                      </span>
-                    </span>
-                    <span>{upsellExpanded ? "▲" : "▼"}</span>
-                  </button>
-                  {upsellExpanded && (
-                    <div style={{ display: "grid", gap: 10, marginTop: 12 }}>
-                      {upsellRecommendations.map((item) => {
-                        const active = selectedUpsellIds.includes(item.id);
-                        return (
-                          <label
-                            key={item.id}
-                            style={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                              alignItems: "center",
-                              gap: 12,
-                              background: active ? "#fff7d6" : "#fff",
-                              border: active ? "1px solid #C8102E" : "1px solid #eee",
-                              borderRadius: 12,
-                              padding: "12px 14px",
-                              cursor: "pointer"
-                            }}
-                          >
-                            <div>
-                              <div style={{ fontWeight: 800, color: "#5A3A00" }}>{item.title}</div>
-                              <div style={{ marginTop: 4, fontSize: 13, color: "#8b5e00" }}>
-                                Rs {Number(item.price || 0).toFixed(2)} {item.unit ? `| ${item.unit}` : ""}
-                              </div>
-                            </div>
-                            <input
-                              type="checkbox"
-                              checked={active}
-                              onChange={() => toggleUpsell(item.id)}
-                            />
-                          </label>
-                        );
-                      })}
-                    </div>
-                  )}
                 </div>
               )}
             </div>
