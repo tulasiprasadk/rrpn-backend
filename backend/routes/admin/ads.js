@@ -47,6 +47,13 @@ async function writeCmsAds(key, items) {
   });
 }
 
+async function readStoredCmsAds(key) {
+  const row = await PlatformConfig.findByPk(key);
+  if (!row) return [];
+  const parsed = parseJsonValue(row.value, []);
+  return Array.isArray(parsed) ? parsed : [];
+}
+
 function normalizeLegacyAd(row) {
   const data = row.toJSON ? row.toJSON() : row;
   return {
@@ -191,6 +198,30 @@ router.get('/:id', async (req, res) => {
     return res.status(404).json({ error: 'Not found' });
   } catch (err) {
     console.error('Admin: get ad', err);
+    res.status(500).json({ error: 'Failed' });
+  }
+});
+
+router.post('/seed-defaults', async (_req, res) => {
+  try {
+    const seeded = [];
+
+    for (const key of CMS_AD_KEYS) {
+      const existing = await readStoredCmsAds(key);
+      if (existing.length > 0) {
+        continue;
+      }
+
+      const defaults = getDefaultCmsAds(key);
+      if (defaults.length > 0) {
+        await writeCmsAds(key, defaults);
+        seeded.push({ key, count: defaults.length });
+      }
+    }
+
+    res.json({ ok: true, seeded });
+  } catch (err) {
+    console.error('Admin: seed default ads', err);
     res.status(500).json({ error: 'Failed' });
   }
 });
