@@ -2,110 +2,168 @@ import dayjs from 'dayjs';
 import { getCategoryRules } from './subscriptionDb.js';
 
 const GROCERY_BUNDLES = {
-  '3': [{ id: 'rice-5kg', qty: 1 }, { id: 'atta-5kg', qty: 1 }, { id: 'oil-1l', qty: 2 }],
-  '4': [{ id: 'rice-10kg', qty: 1 }, { id: 'atta-5kg', qty: 2 }, { id: 'oil-1l', qty: 3 }],
-  '5': [{ id: 'rice-10kg', qty: 1 }, { id: 'atta-10kg', qty: 1 }, { id: 'oil-5l', qty: 1 }],
-  'premium': [{ id: 'organic-rice-10kg', qty: 1 }, { id: 'cold-pressed-oil-5l', qty: 1 }]
+  'basic': [{ id: 'rice-5kg', qty: 1, price: 300 }, { id: 'atta-3kg', qty: 1, price: 150 }],
+  'advanced': [{ id: 'rice-7kg', qty: 1, price: 420 }, { id: 'atta-5kg', qty: 1, price: 250 }, { id: 'oil-1l', qty: 1, price: 180 }],
+  'pro': [{ id: 'rice-10kg', qty: 1, price: 600 }, { id: 'atta-5kg', qty: 2, price: 500 }, { id: 'oil-1l', qty: 2, price: 360 }, { id: 'pulses-1kg', qty: 2, price: 240 }],
+  'vip': [{ id: 'organic-rice-10kg', qty: 1, price: 900 }, { id: 'atta-10kg', qty: 1, price: 480 }, { id: 'cold-pressed-oil-5l', qty: 1, price: 1200 }, { id: 'premium-pulses-pack', qty: 1, price: 500 }]
 };
 
 export async function calculatePricing(payload) {
-  const { category, type, plan_name, family_size, items = [] } = payload;
+  const { category, plan_name, items = [] } = payload;
   let base = 0;
 
-  // For bundles, we might need to fetch product prices first
-  // Simplified base calculation for this logic pass
-  items.forEach(it => base += (it.price || 50) * (it.quantity || 1));
-
-  let discount = 0;
-  if (['flowers', 'fruits', 'vegetables'].includes(category)) {
-    // Per-frequency discount
-    const freqDiscounts = { 1: 0.05, 2: 0.10, 3: 0.15, 7: 0.25 };
-    discount = freqDiscounts[payload.frequency] || 0;
-  } else if (category === 'groceries') {
-    discount = 0.12; // Flat 12% for family bundles
-  } else if (category === 'services') {
-    const serviceDiscounts = { 'monthly': 0.05, 'quarterly': 0.15, 'yearly': 0.30 };
-    discount = serviceDiscounts[plan_name?.toLowerCase()] || 0;
+  // Handle Grocery Bundles
+  if (category === 'groceries' && plan_name && GROCERY_BUNDLES[plan_name.toLowerCase()]) {
+    const bundle = GROCERY_BUNDLES[plan_name.toLowerCase()];
+    bundle.forEach(it => base += (it.price * it.qty));
+  } else {
+    items.forEach(it => base += (it.price || 50) * (it.quantity || 1));
   }
-
-  // UPSELL LOGIC: If items > 1, add extra 2% loyalty discount
-  if (items.length > 1) discount += 0.02;
-
-  return {
-    basePrice: base,
-    finalPrice: +(base * (1 - discount)).toFixed(2),
-    discountApplied: (discount * 100) + '%'
-  };
-}
 
   const defaultFreqMap = { 'Starter':1, 'Smart':2, 'Value+':3, 'Daily+':7, 'Essential':14, 'Family':14, 'Plus':14, 'Premium':14 };
 
-  // Try loading dynamic rules from DB
-  let dynamicRules = null;
+  let frequency = payload.frequency || 1;
+  let discount = 0;
+
   try {
-    dynamicRules = await getCategoryRules(category);
+    const dynamicRules = await getCategoryRules(category);
+    if (dynamicRules) {
+      if (dynamicRules.plans && dynamicRules.plans[plan_name] !== undefined) {
+        const val = dynamicRules.plans[plan_name];
+        if (typeof val === 'number') frequency = val;
+      }
+      if (dynamicRules.discounts && dynamicRules.discounts[plan_name] !== undefined) {
+        discount = Number(dynamicRules.discounts[plan_name]) || 0;
+      }
+    }
   } catch (e) {
     console.warn('Failed to load dynamic rules for', category, e?.message || e);
   }
 
-  // Determine frequency and discount
-  let frequency = payload.frequency || 1;
-  let discount = 0;
-
-  if (dynamicRules && dynamicRules.plans && dynamicRules.plans[plan_type] !== undefined) {
-    // If plans map to numeric values, treat as frequency (weeks)
-    const val = dynamicRules.plans[plan_type];
-    if (typeof val === 'number') frequency = val;
+  if (discount === 0) {
+    if (['flowers', 'fruits', 'vegetables'].includes(category)) {
+      const freqDiscounts = { 1: 0.05, 2: 0.10, 3: 0.15, 7: 0.25 };
+      discount = freqDiscounts[frequency] || 0;
+    } else if (category === 'groceries') {
+      discount = 0.12; 
+    } else if (category === 'services' || category === 'pet services') {
+      const serviceDiscounts = { 'monthly': 0.05, 'quarterly': 0.15, 'yearly': 0.30 };
+      discount = serviceDiscounts[plan_name?.toLowerCase()] || 0;
+    }
   }
 
-  if (dynamicRules && dynamicRules.discounts && dynamicRules.discounts[plan_type] !== undefined) {
-    discount = Number(dynamicRules.discounts[plan_type]) || 0;
-  } else {
-    discount = (defaultDiscountMap[category] && defaultDiscountMap[category][plan_type]) || 0;
-  }
-
-  // Fallback frequency from defaults
   if (!frequency || frequency === 1) {
-    frequency = defaultFreqMap[plan_type] || payload.frequency || 1;
+    frequency = defaultFreqMap[plan_name] || payload.frequency || 1;
   }
 
-  const priceBefore = base;
-  const priceAfter = +(base * (1 - discount)).toFixed(2);
+  if (items.length > 1) discount += 0.02;
 
-  return { priceBefore, priceAfter, discount, frequency };
+  const finalPrice = +(base * (1 - discount)).toFixed(2);
+
+  return { 
+    basePrice: base, 
+    finalPrice, 
+    discountApplied: (Math.round(discount * 100)) + '%',
+    frequency,
+    priceBefore: base,
+    priceAfter: finalPrice
+  };
 }
 
 export function computeNextDelivery(payload) {
-  const now = dayjs();
-  if (payload.next_delivery_date) return payload.next_delivery_date;
-  if (payload.delivery_days && payload.delivery_days.length) {
-    const days = payload.delivery_days;
-    for (let i=0;i<14;i++){
-      const candidate = now.add(i, 'day');
-      const wd = candidate.day();
-      if (days.includes(wd)) return candidate.toISOString();
+  let result = payload.next_delivery_date;
+
+  if (!result) {
+    const now = dayjs();
+    if (payload.delivery_days && payload.delivery_days.length) {
+      for (let i = 0; i < 14; i++) {
+        const candidate = now.add(i, 'day');
+        if (payload.delivery_days.includes(candidate.day())) {
+          result = candidate.toISOString();
+          break;
+        }
+      }
+    }
+    if (!result) {
+      result = now.add(payload.frequency || 1, 'week').toISOString();
     }
   }
-  const freq = payload.frequency || 1;
-  return now.add(freq, 'week').toISOString();
+
+  return result;
 }
 
+/**
+ * Generates personalized recommendations based on cart content.
+ * Handles multi-category detection and duplicate prevention.
+ * Provides metadata for compact grid layouts and grouping.
+ */
 export async function recommend(input) {
-  const category = input.category || '';
-  const cart = input.cart ? JSON.parse(input.cart) : (input.cart || []);
-  const recs = [];
+  let cart = [];
+  try {
+    cart = input.cart ? (typeof input.cart === 'string' ? JSON.parse(input.cart) : input.cart) : [];
+  } catch (e) {
+    console.error('Failed to parse cart for recommendations:', e);
+    cart = [];
+  }
+  
+  const cartItemIds = new Set(cart.map(item => String(item.id || item.productId || '')));
+  const cartCategories = [...new Set(cart.map(item => item.category).filter(Boolean))];
+  const categoriesToProcess = new Set(cartCategories);
+  if (input.category) categoriesToProcess.add(input.category);
 
-  if (['flowers','fruits','vegetables'].includes(category)) {
-    recs.push({ id: 'weekly-basket', title: 'Weekly Basket', description: 'Curated weekly selection to keep freshness for the week', savings: '10%' });
-    recs.push({ id: 'family-pack', title: 'Family Pack', description: 'Bigger quantities for families, save more', savings: '15%' });
-    if (cart.length && cart.reduce((s,c)=>s+(c.qty||1),0) < 3) {
-      recs.push({ id: 'add-more', title: 'Add more for better value', savings: '5%' });
+  const allRecs = [];
+
+  for (const cat of categoriesToProcess) {
+    const categoryRecs = [];
+    if (['flowers', 'fruits', 'vegetables'].includes(cat)) {
+      categoryRecs.push({ 
+        id: `weekly-basket-${cat}`, 
+        category: cat, 
+        title: `${cat.charAt(0).toUpperCase() + cat.slice(1)} Weekly Basket`, 
+        description: 'Curated weekly selection for freshness', 
+        savings: '10%'
+      });
+      categoryRecs.push({ 
+        id: `family-pack-${cat}`, 
+        category: cat, 
+        title: 'Family Pack', 
+        description: 'Bigger quantities for families', 
+        savings: '15%'
+      });
+      
+      const catCount = cart.filter(it => it.category === cat).reduce((s, c) => s + (c.qty || 1), 0);
+      if (catCount > 0 && catCount < 3) {
+        categoryRecs.push({ id: `add-more-${cat}`, category: cat, title: `Add more ${cat}`, savings: '5%' });
+      }
+    } else if (cat === 'groceries') {
+      categoryRecs.push({ id: 'essential-bundle', category: cat, title: 'Essential Bundle', description: 'Rice, Atta, Oil, Pulses', savings: '8%' });
+    } else if (cat === 'pet services') {
+      categoryRecs.push({ id: 'time-plan', category: cat, title: 'Flexible Time Plans', description: 'Monthly / Quarterly booking plans' });
     }
-  } else if (category === 'groceries') {
-    recs.push({ id: 'essential-bundle', title: 'Essential Bundle', description: 'Rice, Atta, Oil, Pulses', savings: '8%' });
-  } else if (category === 'pet services') {
-    recs.push({ id: 'time-plan', title: 'Flexible Time Plans', description: 'Monthly / Quarterly booking plans' });
   }
 
-  return recs;
+  if (!cartCategories.includes('groceries')) {
+    allRecs.push({
+      id: 'grocery-plan-upsell',
+      category: 'groceries',
+      title: 'Monthly Grocery Plan',
+      description: 'Add a Monthly Grocery Plan & Save More',
+      savings: 'Up to 15%',
+      type: 'checkout_modal_trigger'
+    });
+  }
+
+  const seen = new Set();
+  return allRecs
+    .filter(item => {
+      const idStr = String(item.id);
+      const shouldKeep = !seen.has(idStr) && !cartItemIds.has(idStr);
+      seen.add(idStr);
+      return shouldKeep;
+    })
+    .sort((a, b) => {
+      if (a.category === 'groceries' && b.category !== 'groceries') return 1;
+      if (a.category !== 'groceries' && b.category === 'groceries') return -1;
+      return 0;
+    });
 }

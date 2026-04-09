@@ -3,7 +3,7 @@ import jwt from "jsonwebtoken";
 import { models } from "../config/database.js";
 import { SUBSCRIPTION_PLANS, buildPlanForProduct } from "../utils/subscriptionPlans.js";
 
-const { Product, Subscription, Category } = models;
+const { Product, Subscription, Category, SubscriptionItem } = models;
 const router = express.Router();
 
 function requireLogin(req, res, next) {
@@ -84,7 +84,14 @@ router.get("/", requireLogin, async (req, res) => {
   try {
     const subs = await Subscription.findAll({
       where: { customerId: req.session.customerId },
-      include: [{ model: Product }],
+      include: [
+        { model: Product },
+        {
+          model: SubscriptionItem,
+          as: "items",
+          include: [{ model: Product }]
+        }
+      ],
       order: [["createdAt", "DESC"]]
     });
     res.json(subs);
@@ -96,7 +103,7 @@ router.get("/", requireLogin, async (req, res) => {
 
 router.post("/", requireLogin, async (req, res) => {
   try {
-    const { productId, period, renewExisting = false } = req.body || {};
+    const { productId, period } = req.body || {};
     if (!productId || !period) {
       return res.status(400).json({ error: "productId and period required" });
     }
@@ -112,30 +119,8 @@ router.post("/", requireLogin, async (req, res) => {
       return res.status(400).json({ error: "Invalid period" });
     }
 
-    if (!renewExisting) {
-      return res.status(400).json({
-        error: "Subscriptions now start only through payment approval. Please continue through the payment flow."
-      });
-    }
-
-    const startDate = new Date();
-    const endDate = new Date(startDate);
-    endDate.setMonth(endDate.getMonth() + selectedPlan.months);
-
-    const subscription = await Subscription.create({
-      customerId: req.session.customerId,
-      productId: product.id,
-      period: normalizedPeriod,
-      status: "active",
-      startDate,
-      endDate,
-      price: selectedPlan.discountedPrice
-    });
-
-    res.json({
-      success: true,
-      subscription,
-      plan: selectedPlan
+    return res.status(400).json({
+      error: "Subscriptions now start only through payment approval. Use the subscription setup flow and continue to payment."
     });
   } catch (err) {
     console.error("Subscription create error:", err);

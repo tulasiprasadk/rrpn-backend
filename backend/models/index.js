@@ -20,6 +20,7 @@ import getAdClick from "./AdClick.js";
 import getOTPSession from "./OTPSession.js";
 import getBlog from "./Blog.js";
 import getSubscription from "./Subscription.js";
+import getSubscriptionItem from "./SubscriptionItem.js";
 import getFeaturedAd from "./FeaturedAd.js";
 import getProductView from "./ProductView.js";
 import getActivationJob from "./ActivationJob.js";
@@ -47,6 +48,7 @@ export default function initModels(sequelize) {
   const OTPSession = getOTPSession(sequelize, DataTypes);
   const Blog = getBlog(sequelize, DataTypes);
   const Subscription = getSubscription(sequelize, DataTypes);
+  const SubscriptionItem = getSubscriptionItem(sequelize, DataTypes);
   const FeaturedAd = getFeaturedAd(sequelize, DataTypes);
   const ProductView = getProductView(sequelize, DataTypes);
   const ActivationJob = getActivationJob(sequelize, DataTypes);
@@ -126,6 +128,15 @@ export default function initModels(sequelize) {
   Product.hasMany(Subscription, { foreignKey: 'productId' });
   Subscription.belongsTo(Product, { foreignKey: 'productId' });
 
+  Subscription.hasMany(SubscriptionItem, { foreignKey: "subscriptionId", as: "items" });
+  SubscriptionItem.belongsTo(Subscription, { foreignKey: "subscriptionId" });
+
+  Product.hasMany(SubscriptionItem, { foreignKey: "productId" });
+  SubscriptionItem.belongsTo(Product, { foreignKey: "productId" });
+
+  Order.hasMany(Subscription, { foreignKey: "orderId" });
+  Subscription.belongsTo(Order, { foreignKey: "orderId" });
+
   // Blog associations
   Blog.belongsTo(Admin, { foreignKey: 'authorId', as: 'author' });
   Admin.hasMany(Blog, { foreignKey: 'authorId', as: 'blogs' });
@@ -162,15 +173,11 @@ export default function initModels(sequelize) {
     AdClick,
     OTPSession,
     Blog,
-    Subscription
-    ,
+    Subscription,
+    SubscriptionItem,
     ProductView,
     ActivationJob,
     ItemActivationAudit,
     FeaturedAd
-    ,
-    ProductView,
-    ActivationJob,
-    ItemActivationAudit
   };
 }

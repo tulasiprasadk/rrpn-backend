@@ -8,7 +8,7 @@ import { models } from "../config/database.js";
 import { calculateOrderTotal } from "../utils/commissionCalculator.js";
 import { ensureWritableDir } from "../utils/uploadPaths.js";
 import { buildPlanForBasePrice } from "../utils/subscriptionPlans.js";
-const { Order, Product, Supplier, Address, Notification } = models;
+const { Order, Product, Supplier, Address, Notification, Subscription, SubscriptionItem } = models;
 const router = express.Router();
 
 const SUBSCRIPTION_DISCOUNTS = {
@@ -68,6 +68,7 @@ router.post("/create", requireLogin, async (req, res) => {
     const {
       productId,
       qty,
+      subscriptionDraftId,
       addressId,
       customerName,
       customerPhone,
@@ -133,9 +134,25 @@ router.post("/create", requireLogin, async (req, res) => {
       }
     }
 
+    let subscriptionDraft = null;
+    if (subscriptionDraftId) {
+      subscriptionDraft = await Subscription.findOne({
+        where: {
+          id: Number(subscriptionDraftId),
+          customerId: req.session.customerId
+        },
+        include: [{ model: SubscriptionItem, as: "items" }]
+      });
+      if (!subscriptionDraft) {
+        return res.status(400).json({ error: "Subscription draft not found" });
+      }
+    }
+
     // Calculate final customer total with platform fee/margin
     const quantity = Number(qty || 1);
-    const baseAmount = Number(product.price || 0) * quantity;
+    const baseAmount = subscriptionDraft
+      ? Number(subscriptionDraft.price || subscriptionDraft.pricingDetails?.totalPayable || 0)
+      : Number(product.price || 0) * quantity;
     const pricing = await calculateOrderTotal(baseAmount, {
       discount: Number(discount || 0)
     });
@@ -158,6 +175,13 @@ router.post("/create", requireLogin, async (req, res) => {
       paymentUNR,
       paymentScreenshot,
       paymentStatus: "pending",
+      paymentInfo: subscriptionDraft
+        ? {
+            subscriptionDraftId: subscriptionDraft.id,
+            subscriptionCategory: subscriptionDraft.category,
+            subscriptionSummary: subscriptionDraft.pricingDetails || null
+          }
+        : null,
 
       discountAmount: pricing.discount,
       promoCode: promoCode,
@@ -577,6 +601,27 @@ router.post("/submit-payment", upload.single("paymentScreenshot"), async (req, r
     const requestedSubscriptionPeriod = req.body.subscriptionPeriod
       ? String(req.body.subscriptionPeriod).toLowerCase()
       : "";
+    const requestedSubscriptionDraftId = Number(req.body.subscriptionDraftId || paymentInfo?.subscriptionDraftId || 0);
+    if (requestedSubscriptionDraftId && order.CustomerId) {
+      const draft = await Subscription.findOne({
+        where: { id: requestedSubscriptionDraftId, customerId: order.CustomerId }
+      });
+      if (!draft) {
+        return res.status(400).json({ msg: "Subscription draft not found" });
+      }
+      paymentInfo.subscriptionDraftId = draft.id;
+      paymentInfo.subscriptionSelection = {
+        id: draft.id,
+        category: draft.category,
+        duration: draft.duration || draft.period,
+        frequency: draft.frequency,
+        planType: draft.planType,
+        label: draft.pricingDetails?.durationLabel || draft.duration || draft.period,
+        discountedPrice: Number(draft.price || 0),
+        savings: Number(draft.savings || 0),
+        itemCount: draft.pricingDetails?.itemCount || 0
+      };
+    }
     if (requestedSubscriptionPeriod && order.productId) {
       const basePrice = Number(req.body.subscriptionBasePrice || paymentInfo?.subscriptionSelection?.basePrice || 0);
       const plan = buildPlanForBasePrice(basePrice, requestedSubscriptionPeriod);
@@ -628,7 +673,8 @@ router.post("/submit-payment", upload.single("paymentScreenshot"), async (req, r
           orderId: order.id,
           route: `/admin/orders/${order.id}`,
           action: "approve_payment",
-          subscriptionPeriod: paymentInfo.subscriptionSelection?.period || null
+          subscriptionPeriod: paymentInfo.subscriptionSelection?.period || paymentInfo.subscriptionSelection?.duration || null,
+          subscriptionDraftId: paymentInfo.subscriptionDraftId || null
         })
       });
     } catch (notifErr) {
