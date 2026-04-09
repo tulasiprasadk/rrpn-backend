@@ -24,7 +24,13 @@ export const GROCERY_PLAN_TEMPLATES = [
       { key: "atta", title: "Atta", quantity: 3, unit: "kg" },
       { key: "oil", title: "Oil", quantity: 1, unit: "ltr" },
       { key: "pulses", title: "Pulses", quantity: 2, unit: "kg" },
-      { key: "essentials", title: "Home Essentials", quantity: 1, unit: "pack" }
+      { key: "sugar", title: "Sugar", quantity: 2, unit: "kg" },
+      { key: "salt", title: "Salt", quantity: 1, unit: "kg" },
+      { key: "turmeric", title: "Turmeric Powder", quantity: 1, unit: "pack" },
+      { key: "chilli", title: "Chilly Powder", quantity: 1, unit: "pack" },
+      { key: "tea", title: "Tea Powder", quantity: 1, unit: "pack" },
+      { key: "soap", title: "Bath Soap", quantity: 3, unit: "pcs" },
+      { key: "detergent", title: "Detergent Powder", quantity: 1, unit: "kg" }
     ]
   },
   {
@@ -36,7 +42,18 @@ export const GROCERY_PLAN_TEMPLATES = [
       { key: "atta", title: "Atta", quantity: 5, unit: "kg" },
       { key: "oil", title: "Oil", quantity: 2, unit: "ltr" },
       { key: "pulses", title: "Pulses", quantity: 3, unit: "kg" },
-      { key: "essentials", title: "Home Essentials", quantity: 2, unit: "pack" }
+      { key: "sugar", title: "Sugar", quantity: 3, unit: "kg" },
+      { key: "salt", title: "Salt", quantity: 2, unit: "kg" },
+      { key: "turmeric", title: "Turmeric Powder", quantity: 2, unit: "pack" },
+      { key: "chilli", title: "Chilly Powder", quantity: 2, unit: "pack" },
+      { key: "coriander", title: "Coriander Powder", quantity: 1, unit: "pack" },
+      { key: "tea", title: "Tea Powder", quantity: 1, unit: "pack" },
+      { key: "coffee", title: "Coffee Powder", quantity: 1, unit: "pack" },
+      { key: "onion", title: "Onion", quantity: 2, unit: "kg" },
+      { key: "potato", title: "Potato", quantity: 2, unit: "kg" },
+      { key: "soap", title: "Bath Soap", quantity: 4, unit: "pcs" },
+      { key: "toothpaste", title: "Tooth Paste", quantity: 2, unit: "pcs" },
+      { key: "detergent", title: "Detergent Powder", quantity: 2, unit: "kg" }
     ]
   },
   {
@@ -48,7 +65,20 @@ export const GROCERY_PLAN_TEMPLATES = [
       { key: "atta", title: "Atta", quantity: 7, unit: "kg" },
       { key: "oil", title: "Oil", quantity: 3, unit: "ltr" },
       { key: "pulses", title: "Pulses", quantity: 4, unit: "kg" },
-      { key: "essentials", title: "Home Essentials", quantity: 3, unit: "pack" }
+      { key: "sugar", title: "Sugar", quantity: 4, unit: "kg" },
+      { key: "salt", title: "Salt", quantity: 2, unit: "kg" },
+      { key: "turmeric", title: "Turmeric Powder", quantity: 2, unit: "pack" },
+      { key: "chilli", title: "Chilly Powder", quantity: 2, unit: "pack" },
+      { key: "coriander", title: "Coriander Powder", quantity: 2, unit: "pack" },
+      { key: "tea", title: "Tea Powder", quantity: 2, unit: "pack" },
+      { key: "coffee", title: "Coffee Powder", quantity: 1, unit: "pack" },
+      { key: "onion", title: "Onion", quantity: 3, unit: "kg" },
+      { key: "potato", title: "Potato", quantity: 3, unit: "kg" },
+      { key: "garlic", title: "Garlic", quantity: 1, unit: "kg" },
+      { key: "soap", title: "Bath Soap", quantity: 6, unit: "pcs" },
+      { key: "toothpaste", title: "Tooth Paste", quantity: 2, unit: "pcs" },
+      { key: "washing", title: "Washing Soap", quantity: 4, unit: "pcs" },
+      { key: "detergent", title: "Detergent Powder", quantity: 2, unit: "kg" }
     ]
   },
   {
@@ -60,7 +90,21 @@ export const GROCERY_PLAN_TEMPLATES = [
       { key: "atta", title: "Atta", quantity: 10, unit: "kg" },
       { key: "oil", title: "Oil", quantity: 4, unit: "ltr" },
       { key: "pulses", title: "Pulses", quantity: 6, unit: "kg" },
-      { key: "essentials", title: "Home Essentials", quantity: 4, unit: "pack" }
+      { key: "sugar", title: "Sugar", quantity: 5, unit: "kg" },
+      { key: "salt", title: "Salt", quantity: 3, unit: "kg" },
+      { key: "turmeric", title: "Turmeric Powder", quantity: 3, unit: "pack" },
+      { key: "chilli", title: "Chilly Powder", quantity: 3, unit: "pack" },
+      { key: "coriander", title: "Coriander Powder", quantity: 2, unit: "pack" },
+      { key: "tea", title: "Tea Powder", quantity: 2, unit: "pack" },
+      { key: "coffee", title: "Coffee Powder", quantity: 2, unit: "pack" },
+      { key: "onion", title: "Onion", quantity: 4, unit: "kg" },
+      { key: "potato", title: "Potato", quantity: 4, unit: "kg" },
+      { key: "garlic", title: "Garlic", quantity: 2, unit: "kg" },
+      { key: "soap", title: "Bath Soap", quantity: 8, unit: "pcs" },
+      { key: "toothpaste", title: "Tooth Paste", quantity: 3, unit: "pcs" },
+      { key: "washing", title: "Washing Soap", quantity: 6, unit: "pcs" },
+      { key: "detergent", title: "Detergent Powder", quantity: 3, unit: "kg" },
+      { key: "toilet-cleaner", title: "Toilet Cleaner", quantity: 2, unit: "btl" }
     ]
   }
 ];
