@@ -156,12 +156,19 @@ router.get('/', async (req, res) => {
     );
 
     const hasAnyAds = featuredRows.length > 0 || legacyRows.length > 0 || cmsRows.some((items) => items.length > 0);
+    console.log('[admin ads] initial counts', {
+      featured: featuredRows.length,
+      legacy: legacyRows.length,
+      cms: cmsRows.map((items, index) => ({ key: CMS_AD_KEYS[index], count: items.length }))
+    });
 
     if (!hasAnyAds) {
+      console.log('[admin ads] seeding default CMS ads');
       for (const key of CMS_AD_KEYS) {
         const defaults = getDefaultCmsAds(key);
         if (defaults.length > 0) {
           await writeCmsAds(key, defaults);
+          console.log('[admin ads] seeded defaults', { key, count: defaults.length });
         }
       }
 
@@ -171,6 +178,7 @@ router.get('/', async (req, res) => {
           return items.map((item, index) => normalizeCmsAd(item, key, index));
         })
       );
+      console.log('[admin ads] post-seed counts', cmsRows.map((items, index) => ({ key: CMS_AD_KEYS[index], count: items.length })));
     }
 
     res.json(sortAds([
