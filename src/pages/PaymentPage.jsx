@@ -853,6 +853,25 @@ export default function PaymentPage() {
                 <div style={{ fontWeight: 800, color: "#5A3A00", marginBottom: 8 }}>
                   Select plan duration
                 </div>
+                <select
+                  value={selectedSubscriptionPeriod}
+                  onChange={(event) => setSelectedSubscriptionPeriod(event.target.value)}
+                  style={{
+                    width: "100%",
+                    padding: "12px 14px",
+                    borderRadius: 12,
+                    border: "1px solid rgba(210, 140, 0, 0.2)",
+                    fontWeight: 700,
+                    marginBottom: 8
+                  }}
+                >
+                  <option value="">No subscription</option>
+                  {visibleSubscriptionPlans.map((plan) => (
+                    <option key={plan.period} value={plan.period}>
+                      {plan.label} | Rs {plan.discountedPrice.toFixed(2)}
+                    </option>
+                  ))}
+                </select>
                 {!isRationMode && (
                   <>
                     <div style={{ fontWeight: 800, color: "#5A3A00", marginBottom: 8 }}>
@@ -881,24 +900,6 @@ export default function PaymentPage() {
                     </div>
                   </>
                 )}
-                <select
-                  value={selectedSubscriptionPeriod}
-                  onChange={(event) => setSelectedSubscriptionPeriod(event.target.value)}
-                  style={{
-                    width: "100%",
-                    padding: "12px 14px",
-                    borderRadius: 12,
-                    border: "1px solid rgba(210, 140, 0, 0.2)",
-                    fontWeight: 700
-                  }}
-                >
-                  <option value="">No subscription</option>
-                  {visibleSubscriptionPlans.map((plan) => (
-                    <option key={plan.period} value={plan.period}>
-                      {plan.label} | Rs {plan.discountedPrice.toFixed(2)}
-                    </option>
-                  ))}
-                </select>
                 {selectedSubscriptionPeriod && (
                   <div style={{ marginTop: 8, fontSize: 13, color: "#8b5e00" }}>
                     {visibleSubscriptionPlans.find((plan) => plan.period === selectedSubscriptionPeriod)?.badge || "Value plan"} | Recurring delivery stays handled after approval.

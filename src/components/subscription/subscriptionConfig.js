@@ -24,7 +24,13 @@ export const GROCERY_PLANS = [
       { key: "atta", title: "Atta", quantity: 3, unit: "kg", unitPrice: 52 },
       { key: "oil", title: "Oil", quantity: 1, unit: "ltr", unitPrice: 160 },
       { key: "pulses", title: "Pulses", quantity: 2, unit: "kg", unitPrice: 110 },
-      { key: "essentials", title: "Home Essentials", quantity: 1, unit: "pack", unitPrice: 120 }
+      { key: "sugar", title: "Sugar", quantity: 2, unit: "kg", unitPrice: 48 },
+      { key: "salt", title: "Salt", quantity: 1, unit: "kg", unitPrice: 24 },
+      { key: "turmeric", title: "Turmeric Powder", quantity: 1, unit: "pack", unitPrice: 35 },
+      { key: "chilli", title: "Chilly Powder", quantity: 1, unit: "pack", unitPrice: 55 },
+      { key: "tea", title: "Tea Powder", quantity: 1, unit: "pack", unitPrice: 70 },
+      { key: "soap", title: "Bath Soap", quantity: 3, unit: "pcs", unitPrice: 38 },
+      { key: "detergent", title: "Detergent Powder", quantity: 1, unit: "kg", unitPrice: 90 }
     ]
   },
   {
@@ -36,7 +42,18 @@ export const GROCERY_PLANS = [
       { key: "atta", title: "Atta", quantity: 5, unit: "kg", unitPrice: 52 },
       { key: "oil", title: "Oil", quantity: 2, unit: "ltr", unitPrice: 160 },
       { key: "pulses", title: "Pulses", quantity: 3, unit: "kg", unitPrice: 110 },
-      { key: "essentials", title: "Home Essentials", quantity: 2, unit: "pack", unitPrice: 120 }
+      { key: "sugar", title: "Sugar", quantity: 3, unit: "kg", unitPrice: 48 },
+      { key: "salt", title: "Salt", quantity: 2, unit: "kg", unitPrice: 24 },
+      { key: "turmeric", title: "Turmeric Powder", quantity: 2, unit: "pack", unitPrice: 35 },
+      { key: "chilli", title: "Chilly Powder", quantity: 2, unit: "pack", unitPrice: 55 },
+      { key: "coriander", title: "Coriander Powder", quantity: 1, unit: "pack", unitPrice: 45 },
+      { key: "tea", title: "Tea Powder", quantity: 1, unit: "pack", unitPrice: 70 },
+      { key: "coffee", title: "Coffee Powder", quantity: 1, unit: "pack", unitPrice: 120 },
+      { key: "onion", title: "Onion", quantity: 2, unit: "kg", unitPrice: 32 },
+      { key: "potato", title: "Potato", quantity: 2, unit: "kg", unitPrice: 28 },
+      { key: "soap", title: "Bath Soap", quantity: 4, unit: "pcs", unitPrice: 38 },
+      { key: "toothpaste", title: "Tooth Paste", quantity: 2, unit: "pcs", unitPrice: 55 },
+      { key: "detergent", title: "Detergent Powder", quantity: 2, unit: "kg", unitPrice: 90 }
     ]
   },
   {
@@ -48,7 +65,20 @@ export const GROCERY_PLANS = [
       { key: "atta", title: "Atta", quantity: 7, unit: "kg", unitPrice: 52 },
       { key: "oil", title: "Oil", quantity: 3, unit: "ltr", unitPrice: 160 },
       { key: "pulses", title: "Pulses", quantity: 4, unit: "kg", unitPrice: 110 },
-      { key: "essentials", title: "Home Essentials", quantity: 3, unit: "pack", unitPrice: 120 }
+      { key: "sugar", title: "Sugar", quantity: 4, unit: "kg", unitPrice: 48 },
+      { key: "salt", title: "Salt", quantity: 2, unit: "kg", unitPrice: 24 },
+      { key: "turmeric", title: "Turmeric Powder", quantity: 2, unit: "pack", unitPrice: 35 },
+      { key: "chilli", title: "Chilly Powder", quantity: 2, unit: "pack", unitPrice: 55 },
+      { key: "coriander", title: "Coriander Powder", quantity: 2, unit: "pack", unitPrice: 45 },
+      { key: "tea", title: "Tea Powder", quantity: 2, unit: "pack", unitPrice: 70 },
+      { key: "coffee", title: "Coffee Powder", quantity: 1, unit: "pack", unitPrice: 120 },
+      { key: "onion", title: "Onion", quantity: 3, unit: "kg", unitPrice: 32 },
+      { key: "potato", title: "Potato", quantity: 3, unit: "kg", unitPrice: 28 },
+      { key: "garlic", title: "Garlic", quantity: 1, unit: "kg", unitPrice: 110 },
+      { key: "soap", title: "Bath Soap", quantity: 6, unit: "pcs", unitPrice: 38 },
+      { key: "toothpaste", title: "Tooth Paste", quantity: 2, unit: "pcs", unitPrice: 55 },
+      { key: "washing", title: "Washing Soap", quantity: 4, unit: "pcs", unitPrice: 22 },
+      { key: "detergent", title: "Detergent Powder", quantity: 2, unit: "kg", unitPrice: 90 }
     ]
   },
   {
@@ -60,7 +90,21 @@ export const GROCERY_PLANS = [
       { key: "atta", title: "Atta", quantity: 10, unit: "kg", unitPrice: 52 },
       { key: "oil", title: "Oil", quantity: 4, unit: "ltr", unitPrice: 160 },
       { key: "pulses", title: "Pulses", quantity: 6, unit: "kg", unitPrice: 110 },
-      { key: "essentials", title: "Home Essentials", quantity: 4, unit: "pack", unitPrice: 120 }
+      { key: "sugar", title: "Sugar", quantity: 5, unit: "kg", unitPrice: 48 },
+      { key: "salt", title: "Salt", quantity: 3, unit: "kg", unitPrice: 24 },
+      { key: "turmeric", title: "Turmeric Powder", quantity: 3, unit: "pack", unitPrice: 35 },
+      { key: "chilli", title: "Chilly Powder", quantity: 3, unit: "pack", unitPrice: 55 },
+      { key: "coriander", title: "Coriander Powder", quantity: 2, unit: "pack", unitPrice: 45 },
+      { key: "tea", title: "Tea Powder", quantity: 2, unit: "pack", unitPrice: 70 },
+      { key: "coffee", title: "Coffee Powder", quantity: 2, unit: "pack", unitPrice: 120 },
+      { key: "onion", title: "Onion", quantity: 4, unit: "kg", unitPrice: 32 },
+      { key: "potato", title: "Potato", quantity: 4, unit: "kg", unitPrice: 28 },
+      { key: "garlic", title: "Garlic", quantity: 2, unit: "kg", unitPrice: 110 },
+      { key: "soap", title: "Bath Soap", quantity: 8, unit: "pcs", unitPrice: 38 },
+      { key: "toothpaste", title: "Tooth Paste", quantity: 3, unit: "pcs", unitPrice: 55 },
+      { key: "washing", title: "Washing Soap", quantity: 6, unit: "pcs", unitPrice: 22 },
+      { key: "detergent", title: "Detergent Powder", quantity: 3, unit: "kg", unitPrice: 90 },
+      { key: "toilet-cleaner", title: "Toilet Cleaner", quantity: 2, unit: "btl", unitPrice: 95 }
     ]
   }
 ];
