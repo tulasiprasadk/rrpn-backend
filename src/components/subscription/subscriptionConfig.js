@@ -6,9 +6,12 @@ export const SUBSCRIPTION_DURATIONS = [
 ];
 
 export const SUBSCRIPTION_FREQUENCIES = [
-  { value: "twice_weekly", label: "2 times/week", multiplier: 2 / 7 },
-  { value: "thrice_weekly", label: "3 times/week", multiplier: 3 / 7 },
-  { value: "daily", label: "Daily", multiplier: 1 }
+  { value: "monthly_4", label: "4 times/month", occurrencesPerMonth: 4 },
+  { value: "monthly_15", label: "15 times/month", occurrencesPerMonth: 15 },
+  { value: "monthly_30", label: "30 times/month", occurrencesPerMonth: 30 },
+  { value: "twice_weekly", label: "2 times/week", occurrencesPerMonth: 8, multiplier: 2 / 7 },
+  { value: "thrice_weekly", label: "3 times/week", occurrencesPerMonth: 12, multiplier: 3 / 7 },
+  { value: "daily", label: "Daily", occurrencesPerMonth: 30, multiplier: 1 }
 ];
 
 export const GROCERY_PLANS = [
@@ -111,7 +114,12 @@ export function calculateSubscriptionPreview({ category, duration, frequency, pl
 
   const baseSubtotal = normalizedItems.reduce((sum, item) => sum + item.lineTotal, 0);
 
-  const cycleMultiplier = needsFrequency(normalizedCategory) ? (frequencyConfig?.multiplier || 1) * 7 : 1;
+  let cycleMultiplier = 1;
+  if (frequencyConfig?.occurrencesPerMonth) {
+    cycleMultiplier = frequencyConfig.occurrencesPerMonth;
+  } else if (needsFrequency(normalizedCategory) && frequencyConfig) {
+    cycleMultiplier = (frequencyConfig.multiplier || 1) * 7;
+  }
   const cycleSubtotal = Number((baseSubtotal * cycleMultiplier).toFixed(2));
   const durationBasePrice = Number((cycleSubtotal * durationConfig.months).toFixed(2));
   const discountedPrice = Number((durationBasePrice * (1 - durationConfig.discountPercent / 100)).toFixed(2));

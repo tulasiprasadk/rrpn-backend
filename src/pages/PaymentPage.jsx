@@ -5,6 +5,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { savePendingSubscriptionCandidate } from "../components/SubscriptionPrompt";
 import {
   calculateSubscriptionPreview,
+  getFrequencyConfig,
   GROCERY_PLANS,
   normalizeSubscriptionCategory
 } from "../components/subscription/subscriptionConfig";
@@ -14,6 +15,12 @@ const SUBSCRIPTION_MODES = {
   repeat_item: "repeat_item",
   ration: "ration"
 };
+
+const REPEAT_FREQUENCY_OPTIONS = [
+  { value: "monthly_4", label: "4 times/month", hint: "Weekly repeat delivery" },
+  { value: "monthly_15", label: "15 times/month", hint: "Frequent repeat delivery" },
+  { value: "monthly_30", label: "30 times/month", hint: "Daily repeat delivery" }
+];
 
 function clearPendingSubscriptionDraft() {
   localStorage.removeItem("pendingSubscriptionDraft");
@@ -26,12 +33,13 @@ const PAYMENT_SUBSCRIPTION_PLANS = [
   { period: "yearly", label: "Yearly", discountPercent: 12, months: 12, badge: "Best Value" }
 ];
 
-function buildPaymentPlans(basePrice) {
+function buildPaymentPlans(basePrice, frequencyValue = "monthly_4") {
   const normalizedPrice = Number(basePrice || 0);
   if (normalizedPrice <= 0) return [];
+  const occurrencesPerMonth = Number(getFrequencyConfig(frequencyValue)?.occurrencesPerMonth || 1);
 
   return PAYMENT_SUBSCRIPTION_PLANS.map((plan) => {
-    const baseCyclePrice = normalizedPrice * plan.months;
+    const baseCyclePrice = normalizedPrice * occurrencesPerMonth * plan.months;
     const discountedPrice = Number((baseCyclePrice * (1 - plan.discountPercent / 100)).toFixed(2));
     return {
       ...plan,
@@ -69,6 +77,7 @@ export default function PaymentPage() {
   const [upsellRecommendations, setUpsellRecommendations] = useState([]);
   const [selectedUpsellIds, setSelectedUpsellIds] = useState([]);
   const [grocerySubscriptionMode, setGrocerySubscriptionMode] = useState(SUBSCRIPTION_MODES.repeat_item);
+  const [selectedRepeatFrequency, setSelectedRepeatFrequency] = useState("monthly_4");
   const [selectedGroceryPlan, setSelectedGroceryPlan] = useState(GROCERY_PLANS[0].value);
 
   const subscriptionCandidates = useMemo(() => {
@@ -137,8 +146,8 @@ export default function PaymentPage() {
   }, [activeSubscriptionCandidate?.basePrice, selectedUpsells]);
 
   const subscriptionPlans = useMemo(
-    () => buildPaymentPlans(effectiveSubscriptionBasePrice),
-    [effectiveSubscriptionBasePrice]
+    () => buildPaymentPlans(effectiveSubscriptionBasePrice, selectedRepeatFrequency),
+    [effectiveSubscriptionBasePrice, selectedRepeatFrequency]
   );
 
   const groceryPlanTemplate = useMemo(
@@ -257,7 +266,7 @@ export default function PaymentPage() {
       return {
         mode: "repeat",
         amount: Number(selectedSubscriptionPlan.discountedPrice || 0),
-        label: `${selectedSubscriptionPlan.label}${selectedUpsells.length ? ` | ${selectedUpsells.length} add-on${selectedUpsells.length === 1 ? "" : "s"}` : ""}`,
+        label: `${selectedSubscriptionPlan.label} | ${getFrequencyConfig(selectedRepeatFrequency)?.label || "4 times/month"}${selectedUpsells.length ? ` | ${selectedUpsells.length} add-on${selectedUpsells.length === 1 ? "" : "s"}` : ""}`,
         items: [
           {
             title: activeSubscriptionCandidate?.title || "Product",
@@ -279,6 +288,7 @@ export default function PaymentPage() {
     activeSubscriptionCandidate?.quantity,
     activeSubscriptionCandidate?.title,
     grocerySubscriptionPreview,
+    selectedRepeatFrequency,
     selectedSubscriptionPeriod,
     selectedSubscriptionPlan,
     selectedUpsells,
@@ -322,6 +332,7 @@ export default function PaymentPage() {
     setSelectedUpsellIds([]);
     setUpsellExpanded(false);
     setGrocerySubscriptionMode(SUBSCRIPTION_MODES.repeat_item);
+    setSelectedRepeatFrequency("monthly_4");
   }, [activeSubscriptionCandidate?.productId]);
 
   useEffect(() => {
@@ -414,6 +425,7 @@ export default function PaymentPage() {
               category: activeCategory || "general",
               primaryProductId: activeSubscriptionCandidate.productId,
               duration: selectedSubscriptionPeriod,
+              frequency: selectedRepeatFrequency,
               source: "payment_upsell",
               upsellAccepted: selectedUpsells.length > 0,
               recommendationIds: selectedUpsellIds,
@@ -838,6 +850,34 @@ export default function PaymentPage() {
                 <div style={{ fontWeight: 800, color: "#5A3A00", marginBottom: 8 }}>
                   Select plan duration
                 </div>
+                {!isRationMode && (
+                  <>
+                    <div style={{ fontWeight: 800, color: "#5A3A00", marginBottom: 8 }}>
+                      Select monthly delivery count
+                    </div>
+                    <select
+                      value={selectedRepeatFrequency}
+                      onChange={(event) => setSelectedRepeatFrequency(event.target.value)}
+                      style={{
+                        width: "100%",
+                        padding: "12px 14px",
+                        borderRadius: 12,
+                        border: "1px solid rgba(210, 140, 0, 0.2)",
+                        fontWeight: 700,
+                        marginBottom: 8
+                      }}
+                    >
+                      {REPEAT_FREQUENCY_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                    <div style={{ marginBottom: 8, fontSize: 13, color: "#8b5e00" }}>
+                      {REPEAT_FREQUENCY_OPTIONS.find((option) => option.value === selectedRepeatFrequency)?.hint || "Recurring delivery"}
+                    </div>
+                  </>
+                )}
                 <select
                   value={selectedSubscriptionPeriod}
                   onChange={(event) => setSelectedSubscriptionPeriod(event.target.value)}
@@ -1097,6 +1137,7 @@ export default function PaymentPage() {
           {selectedSubscriptionPeriod && (
             <div style={{ marginTop: 12, color: "#9a3412", fontWeight: 700 }}>
               Included subscription amount: Rs {Number(effectiveSubscriptionSelection.amount || 0).toFixed(2)}
+              {!isRationMode ? ` | ${getFrequencyConfig(selectedRepeatFrequency)?.label || "4 times/month"}` : ""}
             </div>
           )}
         </div>
