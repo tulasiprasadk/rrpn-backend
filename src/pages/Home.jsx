@@ -27,12 +27,6 @@ import hero4_400 from "../assets/hero-4-400.jpg";
 import hero4_800 from "../assets/hero-4-800.jpg";
 import hero4 from "../assets/hero-4.jpg";
 
-/* ================= ADS ================= */
-import ad1 from "../assets/ads/ad1.jpg";
-import ad2 from "../assets/ads/ad2.jpg";
-import ad3 from "../assets/ads/ad3.jpg";
-import ad4 from "../assets/ads/ad4.jpg";
-
 /* ================= FALLBACK CATEGORIES (desired order) ================= */
 // Known emoji mapping (use these instead of DB icons when possible)
 const emojiMap = {
@@ -55,6 +49,21 @@ const defaultCategories = [
 
 export default function Home() {
   const navigate = useNavigate();
+  const fallbackScrollingAds = [
+    { image: "/images/ads/ichase.png", title: "iChase Fitness", link: "https://vchase.in" },
+    { image: "/images/ads/vchase.png", title: "VChase Marketing", link: "https://vchase.in" },
+    { image: "/images/ads/rrnagar.png", title: "RR Nagar", link: "https://rrnagar.com" },
+    { image: "/images/ads/reneevet.png", title: "Renee Vet", link: "https://thevetbuddy.com" },
+  ];
+  const fallbackMegaLeft = [
+    { image: "/images/ads/ichase.png", title: "iChase Fitness", link: "https://vchase.in" },
+    { image: "/images/ads/rrnagar.png", title: "RR Nagar", link: "https://rrnagar.com" },
+  ];
+  const fallbackMegaRight = [
+    { image: "/images/ads/vchase.png", title: "VChase Marketing", link: "https://vchase.in" },
+    { image: "/images/ads/reneevet.png", title: "Renee Vet", link: "https://thevetbuddy.com" },
+    { image: "/images/ads/gephyr.png", title: "Gephyr", link: "https://rrnagar.com" },
+  ];
 
   /* ================= HERO SLIDER ================= */
   const heroImages = [
@@ -190,31 +199,46 @@ export default function Home() {
   }
 
   /* ================= ADS ================= */
-  const ads = [
-    { image: ad1, title: "iChase Fitness", link: "https://vchase.in" },
-    { image: ad2, title: "Marketing", link: "https://vchase.in" },
-    { image: ad3, title: "Crackers", link: "https://rrnagar.com" },
-    { image: ad4, title: "Pet Services", link: "https://thevetbuddy.com" },
-  ];
-  const adsLoop = [...ads, ...ads];
-  const megaGridAds = [
-    { image: ad3, link: ads[2].link, alt: ads[2].title },
-    { image: ad1, link: ads[0].link, alt: ads[0].title },
-    { image: "/motard.svg", link: "https://motardgears.com", alt: "Motard" },
-    { image: ad4, link: ads[3].link, alt: ads[3].title },
-    { image: ad2, link: ads[1].link, alt: ads[1].title },
-  ];
+  const [scrollingAds, setScrollingAds] = useState(fallbackScrollingAds);
+  const [megaLeftAds, setMegaLeftAds] = useState(fallbackMegaLeft);
+  const [megaRightAds, setMegaRightAds] = useState(fallbackMegaRight);
 
-  // Consolidate mega ads into a single source and dedupe to keep desktop and mobile consistent
-  const initialMegaAds = [
-    { image: ad3, link: ads[2].link, alt: ads[2].title },
-    { image: ad1, link: ads[0].link, alt: ads[0].title },
-    { image: '/motard.svg', link: 'https://motardgears.com', alt: 'Motard' },
-    { image: ad4, link: ads[3].link, alt: ads[3].title },
-    { image: ad2, link: ads[1].link, alt: ads[1].title },
-  ];
+  useEffect(() => {
+    async function loadAds() {
+      try {
+        const [scrollRes, leftRes, rightRes] = await Promise.all([
+          api.get("/cms/scrolling-ads"),
+          api.get("/cms/mega-ads/left"),
+          api.get("/cms/mega-ads/right")
+        ]);
 
-  const megaAds = Array.from(new Map(initialMegaAds.map(a => [a.alt || a.image, a])).values());
+        const normalizeAd = (item) => ({
+          image: item.image || item.imageUrl || item.image_url || item.src || "",
+          title: item.title || item.name || item.text || "Advertisement",
+          link: item.link || item.targetUrl || item.href || ""
+        });
+
+        const nextScroll = Array.isArray(scrollRes.data) ? scrollRes.data.map(normalizeAd).filter((item) => item.image) : [];
+        const nextLeft = Array.isArray(leftRes.data) ? leftRes.data.map(normalizeAd).filter((item) => item.image) : [];
+        const nextRight = Array.isArray(rightRes.data) ? rightRes.data.map(normalizeAd).filter((item) => item.image) : [];
+
+        if (nextScroll.length) setScrollingAds(nextScroll);
+        if (nextLeft.length) setMegaLeftAds(nextLeft);
+        if (nextRight.length) setMegaRightAds(nextRight);
+      } catch (err) {
+        console.error("Error loading homepage ads:", err);
+      }
+    }
+
+    loadAds();
+  }, []);
+
+  const adsLoop = [...scrollingAds, ...scrollingAds];
+  const megaAds = [...megaLeftAds, ...megaRightAds].map((item) => ({
+    image: item.image,
+    link: item.link,
+    alt: item.title
+  }));
 
   // Track whether we are rendering desktop layout (columns) or mobile layout (grid)
   const [isDesktopLayout, setIsDesktopLayout] = useState(() => {
@@ -284,7 +308,7 @@ export default function Home() {
     <main className="home" style={{ display: "flex", width: "100vw", margin: 0, padding: 0, alignItems: "flex-start" }}>
       {isDesktopLayout && (
         <div className="mega-column mega-column-left" style={{ display: 'flex', flexDirection: 'column', gap: 40, alignItems: 'stretch', alignSelf: 'flex-start' }}>
-          {megaAds.slice(0,3).map((item, i) => (
+          {megaLeftAds.map((item, i) => (
             <MegaAd key={`left-${i}`} image={item.image} link={item.link} position="left" />
           ))}
         </div>
@@ -508,7 +532,7 @@ export default function Home() {
       {isDesktopLayout && (
         <div className="mega-column mega-column-right" style={{ display: 'flex', flexDirection: 'column', gap: 24, alignItems: 'stretch', alignSelf: 'flex-start' }}>
           <CartPanel />
-          {megaAds.slice(3).map((item, i) => (
+          {megaRightAds.map((item, i) => (
             <MegaAd key={`right-${i}`} image={item.image} link={item.link} position="right" />
           ))}
         </div>
