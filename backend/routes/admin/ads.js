@@ -148,12 +148,30 @@ router.get('/', async (req, res) => {
       : [];
     const legacyRows = Ad ? await Ad.findAll({ order: [['id', 'DESC']] }) : [];
 
-    const cmsRows = await Promise.all(
+    let cmsRows = await Promise.all(
       CMS_AD_KEYS.map(async (key) => {
         const items = await readCmsAds(key);
         return items.map((item, index) => normalizeCmsAd(item, key, index));
       })
     );
+
+    const hasAnyAds = featuredRows.length > 0 || legacyRows.length > 0 || cmsRows.some((items) => items.length > 0);
+
+    if (!hasAnyAds) {
+      for (const key of CMS_AD_KEYS) {
+        const defaults = getDefaultCmsAds(key);
+        if (defaults.length > 0) {
+          await writeCmsAds(key, defaults);
+        }
+      }
+
+      cmsRows = await Promise.all(
+        CMS_AD_KEYS.map(async (key) => {
+          const items = await readCmsAds(key);
+          return items.map((item, index) => normalizeCmsAd(item, key, index));
+        })
+      );
+    }
 
     res.json(sortAds([
       ...featuredRows.map(normalizeFeaturedAd),
@@ -198,30 +216,6 @@ router.get('/:id', async (req, res) => {
     return res.status(404).json({ error: 'Not found' });
   } catch (err) {
     console.error('Admin: get ad', err);
-    res.status(500).json({ error: 'Failed' });
-  }
-});
-
-router.post('/seed-defaults', async (_req, res) => {
-  try {
-    const seeded = [];
-
-    for (const key of CMS_AD_KEYS) {
-      const existing = await readStoredCmsAds(key);
-      if (existing.length > 0) {
-        continue;
-      }
-
-      const defaults = getDefaultCmsAds(key);
-      if (defaults.length > 0) {
-        await writeCmsAds(key, defaults);
-        seeded.push({ key, count: defaults.length });
-      }
-    }
-
-    res.json({ ok: true, seeded });
-  } catch (err) {
-    console.error('Admin: seed default ads', err);
     res.status(500).json({ error: 'Failed' });
   }
 });
