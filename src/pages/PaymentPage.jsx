@@ -907,58 +907,6 @@ export default function PaymentPage() {
                 )}
               </div>
 
-              {selectedSubscriptionPeriod && (
-                <div
-                  style={{
-                    background: "rgba(255,255,255,0.78)",
-                    borderRadius: 14,
-                    padding: "14px 16px",
-                    border: "1px solid rgba(210, 140, 0, 0.16)"
-                  }}
-                >
-                  <div style={{ fontSize: 13, fontWeight: 800, textTransform: "uppercase", color: "#9a3412", marginBottom: 8 }}>
-                    Subscription Type
-                  </div>
-                  <div style={{ fontWeight: 800, color: "#5A3A00", marginBottom: 10 }}>
-                    Choose how you want to continue
-                  </div>
-                  <div style={{ display: "grid", gap: 10 }}>
-                    {[
-                      {
-                        value: SUBSCRIPTION_MODES.repeat_item,
-                        title: "Repeat current item",
-                        description: `Keep ${activeSubscriptionCandidate?.title || "this product"} on recurring delivery`
-                      },
-                      {
-                        value: SUBSCRIPTION_MODES.ration,
-                        title: "Monthly ration",
-                        description: "Choose one of four household ration packages"
-                      }
-                    ].map((option) => {
-                      const active = grocerySubscriptionMode === option.value;
-                      return (
-                        <button
-                          key={option.value}
-                          type="button"
-                          onClick={() => setGrocerySubscriptionMode(option.value)}
-                          style={{
-                            textAlign: "left",
-                            borderRadius: 12,
-                            border: active ? "1px solid #C8102E" : "1px solid #eee",
-                            background: active ? "#fff7d6" : "#fff",
-                            padding: "12px 14px",
-                            cursor: "pointer"
-                          }}
-                        >
-                          <div style={{ fontWeight: 800, color: "#5A3A00" }}>{option.title}</div>
-                          <div style={{ marginTop: 4, fontSize: 13, color: "#8b5e00" }}>{option.description}</div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
               {upsellRecommendations.length > 0 && selectedSubscriptionPeriod && (
                 <div
                   style={{
@@ -1034,6 +982,58 @@ export default function PaymentPage() {
                       })}
                     </div>
                   )}
+                </div>
+              )}
+
+              {selectedSubscriptionPeriod && (
+                <div
+                  style={{
+                    background: "rgba(255,255,255,0.78)",
+                    borderRadius: 14,
+                    padding: "14px 16px",
+                    border: "1px solid rgba(210, 140, 0, 0.16)"
+                  }}
+                >
+                  <div style={{ fontSize: 13, fontWeight: 800, textTransform: "uppercase", color: "#9a3412", marginBottom: 8 }}>
+                    Subscription Type
+                  </div>
+                  <div style={{ fontWeight: 800, color: "#5A3A00", marginBottom: 10 }}>
+                    Choose how you want to continue
+                  </div>
+                  <div style={{ display: "grid", gap: 10 }}>
+                    {[
+                      {
+                        value: SUBSCRIPTION_MODES.repeat_item,
+                        title: "Repeat current item",
+                        description: `Keep ${activeSubscriptionCandidate?.title || "this product"} on recurring delivery`
+                      },
+                      {
+                        value: SUBSCRIPTION_MODES.ration,
+                        title: "Monthly ration",
+                        description: "Choose one of four household ration packages"
+                      }
+                    ].map((option) => {
+                      const active = grocerySubscriptionMode === option.value;
+                      return (
+                        <button
+                          key={option.value}
+                          type="button"
+                          onClick={() => setGrocerySubscriptionMode(option.value)}
+                          style={{
+                            textAlign: "left",
+                            borderRadius: 12,
+                            border: active ? "1px solid #C8102E" : "1px solid #eee",
+                            background: active ? "#fff7d6" : "#fff",
+                            padding: "12px 14px",
+                            cursor: "pointer"
+                          }}
+                        >
+                          <div style={{ fontWeight: 800, color: "#5A3A00" }}>{option.title}</div>
+                          <div style={{ marginTop: 4, fontSize: 13, color: "#8b5e00" }}>{option.description}</div>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
 
