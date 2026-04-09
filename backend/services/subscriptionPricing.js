@@ -61,7 +61,9 @@ export function buildSubscriptionPricing(payload = {}) {
   const baseSubtotal = normalizedItems.reduce((sum, item) => sum + item.lineTotal, 0);
 
   let frequencyMultiplier = 1;
-  if (categoryRequiresFrequency(category) && frequencyConfig) {
+  if (frequencyConfig?.occurrencesPerMonth) {
+    frequencyMultiplier = roundCurrency(frequencyConfig.occurrencesPerMonth);
+  } else if (categoryRequiresFrequency(category) && frequencyConfig) {
     frequencyMultiplier = roundCurrency(frequencyConfig.multiplier * 7);
   }
 
