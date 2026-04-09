@@ -564,10 +564,12 @@ router.get("/:id", requireLogin, async (req, res) => {
 });
 router.post("/submit-payment", upload.single("paymentScreenshot"), async (req, res) => {
   try {
-    const customerId = req.session.customerId; // Can be null for guest orders
-    const orderId = req.body.orderId;
+    const customerId = req.session?.customerId || null; // Can be null for guest orders
+    const orderId = Number(req.body.orderId);
     
-    if (!orderId) return res.status(400).json({ msg: "Missing orderId" });
+    if (!Number.isInteger(orderId) || orderId <= 0) {
+      return res.status(400).json({ msg: "Invalid orderId" });
+    }
 
     // Allow either screenshot OR transaction ID (at least one required)
     if (!req.file && (!req.body.unr || req.body.unr.trim().length < 6)) {
