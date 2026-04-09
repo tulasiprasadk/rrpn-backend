@@ -7,8 +7,8 @@
     }
   ],
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "https://rrnagar-backend-github-223551238790.asia-south1.run.app/api/$1" },
-    { "source": "/api", "destination": "https://rrnagar-backend-github-223551238790.asia-south1.run.app/api" },
+    { "source": "/api/(.*)", "destination": "https://backend-pi-amber-31.vercel.app/api/$1" },
+    { "source": "/api", "destination": "https://backend-pi-amber-31.vercel.app/api" },
     { "source": "/(.*)", "destination": "/" }
   ]
 }
