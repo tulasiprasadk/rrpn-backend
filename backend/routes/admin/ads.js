@@ -3,6 +3,7 @@ import multer from 'multer';
 import { models } from '../../config/database.js';
 import { requireAdmin } from './middleware.js';
 import { ensureWritableDir } from '../../utils/uploadPaths.js';
+import { getDefaultCmsAds } from '../../utils/defaultAds.js';
 
 const router = express.Router();
 const { FeaturedAd, Ad, PlatformConfig } = models;
@@ -31,9 +32,9 @@ function parseJsonValue(value, fallback = []) {
 
 async function readCmsAds(key) {
   const row = await PlatformConfig.findByPk(key);
-  if (!row) return [];
+  if (!row) return getDefaultCmsAds(key);
   const parsed = parseJsonValue(row.value, []);
-  return Array.isArray(parsed) ? parsed : [];
+  return Array.isArray(parsed) && parsed.length > 0 ? parsed : getDefaultCmsAds(key);
 }
 
 async function writeCmsAds(key, items) {
