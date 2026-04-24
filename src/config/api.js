@@ -22,8 +22,9 @@ const RUNTIME_API_URL =
     ? window.__RRN_API_BASE.trim()
     : "";
 
-const BASE = (ENV_API_URL || RUNTIME_API_URL || getCanonicalOrigin())
-  .replace(/\/$/, "");
+const BASE =
+  import.meta.env.VITE_API_URL ||
+  "https://rrpn-backend.vercel.app";
 
 export const BACKEND_BASE = BASE;
 export const API_BASE = `${BACKEND_BASE}/api`;
