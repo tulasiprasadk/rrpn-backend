@@ -3,6 +3,7 @@ import api from "../api/client";
 import imageCompression from "browser-image-compression";
 import { useLocation, useNavigate } from "react-router-dom";
 import { savePendingSubscriptionCandidate } from "../components/SubscriptionPrompt";
+import RationBasket from "../components/RationBasket";
 import {
   calculateSubscriptionPreview,
   getFrequencyConfig,
@@ -78,7 +79,9 @@ export default function PaymentPage() {
   const [file, setFile] = useState(null);
   const [orderDetails, setOrderDetails] = useState(state?.orderDetails || null);
   const [selectedSubscriptionPeriod, setSelectedSubscriptionPeriod] = useState(state?.selectedSubscriptionPeriod || "");
-  const [subscriptionExpanded, setSubscriptionExpanded] = useState(Boolean(state?.selectedSubscriptionPeriod));
+  const [subscriptionExpanded, setSubscriptionExpanded] = useState(
+    Boolean(state?.selectedSubscriptionPeriod || state?.subscriptionDraft || cartItems.length)
+  );
   const [upsellExpanded, setUpsellExpanded] = useState(false);
   const [upsellRecommendations, setUpsellRecommendations] = useState([]);
   const [selectedUpsellIds, setSelectedUpsellIds] = useState([]);
@@ -87,12 +90,23 @@ export default function PaymentPage() {
   const [selectedGroceryPlan, setSelectedGroceryPlan] = useState(GROCERY_PLANS[0].value);
 
   const subscriptionCandidates = useMemo(() => {
-    const rows =
+    const stateRows =
       Array.isArray(state?.subscriptionCandidates) && state.subscriptionCandidates.length
         ? state.subscriptionCandidates
         : fallbackSubscriptionCandidate
           ? [fallbackSubscriptionCandidate]
           : [];
+
+    const cartRows = cartItems.map((item) => ({
+      productId: Number(item.productId || item.id || 0),
+      title: item.title || item.productName || "Product",
+      category: normalizeSubscriptionCategory(item.category || item.categoryName || item.Category?.name || ""),
+      basePrice: Number(item.basePrice ?? item.price ?? 0),
+      quantity: Number(item.quantity || item.qty || 1),
+      unit: item.unit || ""
+    }));
+
+    const rows = stateRows.length ? stateRows : cartRows;
 
     return uniqSubscriptionCandidates(
       rows.map((item) => ({
@@ -104,7 +118,7 @@ export default function PaymentPage() {
         unit: item.unit || ""
       }))
     );
-  }, [fallbackSubscriptionCandidate, state?.subscriptionCandidates]);
+  }, [cartItems, fallbackSubscriptionCandidate, state?.subscriptionCandidates]);
 
   const [selectedCandidateId, setSelectedCandidateId] = useState(
     () => String(subscriptionCandidates[0]?.productId || "")
@@ -315,6 +329,21 @@ export default function PaymentPage() {
   }, [effectiveSubscriptionSelection.amount, effectiveSubscriptionSelection.items, effectiveSubscriptionSelection.label, orderBaseAmount]);
 
   const hasSubscriptionAmount = Number(paymentSummary.subscriptionAmount || 0) > 0;
+  const visibleSubscriptionOptions = visibleSubscriptionPlans.length > 0;
+  const subscriptionSavings = Number(
+    subscriptionDraft?.pricing?.savings ||
+    grocerySubscriptionPreview?.savings ||
+    selectedSubscriptionPlan?.savings ||
+    0
+  );
+  const bestPlan = useMemo(
+    () =>
+      visibleSubscriptionPlans.reduce(
+        (best, plan) => (Number(plan.savings || 0) > Number(best?.savings || 0) ? plan : best),
+        visibleSubscriptionPlans[0] || null
+      ),
+    [visibleSubscriptionPlans]
+  );
 
   useEffect(() => {
     if (!orderId || orderDetails?.id) return;
@@ -341,6 +370,9 @@ export default function PaymentPage() {
     setUpsellExpanded(false);
     setGrocerySubscriptionMode(isDedicatedRationCategory ? SUBSCRIPTION_MODES.ration : SUBSCRIPTION_MODES.repeat_item);
     setSelectedRepeatFrequency("monthly_4");
+    if (isDedicatedRationCategory) {
+      setSubscriptionExpanded(true);
+    }
   }, [activeSubscriptionCandidate?.productId, isDedicatedRationCategory]);
 
   useEffect(() => {
@@ -352,7 +384,11 @@ export default function PaymentPage() {
     let mounted = true;
     api.get("/subscriptions/plans")
       .then((res) => {
-        const plans = Array.isArray(res.data?.plans) ? res.data.plans : [];
+        const plans = Array.isArray(res.data?.plans)
+          ? res.data.plans
+          : Array.isArray(res.data?.monthly)
+            ? res.data.monthly
+            : [];
         const cartProductIds = new Set(
           cartItems
             .map((item) => Number(item.id || item.productId || 0))
@@ -451,7 +487,7 @@ export default function PaymentPage() {
               ]
             };
 
-      const createRes = await api.post("/subscription/create", createPayload);
+      const createRes = await api.post("/subscriptions/create", createPayload);
       draftId = createRes.data?.subscription?.id || null;
     }
 
@@ -545,6 +581,59 @@ export default function PaymentPage() {
       >
         Complete Your Payment
       </h2>
+
+      <RationBasket title={isRationMode || isDedicatedRationCategory ? "Ration Basket" : "Order Basket"} />
+
+      {(visibleSubscriptionOptions || subscriptionDraft?.pricing) && (
+        <div
+          className="payment-card"
+          style={{
+            background: "linear-gradient(135deg, #fff8cc 0%, #ffe78a 52%, #ffd55c 100%)",
+            padding: "18px 20px",
+            borderRadius: 14,
+            marginBottom: 20,
+            border: "1px solid rgba(210, 140, 0, 0.2)",
+            boxShadow: "0 8px 22px rgba(194, 120, 0, 0.12)"
+          }}
+        >
+          <div style={{ fontSize: 12, fontWeight: 800, textTransform: "uppercase", color: "#9a3412" }}>
+            Subscription Savings
+          </div>
+          <div style={{ marginTop: 6, display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+            <div>
+              <div style={{ fontSize: 24, fontWeight: 900, color: "#5A3A00" }}>
+                {subscriptionSavings > 0
+                  ? `Save ₹${subscriptionSavings.toFixed(2)} with subscription`
+                  : "Choose a subscription and see the savings"}
+              </div>
+              <div style={{ marginTop: 6, color: "#7c5200", fontSize: 14 }}>
+                {selectedSubscriptionPeriod
+                  ? effectiveSubscriptionSelection.label
+                  : bestPlan
+                    ? `Best plan: ${bestPlan.label} saves ₹${Number(bestPlan.savings || 0).toFixed(2)}`
+                    : "Pick a compact card below to add repeat delivery or a ration basket."}
+              </div>
+            </div>
+            {!subscriptionDraft?.pricing ? (
+              <button
+                type="button"
+                onClick={() => setSubscriptionExpanded(true)}
+                style={{
+                  border: "none",
+                  borderRadius: 999,
+                  padding: "10px 14px",
+                  background: "#C8102E",
+                  color: "#fff",
+                  fontWeight: 800,
+                  cursor: "pointer"
+                }}
+              >
+                {selectedSubscriptionPeriod ? "Change plan" : "Add subscription"}
+              </button>
+            ) : null}
+          </div>
+        </div>
+      )}
 
       <div
         className="payment-card"

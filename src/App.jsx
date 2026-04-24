@@ -95,6 +95,7 @@ import AdminVarietiesList from "./pages/admin/varieties/AdminVarietiesList.jsx";
 import AdminSettings from "./pages/admin/AdminSettings.jsx";
 import VendorKycApproval from "./pages/admin/VendorKycApproval.jsx";
 import AdminKycApproval from "./pages/admin/AdminKycApproval.jsx";
+import AdminUsers from "./pages/admin/AdminUsers.jsx";
 import CmsManager from "./pages/admin/CmsManager.jsx";
 import AdminChangePassword from "./pages/admin/AdminChangePassword.jsx";
 import CheckoutMarketing from "./pages/admin/CheckoutMarketing.jsx";
@@ -218,6 +219,7 @@ function AppWrapper() {
               <Route path="ads" element={<AdminAdsList />} />
               <Route path="ads/new" element={<AdminAdForm mode="create" />} />
               <Route path="ads/:id/edit" element={<AdminAdForm mode="edit" />} />
+              <Route path="users" element={<AdminUsers />} />
               <Route path="analytics" element={<AnalyticsPage />} />
               <Route path="products" element={<AdminProductsList />} />
               <Route path="products/new" element={<AdminProductForm mode="create" />} />

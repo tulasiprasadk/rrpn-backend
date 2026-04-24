@@ -95,7 +95,7 @@ export default function SubscriptionPrompt({ initialCandidate = null, compact = 
     try {
       const [addressRes, createRes] = await Promise.all([
         api.get("/customer/address"),
-        api.post("/subscription/create", {
+        api.post("/subscriptions/create", {
           category: candidate.category || "general",
           primaryProductId: candidate.productId,
           duration: period,

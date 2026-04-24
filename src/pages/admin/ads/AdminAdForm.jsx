@@ -12,8 +12,10 @@ const AdminAdForm = ({ mode }) => {
   const [placement, setPlacement] = useState("checkout_ads");
   const [active, setActive] = useState(true);
   const [text, setText] = useState("");
+  const [price, setPrice] = useState("");
   const [image, setImage] = useState(null);
   const [preview, setPreview] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
   const isEditing = mode === "edit";
 
   const placementOptions = {
@@ -36,17 +38,19 @@ const AdminAdForm = ({ mode }) => {
       api.get(`/admin/ads/${id}`)
         .then((res) => res.data)
         .then(ad => {
-          setTitle(ad.title || ad.name || "");
-          setTargetUrl(ad.link || ad.targetUrl || "");
-          setSourceType(ad.sourceType || "cms");
-          if (ad.sourceType === "featured" && (ad.placement === "mega" || ad.placement === "scroll")) {
-            setPlacement(ad.placement === "scroll" ? "featured_scroll" : "featured_mega");
+          const payload = ad?.data || ad;
+          setTitle(payload.title || payload.name || "");
+          setTargetUrl(payload.link || payload.targetUrl || "");
+          setPrice(String(payload.price ?? ""));
+          setSourceType(payload.sourceType || "cms");
+          if (payload.sourceType === "featured" && (payload.placement === "mega" || payload.placement === "scroll")) {
+            setPlacement(payload.placement === "scroll" ? "featured_scroll" : "featured_mega");
           } else {
-            setPlacement(ad.placement || "checkout_ads");
+            setPlacement(payload.placement || "checkout_ads");
           }
-          setActive(Object.prototype.hasOwnProperty.call(ad, "active") ? Boolean(ad.active) : true);
-          setText(ad.text || "");
-          const imageUrl = ad.imageUrl || ad.image_url || ad.image || ad.url || ad.src;
+          setActive(Object.prototype.hasOwnProperty.call(payload, "active") ? Boolean(payload.active) : true);
+          setText(payload.text || "");
+          const imageUrl = payload.imageUrl || payload.image_url || payload.image || payload.url || payload.src;
           if (imageUrl) {
             setPreview(imageUrl);
           }
@@ -58,15 +62,30 @@ const AdminAdForm = ({ mode }) => {
   // Submit handler
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setErrorMessage("");
 
     const form = new FormData();
     form.append("title", title);
-    form.append("targetUrl", targetUrl);
+    form.append("link", targetUrl);
     form.append("sourceType", sourceType);
     form.append("placement", placement);
     form.append("active", String(active));
     form.append("text", text);
+    form.append("price", price);
     if (image) form.append("image", image);
+
+    console.log("[AdminAdForm] saving ad", {
+      mode,
+      id,
+      title,
+      targetUrl,
+      placement,
+      sourceType,
+      active,
+      price,
+      hasImage: Boolean(image),
+      hasPreview: Boolean(preview)
+    });
 
     try {
       if (mode === "edit") {
@@ -79,8 +98,15 @@ const AdminAdForm = ({ mode }) => {
         });
       }
       navigate("/admin/ads");
-    } catch (_err) {
-      alert("Failed to save advertisement");
+    } catch (err) {
+      console.error("[AdminAdForm] save failed", err?.response?.data || err);
+      const message =
+        err?.response?.data?.message ||
+        err?.response?.data?.error ||
+        err?.message ||
+        "Failed to save advertisement";
+      setErrorMessage(message);
+      alert(message);
     }
   };
 
@@ -89,6 +115,12 @@ const AdminAdForm = ({ mode }) => {
       <h1 className="text-2xl mb-5">
         {mode === "edit" ? "Edit Advertisement" : "Create New Advertisement"}
       </h1>
+
+      {errorMessage ? (
+        <div style={{ marginBottom: 16, padding: 12, borderRadius: 10, background: "#fee2e2", color: "#991b1b" }}>
+          {errorMessage}
+        </div>
+      ) : null}
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4 w-96">
         <input
@@ -102,10 +134,22 @@ const AdminAdForm = ({ mode }) => {
 
         <input
           type="text"
-          placeholder="Optional Link (https://...)"
+          placeholder="Link (https://...)"
           value={targetUrl}
           onChange={(e) => setTargetUrl(e.target.value)}
           className="border p-2"
+          required
+        />
+
+        <input
+          type="number"
+          placeholder="Price"
+          value={price}
+          onChange={(e) => setPrice(e.target.value)}
+          className="border p-2"
+          min="0"
+          step="0.01"
+          required
         />
 
         <textarea

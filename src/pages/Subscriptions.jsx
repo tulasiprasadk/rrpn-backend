@@ -98,7 +98,32 @@ export default function Subscriptions() {
             pricing,
             items,
             productId: activeProduct.id
-          }
+          },
+          subscriptionCandidate: {
+            productId: activeProduct.id,
+            title: activeProduct.title || "Product",
+            category: normalizeSubscriptionCategory(activeProduct.category?.name || activeProduct.category || ""),
+            basePrice: Number(activeProduct.price || 0),
+            quantity: 1,
+            unit: activeProduct.unit || ""
+          },
+          subscriptionCandidates: [
+            {
+              productId: activeProduct.id,
+              title: activeProduct.title || "Product",
+              category: normalizeSubscriptionCategory(activeProduct.category?.name || activeProduct.category || ""),
+              basePrice: Number(activeProduct.price || 0),
+              quantity: 1,
+              unit: activeProduct.unit || ""
+            }
+          ],
+          cartItems: items.map((item, index) => ({
+            id: item.productId || `subscription-item-${index}`,
+            title: item.title,
+            price: Number(item.unitPrice || 0),
+            quantity: Number(item.quantity || 1),
+            unit: item.unit || ""
+          }))
         }
       });
     } catch (err) {

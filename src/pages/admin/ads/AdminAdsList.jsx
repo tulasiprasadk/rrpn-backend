@@ -36,7 +36,7 @@ const AdminAdsList = () => {
     try {
       setLoading(true);
       const res = await api.get("/admin/ads");
-      const normalized = normalizeAds(res.data, "advertisements");
+      const normalized = normalizeAds(res.data?.data || res.data, "advertisements");
       if (normalized.length === 0) {
         setAds(DEFAULT_ADMIN_ADS);
         setUsingFallback(true);

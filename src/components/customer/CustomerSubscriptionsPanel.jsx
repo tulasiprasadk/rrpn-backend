@@ -74,7 +74,7 @@ export default function CustomerSubscriptionsPanel({ compact = false }) {
     setRenewingId(subscription.id);
     try {
       const [draftRes, addressRes] = await Promise.all([
-        api.post("/subscription/create", {
+        api.post("/subscriptions/create", {
           category: subscription.category || subscription?.Product?.Category?.name || "general",
           primaryProductId: productId,
           duration: subscription.duration || subscription.period,

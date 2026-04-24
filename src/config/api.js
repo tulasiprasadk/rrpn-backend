@@ -43,6 +43,7 @@ const API_PREFIXES = [
   "/ads",
   "/blogs",
   "/cms",
+  "/subscription",
   "/subscriptions",
   "/partner-inquiry",
   "/cart",

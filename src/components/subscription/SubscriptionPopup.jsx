@@ -14,6 +14,16 @@ import {
 } from "./subscriptionConfig";
 import "./SubscriptionPopup.css";
 
+function parseMetadata(value) {
+  if (!value) return {};
+  if (typeof value === "object") return value;
+  try {
+    return JSON.parse(value);
+  } catch (_err) {
+    return {};
+  }
+}
+
 function buildBaseItem(product, quantity = 1) {
   return {
     productId: product.id,
@@ -25,7 +35,8 @@ function buildBaseItem(product, quantity = 1) {
 }
 
 function buildRationItems(product) {
-  const rows = Array.isArray(product?.metadata?.items) ? product.metadata.items : [];
+  const metadata = parseMetadata(product?.metadata);
+  const rows = Array.isArray(metadata?.items) ? metadata.items : [];
   return rows.map((item) => ({
     title: item.title,
     quantity: Number(item.quantity || 1),
@@ -62,6 +73,7 @@ function HighlightChip({ children }) {
 export default function SubscriptionPopup({ open, onClose, product, quantity = 1, onConfirmed }) {
   const category = normalizeSubscriptionCategory(product?.category || product?.Category?.name || "");
   const isRation = category === "ration";
+  const productMetadata = useMemo(() => parseMetadata(product?.metadata), [product?.metadata]);
   const [enabled, setEnabled] = useState(true);
   const [frequency, setFrequency] = useState(SUBSCRIPTION_FREQUENCIES[0].value);
   const [duration, setDuration] = useState(SUBSCRIPTION_DURATIONS[0].value);
@@ -89,7 +101,11 @@ export default function SubscriptionPopup({ open, onClose, product, quantity = 1
       api
         .get("/subscriptions/plans")
         .then((res) => {
-          const rows = Array.isArray(res.data?.plans) ? res.data.plans : [];
+          const rows = Array.isArray(res.data?.plans)
+            ? res.data.plans
+            : Array.isArray(res.data?.monthly)
+              ? res.data.monthly
+              : [];
           const sameCategory = rows
             .filter((item) => normalizeSubscriptionCategory(item.category?.name || item.category || "") === category)
             .filter((item) => Number(item.id) !== Number(product.id))
@@ -108,10 +124,10 @@ export default function SubscriptionPopup({ open, onClose, product, quantity = 1
     [planType]
   );
 
-  const rationHighlights = Array.isArray(product?.metadata?.highlights) ? product.metadata.highlights : [];
+  const rationHighlights = Array.isArray(productMetadata?.highlights) ? productMetadata.highlights : [];
   const rationPreviewItems = useMemo(
-    () => (Array.isArray(product?.metadata?.items) ? product.metadata.items.slice(0, 8) : []),
-    [product]
+    () => (Array.isArray(productMetadata?.items) ? productMetadata.items.slice(0, 8) : []),
+    [productMetadata]
   );
 
   const draftItems = useMemo(() => {
@@ -195,7 +211,7 @@ export default function SubscriptionPopup({ open, onClose, product, quantity = 1
         recommendationIds: selectedUpsell,
         items: draftItems
       };
-      const res = await api.post("/subscription/create", payload);
+      const res = await api.post("/subscriptions/create", payload);
       onConfirmed?.({
         draft: res.data?.subscription,
         items: res.data?.items || [],
@@ -292,13 +308,13 @@ export default function SubscriptionPopup({ open, onClose, product, quantity = 1
                       </div>
                       <div style={{ textAlign: "right" }}>
                         <div style={{ fontSize: 12, color: "#8b5e00", fontWeight: 800 }}>
-                          {product.metadata?.badge || "Ration Plan"}
+                          {productMetadata?.badge || "Ration Plan"}
                         </div>
                         <div style={{ fontSize: 28, fontWeight: 900, color: "#C8102E", marginTop: 4 }}>
                           Rs {Number(product.price || 0).toFixed(2)}
                         </div>
                         <div style={{ fontSize: 13, color: "#6b4b00" }}>
-                          {Number(product.metadata?.itemCount || rationPreviewItems.length)} items included
+                          {Number(productMetadata?.itemCount || rationPreviewItems.length)} items included
                         </div>
                       </div>
                     </div>
@@ -339,9 +355,9 @@ export default function SubscriptionPopup({ open, onClose, product, quantity = 1
                             </div>
                           ))}
                         </div>
-                        {Number(product.metadata?.itemCount || 0) > rationPreviewItems.length && (
+                        {Number(productMetadata?.itemCount || 0) > rationPreviewItems.length && (
                           <div style={{ marginTop: 10, fontSize: 13, color: "#7a5a00", fontWeight: 700 }}>
-                            Plus {Number(product.metadata?.itemCount || 0) - rationPreviewItems.length} more items in the full ration basket
+                            Plus {Number(productMetadata?.itemCount || 0) - rationPreviewItems.length} more items in the full ration basket
                           </div>
                         )}
                       </div>

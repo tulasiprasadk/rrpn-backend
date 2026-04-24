@@ -260,6 +260,9 @@ export default function AdminLayout() {
               {item.icon} {translate(item.label, kannadaEnabled)}
             </Link>
           ))}
+          <Link to="/admin/users" className="admin-nav-link" onClick={() => setNavOpen(false)}>
+            ðŸ§‘ {translate("Users", kannadaEnabled)}
+          </Link>
 
           <button
             onClick={handleLogout}

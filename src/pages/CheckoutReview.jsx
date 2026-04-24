@@ -162,17 +162,17 @@ export default function CheckoutReview() {
         return;
       }
 
-      const subscriptionCandidates = cart
-        .map((item) => ({
-          productId: item.id || item.productId,
-          title: item.title || item.productName || "Product",
+        const subscriptionCandidates = cart
+          .map((item) => ({
+            productId: item.id || item.productId,
+            title: item.title || item.productName || "Product",
           basePrice: Number(item.price || 0),
           quantity: Number(item.quantity || item.qty || 1),
           category: normalizeSubscriptionCategory(item.category || item.categoryName || item.Category?.name || ""),
           unit: item.unit || ""
-        }))
-        .filter((item) => item.productId)
-        .filter((item) => ["flowers", "groceries", "pet_services"].includes(item.category));
+          }))
+          .filter((item) => item.productId)
+          .filter((item) => ["flowers", "groceries", "ration", "pet_services"].includes(item.category));
 
       if (!isGuest) {
         const order = {
