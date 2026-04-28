@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import CategoryLayout from "../components/CategoryLayout";
 import SubscriptionPopup from "../components/subscription/SubscriptionPopup";
 import api from "../api/client";
+import { fetchSubscriptionPlans } from "../api/subscriptionApi";
 import { normalizeSubscriptionCategory } from "../components/subscription/subscriptionConfig";
 
 function buildAddressText(address) {
@@ -29,8 +30,8 @@ export default function Subscriptions() {
       setLoading(true);
       setError("");
       try {
-        const res = await api.get("/subscriptions/plans");
-        const planProducts = Array.isArray(res.data?.plans) ? res.data.plans : [];
+        // Use fetchSubscriptionPlans which has a built-in fallback when the backend times out
+        const planProducts = await fetchSubscriptionPlans();
         if (!mounted) return;
         setProducts(planProducts);
       } catch (err) {
