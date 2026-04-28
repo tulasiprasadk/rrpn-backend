@@ -5,6 +5,8 @@ import SubscriptionPopup from "../components/subscription/SubscriptionPopup";
 import api from "../api/client";
 import { fetchSubscriptionPlans } from "../api/subscriptionApi";
 import { normalizeSubscriptionCategory } from "../components/subscription/subscriptionConfig";
+import { useCrackerCart } from "../context/CrackerCartContext";
+import { savePendingSubscriptionDraft } from "../components/SubscriptionWidget";
 
 function buildAddressText(address) {
   return [
@@ -23,6 +25,7 @@ export default function Subscriptions() {
   const [error, setError] = useState("");
   const [activeProduct, setActiveProduct] = useState(null);
   const navigate = useNavigate();
+  const { addItem } = useCrackerCart();
 
   useEffect(() => {
     let mounted = true;
@@ -128,7 +131,33 @@ export default function Subscriptions() {
         }
       });
     } catch (err) {
-      alert(err.response?.data?.error || err.message || "Failed to start subscription payment");
+      const msg = err.response?.data?.error || err.message || "Failed to start subscription payment";
+      // If backend is unreachable or timed out, save a pending draft and add to local bag so user sees it live
+      if (msg.toLowerCase().includes('timeout') || msg.toLowerCase().includes('unable to connect') || msg.toLowerCase().includes('network')) {
+        try {
+          const localDraft = {
+            id: `local-${Date.now()}`,
+            productId: activeProduct?.id,
+            category: normalizeSubscriptionCategory(activeProduct?.category?.name || activeProduct?.category || ""),
+            pricing: pricing || {},
+            items: items || [],
+            savedAt: new Date().toISOString()
+          };
+          savePendingSubscriptionDraft(localDraft);
+          // add a visible cart item for the subscription
+          try {
+            addItem({ id: localDraft.id, title: (activeProduct?.title || activeProduct?.name || 'Subscription'), price: Number((pricing?.totalPayable || pricing?.total || 0)), qty: 1 });
+          } catch (e) {
+            // ignore add-to-bag errors
+          }
+          navigate('/bag');
+          return;
+        } catch (e) {
+          // fallback to alert
+        }
+      }
+
+      alert(msg);
     }
   };
 
