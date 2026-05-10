@@ -1,3 +1,3 @@
 export default function handler(req, res) {
-  return res.status(200).send("GOOGLE ROUTE HIT");
+  return res.status(200).send("GOOGLE ROUTE HIT v2");
 }
