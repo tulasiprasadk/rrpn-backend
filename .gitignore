@@ -1,0 +1,8 @@
+.vercel
+.env*.local
+postgres-data/
+node_modules
+.env
+.vercel
+postgres-data
+.git_backup
