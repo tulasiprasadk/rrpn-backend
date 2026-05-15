@@ -1,3 +1,3 @@
 export default function handler(req, res) {
-  return res.status(200).end("BACKEND WORKING NOW");
+  return res.status(200).end("OK");
 }
