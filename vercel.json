@@ -1,3 +1,29 @@
 {
-  "version": 2
+  "version": 2,
+  "rewrites": [
+    {
+      "source": "/auth/:path*",
+      "destination": "/api/auth/:path*"
+    },
+    {
+      "source": "/customers/:path*",
+      "destination": "/api/customers/:path*"
+    },
+    {
+      "source": "/products/:path*",
+      "destination": "/api/products/:path*"
+    },
+    {
+      "source": "/categories",
+      "destination": "/api/categories"
+    },
+    {
+      "source": "/subscriptions/:path*",
+      "destination": "/api/subscriptions/:path*"
+    },
+    {
+      "source": "/health",
+      "destination": "/api/health"
+    }
+  ]
 }
