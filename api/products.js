@@ -1,19 +1,26 @@
 import { getProducts } from "./_lib/catalog.js";
-import { json, setCors } from "./_lib/auth.js";
+import { setCors } from "./_lib/auth.js";
 
 export default async function handler(req, res) {
   setCors(req, res);
-  if (req.method === "OPTIONS") return res.status(204).end();
+
+  if (req.method === "OPTIONS") {
+    return res.status(204).end();
+  }
 
   if (req.method !== "GET") {
     res.setHeader("Allow", "GET, OPTIONS");
-    return json(res, 405, { error: "Method Not Allowed" });
+    return res.status(405).json({ error: "Method Not Allowed" });
   }
 
   try {
     const products = await getProducts(req.query || {});
-    return json(res, 200, { value: products, products });
+
+    // ✅ FINAL FIX — return plain array
+    return res.status(200).json(products);
+
   } catch (err) {
-    return json(res, 500, { error: "Failed to load products" });
+    console.error("Products error:", err);
+    return res.status(500).json({ error: "Failed to load products" });
   }
 }
