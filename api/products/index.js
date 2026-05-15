@@ -1,17 +1,23 @@
-    import { applyCors } from '../_utils';
+import { getProducts } from "../_lib/catalog.js";
+import { setCors } from "../_lib/auth.js";
 
-export default function handler(req, res) {
-  if (applyCors(req, res)) return;
+export default async function handler(req, res) {
+  setCors(req, res);
 
-  if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method Not Allowed' });
+  if (req.method === "OPTIONS") {
+    return res.status(204).end();
   }
 
-  // 👉 Replace this with your real data source
-  const products = [
-    { id: 1, name: "Rice", price: 120 },
-    { id: 2, name: "Wheat", price: 80 }
-  ];
+  if (req.method !== "GET") {
+    res.setHeader("Allow", "GET, OPTIONS");
+    return res.status(405).json({ error: "Method Not Allowed" });
+  }
 
-  return res.status(200).json(products);
+  try {
+    const products = await getProducts(req.query || {});
+    return res.status(200).json(products);
+  } catch (err) {
+    console.error("Products error:", err);
+    return res.status(500).json({ error: "Failed to load products" });
+  }
 }
