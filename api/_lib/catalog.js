@@ -32,12 +32,13 @@ function decodeJsonBuffer(buffer) {
 
 export async function getProducts(query = {}) {
   const rows = await getCatalog();
+
   const q = String(query.q || query.search || "").trim().toLowerCase();
   const categoryId = String(query.categoryId || "").trim();
   const category = String(query.category || "").trim().toLowerCase();
   const limit = Math.max(1, Math.min(Number(query.limit || 50000), 50000));
 
-  return rows
+  const filteredRows = rows
     .filter((product) => product.status !== "rejected")
     .filter((product) => {
       if (!q) return true;
@@ -52,9 +53,19 @@ export async function getProducts(query = {}) {
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(q));
     })
-    .filter((product) => !categoryId || String(product.CategoryId || product.categoryId || "") === categoryId)
-    .filter((product) => !category || String(product.Category?.name || product.category || "").toLowerCase().includes(category))
+    .filter((product) =>
+      !categoryId ||
+      String(product.CategoryId || product.categoryId || "") === categoryId
+    )
+    .filter((product) =>
+      !category ||
+      String(product.Category?.name || product.category || "")
+        .toLowerCase()
+        .includes(category)
+    )
     .slice(0, limit);
+
+  return filteredRows;
 }
 
 export async function getProductById(id) {
