@@ -3,6 +3,7 @@ import { setCors } from "../_lib/auth.js";
 
 export default async function handler(req, res) {
   setCors(req, res);
+  res.setHeader("X-API-Source", "NEW_HANDLER_V2");
 
   if (req.method === "OPTIONS") {
     return res.status(204).end();
